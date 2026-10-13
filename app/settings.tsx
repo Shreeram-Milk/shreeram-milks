@@ -11,15 +11,23 @@ import { AccountMenuRow } from "../src/components/molecules/AccountMenuRow";
 import { SettingsToggleRow } from "../src/components/molecules/SettingsToggleRow";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import {
+  AlertCircleIcon,
   AlertsIcon,
+  LogoutIcon,
   CalendarIcon,
   EditIcon,
   LanguageIcon,
   LockIcon,
   ShieldIcon,
 } from "../src/icons/appIcons";
+import { APP_VERSION } from "../src/lib/appVersion";
 import { useTheme } from "../src/theme";
-import { useAppStore } from "../src/store/useAppStore";
+import { Button } from "../src/components/atoms/Button";
+import { ConfirmSheet } from "../src/components/organisms/ConfirmSheet";
+import { useDeleteAccount } from "../src/hooks/useCustomerAuth";
+import { formatPhone } from "../src/lib/phone";
+import { describeError } from "../src/services/errorMapper";
+import { useSessionStore } from "../src/store/useSessionStore";
 
 function SettingsGroup({
   children,
@@ -54,8 +62,13 @@ function SettingsGroup({
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const profile = useAppStore((state) => state.profile);
   const { t } = useTranslation();
+  const customer = useSessionStore((state) => state.customer);
+  const signOut = useSessionStore((state) => state.signOut);
+  const deleteAccount = useDeleteAccount();
+  const [confirming, setConfirming] = useState<"signOut" | "delete" | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+  const profile = { fullName: customer?.name || t("account.guest"), phone: formatPhone(customer?.phone ?? "") };
   const [dispatchAlerts, setDispatchAlerts] = useState(true);
   const [photoProof, setPhotoProof] = useState(true);
   const [seasonalUpdates, setSeasonalUpdates] = useState(false);
@@ -99,27 +112,12 @@ export default function SettingsScreen() {
               <ThemedText variant="body" weight="bold">
                 {profile.fullName}
               </ThemedText>
-              <View
-                style={{
-                  paddingHorizontal: theme.spacing.xs,
-                  borderRadius: theme.radii.pill,
-                  backgroundColor: theme.colors.colorSurfaceMuted,
-                }}
-              >
-                <ThemedText
-                  variant="caption"
-                  weight="semibold"
-                  style={{ color: theme.colors.colorTextSecondary }}
-                >
-                  {t("settings.memberLabel")}
-                </ThemedText>
-              </View>
             </View>
             <ThemedText
               variant="bodySmall"
               style={{ color: theme.colors.colorTextSecondary }}
             >
-              {t("settings.memberDetail")}
+              {profile.phone}
             </ThemedText>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel={t("profile.editProfile")} hitSlop={theme.spacing.sm} onPress={() => router.push("/edit-profile")} style={{ width: theme.layout.touchTargetMin, height: theme.layout.touchTargetMin, alignItems: "center", justifyContent: "center" }}><AppIcon icon={EditIcon} accessibilityLabel="" tone="secondary" size="sm" /></Pressable>
@@ -207,6 +205,14 @@ export default function SettingsScreen() {
             </ThemedText>
           </View>
         </View>
+        <View style={{ gap: theme.spacing.sm }}>
+          <Button variant="secondary" onPress={() => setConfirming("signOut")}>
+            {t("account.signOut")}
+          </Button>
+          <Button variant="danger" onPress={() => { deleteAccount.reset(); setConfirming("delete"); }}>
+            {t("account.deleteAccount")}
+          </Button>
+        </View>
         <ThemedText
           variant="caption"
           style={{
@@ -214,9 +220,37 @@ export default function SettingsScreen() {
             textAlign: "center",
           }}
         >
-          {t("settings.version")}
+          {t("settings.version", { version: APP_VERSION })}
         </ThemedText>
       </ScrollView>
+      <ConfirmSheet
+        visible={confirming === "signOut"}
+        icon={LogoutIcon}
+        title={t("account.signOutTitle")}
+        description={t("account.signOutBody")}
+        cancelLabel={t("account.stay")}
+        confirmLabel={t("account.signOut")}
+        loading={signingOut}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          setSigningOut(true);
+          void signOut().then(() => { setSigningOut(false); setConfirming(null); router.replace("/onboarding"); });
+        }}
+      />
+      <ConfirmSheet
+        visible={confirming === "delete"}
+        tone="danger"
+        icon={AlertCircleIcon}
+        title={t("account.deleteTitle")}
+        description={t("account.deleteIntro")}
+        consequences={[t("account.deleteLoseDetails"), t("account.deleteSignedOut"), t("account.deleteKeepOrders"), t("account.deleteFinal")]}
+        cancelLabel={t("account.keepAccount")}
+        confirmLabel={t("account.deleteConfirm")}
+        loading={deleteAccount.isPending}
+        errorText={deleteAccount.error ? describeError(deleteAccount.error) : undefined}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => deleteAccount.mutate(undefined, { onSuccess: () => { setConfirming(null); router.replace("/onboarding"); } })}
+      />
     </SafeAreaView>
   );
 }

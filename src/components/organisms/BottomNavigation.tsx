@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useFeatureFlags } from "../../hooks/useContent";
 import { useAppStore } from "../../store/useAppStore";
 import { useTheme } from "../../theme";
 import type { IconSvgElement } from "../atoms/AppIcon";
@@ -137,6 +138,8 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { showSubscriptions } = useFeatureFlags();
+  const visibleItems = items.filter((item) => item.key !== "subscriptions" || showSubscriptions);
   const cartCount = useAppStore((state) =>
     state.cart.reduce((total, item) => total + item.quantity, 0),
   );
@@ -153,7 +156,7 @@ export function BottomNavigation({
         backgroundColor: theme.colors.colorNavigation,
       }}
     >
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <NavigationItem
           key={item.key}
           active={item.key === activeKey}

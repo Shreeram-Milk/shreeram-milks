@@ -1,7 +1,7 @@
 export type AppLanguage = "en" | "gu";
 
 export interface Product {
-  category: "Milk" | "Curd" | "Paneer" | "Ghee" | "Butter";
+  category: string;
   id: string;
   name: string;
   nameGujarati: string;

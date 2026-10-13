@@ -44,6 +44,8 @@ export function useScrollResponsiveBottomAction() {
       const delta = offset - lastOffset.current;
       if (delta > 8) setVisible(true);
       if (delta < -8) setVisible(false);
+      // At the very top the form is short or just reviewed, and the action must never be out of reach.
+      if (offset <= 8) setVisible(true);
       lastOffset.current = offset;
     },
     [setVisible],

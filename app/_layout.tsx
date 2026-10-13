@@ -1,17 +1,31 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { AvailabilityGate } from "../src/components/organisms/AvailabilityGate";
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAppFonts } from "../src/theme";
 import { useAppStore } from "../src/store/useAppStore";
+import { useSessionStore } from "../src/store/useSessionStore";
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();
   const [languageLoaded, setLanguageLoaded] = useState(false);
+  const sessionStatus = useSessionStore((state) => state.status);
+  const previousStatus = useRef(sessionStatus);
+
+  useEffect(() => {
+    void useSessionStore.getState().restore();
+  }, []);
+
+  // A token the server refused (or an account deleted elsewhere) ends the session; send the customer back to the start.
+  useEffect(() => {
+    if (previousStatus.current === "signedIn" && sessionStatus === "signedOut") router.replace("/onboarding");
+    previousStatus.current = sessionStatus;
+  }, [sessionStatus]);
 
   useEffect(() => {
     void AsyncStorage.getItem("appLanguage")
@@ -24,16 +38,18 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if ((fontsLoaded || fontError) && languageLoaded)
+    if ((fontsLoaded || fontError) && languageLoaded && sessionStatus !== "restoring")
       void SplashScreen.hideAsync();
-  }, [fontError, fontsLoaded, languageLoaded]);
+  }, [fontError, fontsLoaded, languageLoaded, sessionStatus]);
 
-  if ((!fontsLoaded && !fontError) || !languageLoaded) return null;
+  if ((!fontsLoaded && !fontError) || !languageLoaded || sessionStatus === "restoring") return null;
   if (fontError) throw fontError;
 
   return (
     <AppProviders>
-      <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+      <AvailabilityGate>
+        <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+      </AvailabilityGate>
     </AppProviders>
   );
 }

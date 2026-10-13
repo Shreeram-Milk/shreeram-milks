@@ -5,14 +5,16 @@ import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AppIcon } from "../src/components/atoms/AppIcon";
 import { Button } from "../src/components/atoms/Button";
+import { IconButton } from "../src/components/atoms/IconButton";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { SharedCalendar } from "../src/components/molecules/SharedCalendar";
 import { BackIcon } from "../src/icons/appIcons";
 import { useTheme } from "../src/theme";
 import { useAppStore } from "../src/store/useAppStore";
 import { useDeliveryCalendar } from "../src/hooks/useDeliveryCalendar";
+import { useProducts } from "../src/hooks/useProducts";
+import type { Product } from "../src/types/models";
 
 type Step = "products" | "dates" | "success";
 type DateField = "pause" | "resume";
@@ -22,19 +24,16 @@ const subscriptions = [
     id: "a2-cow-milk",
     nameKey: "a2Milk",
     detailKey: "milkDaily",
-    imageUrl: undefined,
   },
   {
     id: "buffalo-milk",
     nameKey: "buffaloMilk",
     detailKey: "milkDaily",
-    imageUrl: undefined,
   },
   {
     id: "premium-curd",
     nameKey: "dahi",
     detailKey: "dahiAlternate",
-    imageUrl: undefined,
   },
 ];
 
@@ -76,6 +75,7 @@ export default function SubscriptionVacationScreen() {
   const setVacationPause = useAppStore((state) => state.setVacationPause);
   const setDeliveryState = useAppStore((state) => state.setDeliveryState);
   const { data: deliveries = [] } = useDeliveryCalendar();
+  const { data: products = [] } = useProducts();
   const duration = daysBetween(pauseDate, resumeDate);
 
   const toggleSubscription = (id: string) =>
@@ -120,6 +120,7 @@ export default function SubscriptionVacationScreen() {
             <SelectProducts
               selectedIds={selectedIds}
               onToggle={toggleSubscription}
+              products={products}
             />
           ) : null}
           {step === "dates" ? (
@@ -201,13 +202,11 @@ function Header({ onBack, step }: { onBack: () => void; step: Step }) {
         borderColor: theme.colors.colorBorder,
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t("subscriptionVacation.back")}
+      <IconButton
+        icon={BackIcon}
+        label={t("subscriptionVacation.back")}
         onPress={onBack}
-      >
-        <AppIcon icon={BackIcon} accessibilityLabel="" size="md" />
-      </Pressable>
+      />
       <ThemedText variant="body" weight="semibold">
         {step === "success"
           ? t("subscriptionVacation.confirmedTitle")
@@ -253,9 +252,11 @@ function Progress({ step }: { step: Step }) {
 
 function SelectProducts({
   onToggle,
+  products,
   selectedIds,
 }: {
   onToggle: (id: string) => void;
+  products: Product[];
   selectedIds: string[];
 }) {
   const theme = useTheme();
@@ -287,7 +288,7 @@ function SelectProducts({
             }}
           >
             <Image
-              source={{ uri: subscription.imageUrl }}
+              source={{ uri: products.find((product) => product.id === subscription.id)?.imageUrl ?? undefined }}
               contentFit="cover"
               style={{
                 width: theme.sizes.avatarLg,

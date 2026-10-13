@@ -34,4 +34,14 @@ export {
   TruckIcon as TruckIcon,
   UserIcon as ProfileIcon,
   Wallet01Icon as WalletIcon,
-} from "@hugeicons/core-free-icons";
+  AlertCircleIcon as AlertCircleIcon,
+  Chat01Icon as ChatIcon,
+  CheckmarkCircle02Icon as SuccessIcon,
+  CreditCardIcon as CreditCardIcon,
+  CustomerSupportIcon as SupportIcon,
+  Flag01Icon as FlagIcon,
+  Mail01Icon as MailIcon,
+  Package01Icon as PackageIcon,
+  RepeatIcon as RepeatIcon,
+  WhatsappIcon as WhatsAppIcon,
+} from "./hugeicons";

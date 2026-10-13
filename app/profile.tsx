@@ -12,6 +12,7 @@ import {
   CalendarIcon,
   CartIcon,
   EditIcon,
+  FlagIcon,
   HelpIcon,
   HomeIcon,
   InvoiceIcon,
@@ -20,9 +21,12 @@ import {
   ProfileIcon,
   SettingsIcon,
   ShieldIcon,
+  SupportIcon,
 } from "../src/icons/appIcons";
+import { APP_VERSION } from "../src/lib/appVersion";
 import { useTheme } from "../src/theme";
-import { useAppStore } from "../src/store/useAppStore";
+import { formatPhone } from "../src/lib/phone";
+import { useSessionStore } from "../src/store/useSessionStore";
 
 function ProfileSection({
   children,
@@ -62,7 +66,8 @@ function ProfileSection({
 export default function ProfileScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const profile = useAppStore((state) => state.profile);
+  const customer = useSessionStore((state) => state.customer);
+  const profile = { fullName: customer?.name || t("account.guest"), phone: formatPhone(customer?.phone ?? "") };
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
@@ -86,6 +91,7 @@ export default function ProfileScreen() {
         >
           <ThemedText variant="h1">{t("profile.title")}</ThemedText>
           <Pressable
+            accessibilityRole="button"
             accessibilityLabel={t("profile.openSettings")}
             hitSlop={theme.spacing.sm}
             onPress={() => router.push("/settings")}
@@ -139,22 +145,6 @@ export default function ProfileScreen() {
               {profile.phone}
             </ThemedText>
           </View>
-          <View
-            style={{
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: theme.spacing.xs,
-              borderRadius: theme.radii.pill,
-              backgroundColor: theme.colors.colorSurfaceMuted,
-            }}
-          >
-            <ThemedText
-              variant="caption"
-              weight="semibold"
-              style={{ color: theme.colors.colorTextSecondary }}
-            >
-              {t("profile.member")}
-            </ThemedText>
-          </View>
         </View>
         <ProfileSection title={t("profile.ordersSection")}>
           <AccountMenuRow
@@ -201,7 +191,25 @@ export default function ProfileScreen() {
           />
           <AccountMenuRow
             icon={HelpIcon}
-            onPress={() => router.push("/help-support")}
+            onPress={() => router.push("/help")}
+            subtitle={t("profile.helpSubtitle")}
+            title={t("profile.help")}
+          />
+          <AccountMenuRow
+            icon={FlagIcon}
+            onPress={() => router.push("/report-issue")}
+            subtitle={t("profile.reportSubtitle")}
+            title={t("profile.report")}
+          />
+          <AccountMenuRow
+            icon={InvoiceIcon}
+            onPress={() => router.push("/policies")}
+            subtitle={t("profile.legalSubtitle")}
+            title={t("profile.legal")}
+          />
+          <AccountMenuRow
+            icon={SupportIcon}
+            onPress={() => router.push("/support")}
             subtitle={t("profile.supportSubtitle")}
             title={t("profile.support")}
           />
@@ -210,7 +218,7 @@ export default function ProfileScreen() {
           variant="caption"
           style={{ color: theme.colors.colorTextDisabled, textAlign: "center" }}
         >
-          {t("profile.version")}
+          {t("profile.version", { version: APP_VERSION })}
         </ThemedText>
       </ScrollView>
       <BottomNavigation

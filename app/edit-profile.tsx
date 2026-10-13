@@ -1,3 +1,4 @@
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StatusBar, View } from "react-native";
@@ -8,15 +9,22 @@ import { ThemedText } from "../src/components/atoms/ThemedText";
 import { Avatar } from "../src/components/atoms/Avatar";
 import { FormField } from "../src/components/molecules/FormField";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
+import { useSaveProfile } from "../src/hooks/useCustomerAuth";
+import { formatPhone } from "../src/lib/phone";
+import { describeError } from "../src/services/errorMapper";
 import { useAppStore } from "../src/store/useAppStore";
+import { useSessionStore } from "../src/store/useSessionStore";
 import { useTheme } from "../src/theme";
 
 export default function EditProfileScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const profile = useAppStore((state) => state.profile);
-  const setProfile = useAppStore((state) => state.setProfile);
-  const [draft, setDraft] = useState(profile);
+  const { first } = useLocalSearchParams<{ first?: string }>();
+  const isFirstTime = first === "1";
+  const customer = useSessionStore((state) => state.customer);
+  const language = useAppStore((state) => state.language);
+  const save = useSaveProfile();
+  const [draft, setDraft] = useState({ fullName: customer?.name ?? "", email: customer?.email ?? "" });
   const [saved, setSaved] = useState(false);
   const emailError =
     draft.email.length > 0 && !/^\S+@\S+\.\S+$/.test(draft.email);
@@ -33,7 +41,7 @@ export default function EditProfileScreen() {
       >
         <ScreenHeader
           backLabel={t("commonActions.back")}
-          title={t("editProfile.title")}
+          title={isFirstTime ? t("editProfile.firstTitle") : t("editProfile.title")}
         />
         <KeyboardAwareScrollView
           mode="layout"
@@ -50,6 +58,14 @@ export default function EditProfileScreen() {
               size="lg"
             />
           </View>
+          {isFirstTime ? (
+            <ThemedText
+              variant="body"
+              style={{ color: theme.colors.colorTextSecondary }}
+            >
+              {t("editProfile.firstDescription")}
+            </ThemedText>
+          ) : null}
           <FormField
             label={t("editProfile.name")}
             value={draft.fullName}
@@ -61,7 +77,7 @@ export default function EditProfileScreen() {
           />
           <FormField
             label={t("editProfile.phone")}
-            value={draft.phone}
+            value={formatPhone(customer?.phone ?? "")}
             editable={false}
             keyboardType="phone-pad"
           />
@@ -85,13 +101,30 @@ export default function EditProfileScreen() {
           />
           <Button
             disabled={emailError || !draft.fullName.trim()}
-            onPress={() => {
-              setProfile(draft);
-              setSaved(true);
-            }}
+            loading={save.isPending}
+            onPress={() =>
+              save.mutate(
+                { name: draft.fullName.trim(), email: draft.email.trim(), language },
+                {
+                  onSuccess: () => {
+                    setSaved(true);
+                    if (isFirstTime) router.replace("/location");
+                  },
+                },
+              )
+            }
           >
             {t("editProfile.save")}
           </Button>
+          {save.error ? (
+            <ThemedText
+              accessibilityLiveRegion="polite"
+              variant="bodySmall"
+              style={{ color: theme.colors.colorDanger, textAlign: "center" }}
+            >
+              {describeError(save.error)}
+            </ThemedText>
+          ) : null}
           {saved ? (
             <ThemedText
               accessibilityLiveRegion="polite"

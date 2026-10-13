@@ -214,6 +214,7 @@ function EmptySubscriptions({ products }: { products: Product[] }) {
   const { t } = useTranslation();
   const cart = useAppStore((state) => state.cart);
   const addToCart = useAppStore((state) => state.addToCart);
+  const removeFromCart = useAppStore((state) => state.removeFromCart);
   const dailyProducts = useMemo(() => products.slice(0, 2), [products]);
   return (
     <View style={{ gap: theme.spacing.lg, paddingVertical: theme.spacing.md }}>
@@ -338,6 +339,7 @@ function EmptySubscriptions({ products }: { products: Product[] }) {
               product={product}
               isAdded={cart.some((item) => item.product.id === product.id)}
               onAdd={() => addToCart(product)}
+              onRemove={removeFromCart}
               onPress={(productId) => router.push({ pathname: "/product-details", params: { productId } })}
             />
           ))}

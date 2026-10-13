@@ -1,17 +1,20 @@
-import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, ScrollView, StatusBar, View } from "react-native";
+import { FlatList, Pressable, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppIcon } from "../src/components/atoms/AppIcon";
-import { Chip } from "../src/components/atoms/Chip";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { BottomNavigation } from "../src/components/organisms/BottomNavigation";
-import { ProductCard } from "../src/components/organisms/ProductCard";
+import { HomeBanners } from "../src/components/organisms/HomeBanners";
+import { CategoryChips } from "../src/components/molecules/CategoryChips";
+import { CatalogProductCard } from "../src/components/organisms/CatalogProductCard";
 import { StateMessage } from "../src/components/organisms/StateMessage";
-import { useProducts } from "../src/hooks/useProducts";
+import { useBanners, useFeatureFlags } from "../src/hooks/useContent";
+import { useCatalogCart } from "../src/hooks/useCatalogCart";
+import { useCatalogCategories, useCatalogProducts } from "../src/hooks/useCatalog";
+import { localized } from "../src/lib/contentLocalization";
 import {
   CalendarIcon,
   CartIcon,
@@ -22,59 +25,38 @@ import {
   ProfileIcon,
 } from "../src/icons/appIcons";
 import { useTheme } from "../src/theme";
-import type { Product } from "../src/types/models";
+import type { CatalogProduct } from "../src/types/catalog";
+import { pickDefaultAddress, useAddresses } from "../src/hooks/useAddresses";
 import { useAppStore } from "../src/store/useAppStore";
-
-const categories = ["All", "Milk", "Curd", "Paneer", "Ghee", "Butter"] as const;
+import { useSessionStore } from "../src/store/useSessionStore";
 
 export default function HomeScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { data: products = [], isError, isLoading, refetch } = useProducts();
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const { data: products = [], isError, isLoading, isRefetching: productsRefetching, refetch } = useCatalogProducts(activeCategoryId);
+  const { data: categories = [] } = useCatalogCategories();
+  const language = useAppStore((state) => state.language);
+  const customer = useSessionStore((state) => state.customer);
+  const deliveryPin = useAppStore((state) => state.deliveryPin);
+  const { data: addresses } = useAddresses();
+  const defaultAddress = pickDefaultAddress(addresses);
+  const firstName = customer?.name.trim().split(/\s+/)[0] ?? "";
+  const locationText = defaultAddress
+    ? [defaultAddress.line2 || defaultAddress.line1, defaultAddress.pincode].filter(Boolean).join(" • ")
+    : deliveryPin
+      ? t("home.deliveringToPin", { pin: deliveryPin })
+      : t("home.setLocation");
+  const { showSeasonalBanner } = useFeatureFlags();
+  const { data: banners, isLoading: bannersLoading, isRefetching: bannersRefetching, refetch: refetchBanners } = useBanners();
   const [activeTab, setActiveTab] = useState("home");
-  const [activeCategory, setActiveCategory] =
-    useState<(typeof categories)[number]>("All");
-  const cart = useAppStore((state) => state.cart);
-  const addToCart = useAppStore((state) => state.addToCart);
-  const handleProductPress = useCallback(
-    (productId: string) =>
-      router.push({ pathname: "/product-details", params: { productId } }),
-    [],
-  );
-  const handleAdd = useCallback(
-    (productId: string) => {
-      const product = products.find((item) => item.id === productId);
-      if (product) addToCart(product);
-    },
-    [addToCart, products],
-  );
-  const filteredProducts =
-    activeCategory === "All"
-      ? products
-      : products.filter((product) => product.category === activeCategory);
-  const renderProduct = useCallback(
-    ({ item }: { item: Product }) => (
-      <View style={{ flex: 1, marginBottom: theme.spacing.md }}>
-        <ProductCard
-          isAdded={cart.some((cartItem) => cartItem.product.id === item.id)}
-          product={item}
-          onAdd={handleAdd}
-          onPress={handleProductPress}
-        />
-      </View>
-    ),
-    [cart, handleAdd, handleProductPress, theme.spacing.md],
-  );
-  const renderCategory = useCallback(
-    ({ item }: { item: (typeof categories)[number] }) => {
-      const selected = item === activeCategory;
-      return (
-        <Chip onPress={() => setActiveCategory(item)} selected={selected}>
-          {t(`home.categories.${item.toLowerCase()}`)}
-        </Chip>
-      );
-    },
-    [activeCategory, t, theme],
+  const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
+  const activeCategory = categories.find((category) => category.id === activeCategoryId);
+  const activeCategoryName = activeCategory ? localized(activeCategory.name, activeCategory.nameGu, language) : t("home.categories.all");
+  const renderProduct = ({ item }: { item: CatalogProduct }) => (
+    <View style={{ flex: 1, marginBottom: theme.spacing.md }}>
+      <CatalogProductCard isAdded={isAdded(item)} product={item} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
+    </View>
   );
 
   const listHeader = (
@@ -93,7 +75,7 @@ export default function HomeScreen() {
         }}
       >
         <View style={{ gap: theme.spacing.xs }}>
-          <ThemedText variant="h2">{t("home.greeting", { name: "Priya" })}</ThemedText>
+          <ThemedText variant="h2">{firstName ? t("home.greeting", { name: firstName }) : t("home.greetingNoName")}</ThemedText>
           <View
             style={{
               flexDirection: "row",
@@ -111,7 +93,7 @@ export default function HomeScreen() {
               variant="caption"
               style={{ color: theme.colors.colorTextSecondary }}
             >
-              {t("home.location")}
+              {locationText}
             </ThemedText>
           </View>
         </View>
@@ -131,164 +113,8 @@ export default function HomeScreen() {
           <AppIcon icon={NotificationIcon} accessibilityLabel="" size="sm" />
         </Pressable>
       </View>
-      <View
-        style={{
-          height: 146,
-          overflow: "hidden",
-          borderRadius: theme.radii.lg,
-          backgroundColor: theme.colors.colorPrimary,
-        }}
-      >
-        <Image
-          source={require("../assets/onboarding-milk-hero.png")}
-          contentFit="cover"
-          transition={theme.motion.duration.normal}
-          style={{ width: "100%", height: "100%" }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: theme.colors.colorOverlay,
-            opacity: 0.48,
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            inset: 0,
-            justifyContent: "flex-end",
-            padding: theme.spacing.md,
-            gap: theme.spacing.xs,
-          }}
-        >
-          <View
-            style={{
-              alignSelf: "flex-start",
-              borderRadius: theme.radii.pill,
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: theme.spacing.xs,
-              backgroundColor: theme.colors.colorSurface,
-            }}
-          >
-            <ThemedText
-              variant="caption"
-              weight="semibold"
-              style={{ color: theme.colors.colorPrimary }}
-            >
-              {t("home.offer")}
-            </ThemedText>
-          </View>
-          <ThemedText
-            variant="body"
-            weight="bold"
-            style={{ color: theme.colors.colorTextInverse }}
-          >
-            {t("home.bannerTitle")}
-          </ThemedText>
-          <ThemedText
-            variant="caption"
-            style={{ color: theme.colors.colorTextInverse }}
-          >
-            {t("home.bannerDetail")}
-          </ThemedText>
-        </View>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: theme.spacing.sm }}
-      >
-        {categories.map((item) => (
-          <View key={item}>{renderCategory({ item })}</View>
-        ))}
-      </ScrollView>
-      <View
-        style={{
-          borderRadius: theme.radii.lg,
-          backgroundColor: theme.colors.colorSuccessTint,
-          ...theme.elevation.card,
-        }}
-      >
-        <View
-          style={{
-            position: "relative",
-            overflow: "hidden",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: theme.spacing.sm,
-            borderRadius: theme.radii.lg,
-            borderWidth: theme.borderWidths.hairline,
-            borderColor: theme.colors.colorSurface,
-            padding: theme.spacing.md,
-            backgroundColor: theme.colors.colorSuccessTint,
-          }}
-        >
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: -theme.spacing.sm,
-              left: theme.spacing.md,
-              width: "58%",
-              height: "58%",
-              borderRadius: theme.radii.pill,
-              backgroundColor: theme.colors.colorSurface,
-              opacity: theme.opacity.overlay,
-            }}
-          />
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: theme.spacing.md,
-              right: theme.spacing.md,
-              height: theme.borderWidths.hairline,
-              backgroundColor: theme.colors.colorSurface,
-              opacity: theme.opacity.subdued,
-            }}
-          />
-          <View
-            style={{
-              width: theme.sizes.avatarMd,
-              height: theme.sizes.avatarMd,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: theme.radii.pill,
-              backgroundColor: theme.colors.colorSurface,
-            }}
-          >
-            <AppIcon
-              icon={CalendarIcon}
-              accessibilityLabel={t("home.nextDelivery")}
-              size="sm"
-              tone="success"
-            />
-          </View>
-          <View style={{ flex: 1, gap: theme.spacing.xs }}>
-            <ThemedText
-              variant="caption"
-              weight="semibold"
-              style={{ color: theme.colors.colorTextPrimary }}
-            >
-              {t("home.nextDeliveryTime")}
-            </ThemedText>
-            <ThemedText variant="bodySmall">
-              {t("home.nextDeliveryProduct")}
-            </ThemedText>
-          </View>
-          <ThemedText
-            variant="caption"
-            weight="semibold"
-            style={{ color: theme.colors.colorTextPrimary }}
-          >
-            {t("home.skipPause")}
-          </ThemedText>
-        </View>
-      </View>
+      {showSeasonalBanner ? <HomeBanners banners={banners} isLoading={bannersLoading} language={language} /> : null}
+      <CategoryChips categories={categories} language={language} selectedId={activeCategoryId} onSelect={setActiveCategoryId} />
       <View
         style={{
           flexDirection: "row",
@@ -332,7 +158,7 @@ export default function HomeScreen() {
           />
         ) : (
           <FlatList
-            data={filteredProducts}
+            data={products}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id}
             numColumns={2}
@@ -341,10 +167,12 @@ export default function HomeScreen() {
             ListEmptyComponent={
               <StateMessage
                 type="empty"
-                title={t("home.empty", { category: t(`home.categories.${activeCategory.toLowerCase()}`) })}
+                title={activeCategory ? t("home.empty", { category: activeCategoryName }) : t("home.emptyAll")}
               />
             }
             showsVerticalScrollIndicator={false}
+            refreshing={productsRefetching || bannersRefetching}
+            onRefresh={() => { void refetchBanners(); void refetch(); }}
           />
         )}
       </View>

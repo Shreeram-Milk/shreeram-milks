@@ -11,18 +11,23 @@ import { DeliverySlotCard } from "../src/components/molecules/DeliverySlotCard";
 import { CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
 import { HomeIcon, MapPinIcon, ShieldIcon } from "../src/icons/appIcons";
 import { useAppStore } from "../src/store/useAppStore";
+import { useAddresses, useDoorstepInstructions, useSaveDoorstepInstructions } from "../src/hooks/useAddresses";
+import { parseInstructions } from "../src/services/addressService";
 import { useTheme } from "../src/theme";
+import type { DoorstepInstructions } from "../src/types/models";
 
 export default function CheckoutAddressScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const cart = useAppStore((state) => state.cart);
-  const addresses = useAppStore((state) => state.addresses);
+  const { data: addresses = [] } = useAddresses();
   const checkoutSelection = useAppStore((state) => state.checkoutSelection);
   const setCheckoutAddress = useAppStore((state) => state.setCheckoutAddress);
   const setCheckoutDeliverySlot = useAppStore((state) => state.setCheckoutDeliverySlot);
-  const doorstepInstructions = useAppStore((state) => state.doorstepInstructions);
-  const setDoorstepInstructions = useAppStore((state) => state.setDoorstepInstructions);
+  const { data: savedInstructions } = useDoorstepInstructions();
+  const saveInstructions = useSaveDoorstepInstructions();
+  const doorstepInstructions = savedInstructions ?? parseInstructions(null);
+  const setDoorstepInstructions = (next: DoorstepInstructions) => saveInstructions.mutate(next);
   const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const serviceableAddresses = addresses.filter((address) => address.isServiceable);
   const selectedAddressId = serviceableAddresses.some((address) => address.id === checkoutSelection.addressId)

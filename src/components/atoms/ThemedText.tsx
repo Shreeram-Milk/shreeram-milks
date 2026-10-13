@@ -12,8 +12,8 @@ interface ThemedTextProps extends TextProps {
 }
 
 const fontWeightByVariant: Record<TextVariant, FontWeightName> = {
-  h1: 'extrabold',
-  h2: 'bold',
+  h1: 'bold',
+  h2: 'semibold',
   body: 'regular',
   bodySmall: 'regular',
   caption: 'medium',

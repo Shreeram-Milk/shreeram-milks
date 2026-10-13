@@ -1,98 +1,73 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, Pressable, StatusBar, StyleSheet, View } from "react-native";
+import { Animated, Pressable, StatusBar, View } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AppIcon } from "../src/components/atoms/AppIcon";
 import { AppInput } from "../src/components/atoms/AppInput";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { DeliverySetupHeader } from "../src/components/molecules/DeliverySetupHeader";
+import { PinAvailabilityCard } from "../src/components/molecules/PinAvailabilityCard";
 import { useScrollResponsiveBottomAction } from "../src/components/organisms/ScrollResponsiveBottomAction";
-import { useServiceAreas } from "../src/hooks/useServiceAreas";
-import { LocationIcon } from "../src/icons/appIcons";
+import { usePinAvailability } from "../src/hooks/usePinAvailability";
+import { PIN_CODE } from "../src/services/deliveryAvailabilityService";
+import { StateMessage } from "../src/components/organisms/StateMessage";
+import { pickDefaultAddress, useAddresses, useSaveAddress } from "../src/hooks/useAddresses";
+import { describeError } from "../src/services/errorMapper";
+import { useAppStore } from "../src/store/useAppStore";
+import { useSessionStore } from "../src/store/useSessionStore";
 import { useTheme } from "../src/theme";
+import type { AddressType, DeliveryAddress } from "../src/types/models";
 
-function DummyMapBackground() {
-  const theme = useTheme();
-  return (
-    <View
-      style={[StyleSheet.absoluteFill, { overflow: "hidden" }]}
-      pointerEvents="none"
-    >
-      <View
-        style={{
-          position: "absolute",
-          top: 20,
-          left: -10,
-          width: 220,
-          height: 2,
-          backgroundColor: theme.colors.colorBorder,
-          transform: [{ rotate: "18deg" }],
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          top: 70,
-          left: -20,
-          width: 260,
-          height: 2,
-          backgroundColor: theme.colors.colorBorder,
-          transform: [{ rotate: "-8deg" }],
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          top: 10,
-          left: 40,
-          width: 2,
-          height: 120,
-          backgroundColor: theme.colors.colorBorder,
-          transform: [{ rotate: "10deg" }],
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          top: 24,
-          left: 90,
-          width: 28,
-          height: 20,
-          borderRadius: theme.radii.sm,
-          backgroundColor: theme.colors.colorSurfaceMuted,
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          bottom: 30,
-          right: 60,
-          width: 36,
-          height: 24,
-          borderRadius: theme.radii.sm,
-          backgroundColor: theme.colors.colorSurfaceMuted,
-        }}
-      />
-    </View>
-  );
-}
-
-export default function LocationScreen() {
+/** Delivery location: the customer types a PIN code and the server says whether, and from when, we deliver there. */
+function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const language = useAppStore((state) => state.language);
+  const setDeliveryPin = useAppStore((state) => state.setDeliveryPin);
   const { bottomActionStyle, onScroll } = useScrollResponsiveBottomAction();
-  const { data: serviceAreas = [] } = useServiceAreas();
-  const [address, setAddress] = useState("Villa 4B");
-  const [landmark, setLandmark] = useState("Greenwood Meadows Phase 1");
-  const [addressType, setAddressType] = useState("home");
-  const area = serviceAreas[0]?.locality ?? t("location.fallbackArea");
+  // A returning customer starts from their default address instead of typing it all again.
+  const [pin, setPin] = useState(useAppStore.getState().deliveryPin || prefill?.pincode || "");
+  const [address, setAddress] = useState(prefill?.line1 ?? "");
+  const [landmark, setLandmark] = useState(prefill?.line2 ?? "");
+  const [addressType, setAddressType] = useState<string>(prefill?.addressType ?? "home");
+  const customer = useSessionStore((state) => state.customer);
+  const { data: savedAddresses } = useAddresses();
+  const saveAddress = useSaveAddress();
+  const complete = PIN_CODE.test(pin);
+  const detailsComplete = address.trim() !== "" && landmark.trim() !== "";
+  const { data: availability, isError, isLoading, refetch } = usePinAvailability(pin);
+  const served = complete && (availability?.options.length ?? 0) > 0;
+
+  const next = async () => {
+    setDeliveryPin(pin);
+    const alreadySaved = (savedAddresses ?? []).some((item) => item.pincode === pin && item.line1.trim().toLowerCase() === address.trim().toLowerCase());
+    if (!alreadySaved) {
+      try {
+        await saveAddress.mutateAsync({
+          draft: {
+            addressType: addressType as AddressType,
+            city: availability?.options[0]?.locality ?? "",
+            fullName: customer?.name.trim() || t("account.guest"),
+            isDefault: true,
+            landmark: "",
+            line1: address.trim(),
+            line2: landmark.trim(),
+            phone: (customer?.phone ?? "").replace(/^\+91/, ""),
+            pincode: pin,
+          },
+        });
+      } catch {
+        return;
+      }
+    }
+    router.push("/delivery-slot");
+  };
 
   return (
     <SafeAreaView
@@ -106,6 +81,7 @@ export default function LocationScreen() {
           skipLabel={t("location.skip")}
         />
         <KeyboardAwareScrollView
+          bottomOffset={104}
           mode="layout"
           keyboardShouldPersistTaps="handled"
           onScroll={onScroll}
@@ -124,106 +100,36 @@ export default function LocationScreen() {
           >
             {t("location.description")}
           </ThemedText>
-          <View
-            style={{
-              overflow: "hidden",
-              borderRadius: theme.radii.lg,
-              borderWidth: theme.borderWidths.hairline,
-              borderColor: theme.colors.colorBorder,
-              backgroundColor: theme.colors.colorSurface,
-            }}
-          >
-            <View
-              style={{
-                height: 128,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: theme.colors.colorSurfaceDisabled,
-              }}
-            >
-              <DummyMapBackground />
-              <View
-                style={{
-                  width: theme.sizes.avatarLg,
-                  height: theme.sizes.avatarLg,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: theme.radii.pill,
-                  backgroundColor: theme.colors.colorPrimary,
-                  borderWidth: theme.borderWidths.medium,
-                  borderColor: theme.colors.colorSurface,
-                }}
+          <View style={{ gap: theme.spacing.xs }}>
+            <ThemedText variant="bodySmall" weight="semibold">
+              {t("location.pinLabel")}{" "}
+              <ThemedText
+                variant="bodySmall"
+                weight="bold"
+                style={{ color: theme.colors.colorDanger }}
               >
-                <AppIcon
-                  icon={LocationIcon}
-                  accessibilityLabel={t("location.pinned")}
-                  size="md"
-                  tone="onPrimary"
-                />
-              </View>
-              <View
-                style={[
-                  {
-                    position: "absolute",
-                    bottom: theme.spacing.sm,
-                    left: theme.spacing.sm,
-                    borderRadius: theme.radii.pill,
-                    paddingHorizontal: theme.spacing.sm,
-                    paddingVertical: theme.spacing.xs,
-                    backgroundColor: theme.colors.colorSurface,
-                  },
-                  theme.elevation.card,
-                ]}
-              >
-                <ThemedText variant="caption" weight="semibold">
-                  {t("location.available")}
-                </ThemedText>
-              </View>
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: theme.spacing.sm,
-                padding: theme.spacing.md,
-              }}
-            >
-              <View
-                style={{
-                  width: theme.sizes.avatarSm,
-                  height: theme.sizes.avatarSm,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: theme.radii.pill,
-                  backgroundColor: theme.colors.colorPrimaryTint,
-                }}
-              >
-                <AppIcon
-                  icon={LocationIcon}
-                  accessibilityLabel={t("location.pinnedArea")}
-                  size="sm"
-                />
-              </View>
-              <View style={{ flex: 1, gap: theme.spacing.xs }}>
-                <ThemedText
-                  variant="caption"
-                  weight="semibold"
-                  style={{ color: theme.colors.colorTextSecondary }}
-                >
-                  {t("location.pinnedArea")}
-                </ThemedText>
-                <ThemedText variant="bodySmall" numberOfLines={1}>
-                  {area}
-                </ThemedText>
-                <ThemedText
-                  variant="caption"
-                  style={{ color: theme.colors.colorTextSecondary }}
-                >
-                  {t("location.areaDetail")}
-                </ThemedText>
-              </View>
-            </View>
+                *
+              </ThemedText>
+            </ThemedText>
+            <AppInput
+              accessibilityLabel={t("location.pinLabel")}
+              hasError={complete && !isLoading && !isError && !served}
+              inputMode="numeric"
+              keyboardType="number-pad"
+              maxLength={6}
+              onChangeText={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
+              placeholder={t("location.pinPlaceholder")}
+              value={pin}
+            />
           </View>
+          <PinAvailabilityCard
+            availability={availability}
+            complete={complete}
+            isError={isError}
+            isLoading={isLoading}
+            language={language}
+            onRetry={() => void refetch()}
+          />
           <View style={{ gap: theme.spacing.xs }}>
             <ThemedText variant="bodySmall" weight="semibold">
               {t("location.addressLine1")}{" "}
@@ -322,8 +228,13 @@ export default function LocationScreen() {
             ]}
           >
             <View style={{ paddingBottom: theme.spacing.xs }}>
-              <Button onPress={() => router.push("/delivery-slot")}>
-                {t("location.continue")}
+              {saveAddress.error ? (
+                <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger, paddingBottom: theme.spacing.xs }}>
+                  {describeError(saveAddress.error)}
+                </ThemedText>
+              ) : null}
+              <Button disabled={!served || !detailsComplete} loading={saveAddress.isPending} onPress={() => void next()}>
+                {served ? t("location.continue") : t("location.continueBlocked")}
               </Button>
             </View>
           </Animated.View>
@@ -331,4 +242,25 @@ export default function LocationScreen() {
       </View>
     </SafeAreaView>
   );
+}
+
+/** Waits for the saved addresses so a returning customer sees their address already filled in. A failed load just means a blank form. */
+export default function LocationScreen() {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const { data, isLoading } = useAddresses();
+  // Never trap the customer on a spinner: if the saved address has not arrived quickly (slow or no connection), show the form.
+  const [gaveUp, setGaveUp] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setGaveUp(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+  if (isLoading && !gaveUp) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground, padding: theme.layout.screenHorizontalPadding }}>
+        <StateMessage type="loading" title={t("addresses.loading")} />
+      </SafeAreaView>
+    );
+  }
+  return <LocationForm prefill={pickDefaultAddress(data)} />;
 }

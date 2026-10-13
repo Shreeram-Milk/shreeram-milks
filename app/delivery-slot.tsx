@@ -9,8 +9,14 @@ import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { DeliverySetupHeader } from "../src/components/molecules/DeliverySetupHeader";
 import { useScrollResponsiveBottomAction } from "../src/components/organisms/ScrollResponsiveBottomAction";
+import { useAddresses, useDoorstepInstructions, useSaveDoorstepInstructions, pickDefaultAddress } from "../src/hooks/useAddresses";
+import { usePinAvailability } from "../src/hooks/usePinAvailability";
+import { formatDeliveryDate, formatWindow } from "../src/lib/deliveryText";
+import { describeError } from "../src/services/errorMapper";
 import { CalendarIcon, LocationIcon } from "../src/icons/appIcons";
+import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
+import type { ServedSlot } from "../src/types/delivery";
 
 interface ProtocolSwitchProps {
   label: string;
@@ -78,134 +84,69 @@ function ProtocolSwitch({
   );
 }
 
+/** One delivery window the customer's PIN code gets, from the admin's delivery slots. Shown for information: the window is chosen when ordering. */
+function WindowCard({ slot, language }: { slot: ServedSlot; language: "en" | "gu" }) {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  return (
+    <View
+      style={{
+        flex: 1,
+        minHeight: theme.sizes.slotCardHeight * 2,
+        justifyContent: "space-between",
+        borderRadius: theme.radii.lg,
+        padding: theme.spacing.md,
+        backgroundColor: theme.colors.colorSurface,
+        borderWidth: theme.borderWidths.hairline,
+        borderColor: theme.colors.colorBorder,
+      }}
+    >
+      <View
+        style={{
+          width: theme.sizes.avatarSm,
+          height: theme.sizes.avatarSm,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: theme.radii.pill,
+          backgroundColor: theme.colors.colorSurfaceMuted,
+        }}
+      >
+        <AppIcon icon={CalendarIcon} accessibilityLabel="" size="sm" tone="secondary" />
+      </View>
+      <View style={{ gap: theme.spacing.xs }}>
+        <ThemedText variant="bodySmall" weight="semibold">
+          {slot.name}
+        </ThemedText>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>
+          {formatWindow(slot.startTime, slot.endTime)}
+        </ThemedText>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorPrimary }}>
+          {t("location.earliest", { date: formatDeliveryDate(slot.earliestDate, language) })}
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
+
 export default function DeliverySlotScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const { bottomActionStyle, onScroll } = useScrollResponsiveBottomAction();
-  const [slot, setSlot] = useState<"silent" | "handover">("silent");
-  const [ringBell, setRingBell] = useState(false);
-  const [insulatedPouch, setInsulatedPouch] = useState(true);
-  const slotCard = (
-    key: "silent" | "handover",
-    title: string,
-    time: string,
-    recommended = false,
-  ) => {
-    const active = slot === key;
-    return (
-      <Pressable
-        key={key}
-        accessibilityRole="radio"
-        accessibilityState={{ selected: active }}
-        accessibilityLabel={title}
-        onPress={() => setSlot(key)}
-        style={[
-          {
-            flex: 1,
-            minHeight: theme.sizes.slotCardHeight * 2,
-            justifyContent: "space-between",
-            borderRadius: theme.radii.lg,
-            padding: theme.spacing.md,
-            backgroundColor: active
-              ? theme.colors.colorPrimary
-              : theme.colors.colorSurface,
-            borderWidth: active
-              ? theme.borderWidths.none
-              : theme.borderWidths.hairline,
-            borderColor: theme.colors.colorBorder,
-          },
-          active ? theme.elevation.card : theme.elevation.none,
-        ]}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <View
-            style={{
-              width: theme.sizes.avatarSm,
-              height: theme.sizes.avatarSm,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: theme.radii.pill,
-              backgroundColor: active
-                ? theme.colors.colorPrimaryTint
-                : theme.colors.colorSurfaceMuted,
-            }}
-          >
-            <AppIcon
-              icon={CalendarIcon}
-              accessibilityLabel=""
-              size="sm"
-              tone={active ? "onPrimary" : "secondary"}
-            />
-          </View>
-          <View
-            style={{
-              width: theme.spacing.lg,
-              height: theme.spacing.lg,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: theme.radii.pill,
-              backgroundColor: active
-                ? theme.colors.colorPrimaryTint
-                : theme.colors.colorBorder,
-            }}
-          >
-            <ThemedText
-              variant="caption"
-              weight="semibold"
-              style={{
-                color: active
-                  ? theme.colors.colorPrimary
-                  : theme.colors.colorTextSecondary,
-              }}
-            >
-              {active ? "✓" : ""}
-            </ThemedText>
-          </View>
-        </View>
-        <View style={{ gap: theme.spacing.xs }}>
-          <ThemedText
-            variant="bodySmall"
-            weight="semibold"
-            style={{
-              color: active
-                ? theme.colors.colorTextInverse
-                : theme.colors.colorTextPrimary,
-            }}
-          >
-            {title}
-          </ThemedText>
-          {recommended ? (
-            <ThemedText
-              variant="caption"
-              weight="semibold"
-              style={{
-                color: active
-                  ? theme.colors.colorPrimaryTint
-                  : theme.colors.colorTextSecondary,
-              }}
-            >
-              {t("deliverySlot.recommended")}
-            </ThemedText>
-          ) : null}
-          <ThemedText
-            variant="caption"
-            style={{
-              color: active
-                ? theme.colors.colorPrimaryTint
-                : theme.colors.colorTextSecondary,
-            }}
-          >
-            {time}
-          </ThemedText>
-        </View>
-      </Pressable>
-    );
+  const language = useAppStore((state) => state.language);
+  const deliveryPin = useAppStore((state) => state.deliveryPin);
+  const { data: addresses } = useAddresses();
+  const { data: availability } = usePinAvailability(deliveryPin);
+  const { data: instructions } = useDoorstepInstructions();
+  const saveInstructions = useSaveDoorstepInstructions();
+  const [ringChoice, setRingChoice] = useState<boolean | null>(null);
+  const address = pickDefaultAddress(addresses);
+  const ringBell = ringChoice ?? (instructions ? !instructions.noDoorbell : false);
+  // Distinct windows across every delivery option that serves the PIN, in time order.
+  const windows = [...new Map((availability?.options ?? []).flatMap((option) => option.slots).map((slot) => [slot.slotId, slot])).values()].sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  const complete = () => {
+    if (!instructions) { router.replace("/home"); return; }
+    saveInstructions.mutate({ ...instructions, noDoorbell: !ringBell }, { onSuccess: () => router.replace("/home") });
   };
 
   return (
@@ -273,17 +214,19 @@ export default function DeliverySlotScreen() {
               </ThemedText>
               <ThemedText
                 variant="bodySmall"
-                numberOfLines={1}
+                numberOfLines={2}
                 weight="semibold"
               >
-                {t("deliverySlot.address")}
+                {address ? [address.line1, address.line2].filter(Boolean).join(", ") : t("deliverySlot.pinOnly", { pin: deliveryPin })}
               </ThemedText>
-              <ThemedText
-                variant="caption"
-                style={{ color: theme.colors.colorTextSecondary }}
-              >
-                {t("deliverySlot.city")}
-              </ThemedText>
+              {address ? (
+                <ThemedText
+                  variant="caption"
+                  style={{ color: theme.colors.colorTextSecondary }}
+                >
+                  {[address.city, address.pincode].filter(Boolean).join(" • ")}
+                </ThemedText>
+              ) : null}
             </View>
             <Pressable
               accessibilityRole="button"
@@ -311,21 +254,21 @@ export default function DeliverySlotScreen() {
               weight="semibold"
               style={{ color: theme.colors.colorTextSecondary }}
             >
-              {t("deliverySlot.selectWindow")}
+              {t("deliverySlot.windowsTitle")}
             </ThemedText>
-            <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-              {slotCard(
-                "silent",
-                t("deliverySlot.silent"),
-                t("deliverySlot.silentTime"),
-                true,
-              )}
-              {slotCard(
-                "handover",
-                t("deliverySlot.handover"),
-                t("deliverySlot.handoverTime"),
-              )}
-            </View>
+            {windows.length > 0 ? (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
+                {windows.map((slot) => (
+                  <View key={slot.slotId} style={{ flexBasis: "47%", flexGrow: 1 }}>
+                    <WindowCard slot={slot} language={language} />
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>
+                {t("deliverySlot.noWindows")}
+              </ThemedText>
+            )}
           </View>
           <View
             style={{
@@ -342,15 +285,14 @@ export default function DeliverySlotScreen() {
               label={t("deliverySlot.ring")}
               description={t("deliverySlot.ringDetail")}
               value={ringBell}
-              onChange={setRingBell}
-            />
-            <ProtocolSwitch
-              label={t("deliverySlot.pouch")}
-              description={t("deliverySlot.pouchDetail")}
-              value={insulatedPouch}
-              onChange={setInsulatedPouch}
+              onChange={setRingChoice}
             />
           </View>
+          {saveInstructions.error ? (
+            <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>
+              {describeError(saveInstructions.error)}
+            </ThemedText>
+          ) : null}
         </Animated.ScrollView>
         <Animated.View
           style={[
@@ -366,7 +308,7 @@ export default function DeliverySlotScreen() {
           ]}
         >
           <View style={{ paddingBottom: theme.spacing.xs }}>
-            <Button onPress={() => router.replace("/home")}>
+            <Button loading={saveInstructions.isPending} onPress={complete}>
               {t("deliverySlot.complete")}
             </Button>
           </View>

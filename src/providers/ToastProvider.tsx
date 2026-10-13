@@ -7,10 +7,12 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { Animated, Easing } from "react-native";
+import { Animated, Easing, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "../components/atoms/ThemedText";
+import { AppIcon } from "../components/atoms/AppIcon";
+import { CheckIcon } from "../icons/appIcons";
 import { useTheme } from "../theme";
 
 interface ToastContextValue {
@@ -109,20 +111,39 @@ export function ToastProvider({ children }: PropsWithChildren) {
             left: theme.layout.screenHorizontalPadding,
             right: theme.layout.screenHorizontalPadding,
             zIndex: theme.zIndex.toast,
+            minHeight: theme.sizes.avatarSm + theme.spacing.sm * 2,
             alignItems: "center",
-            paddingHorizontal: theme.spacing.md,
+            justifyContent: "center",
+            paddingLeft: theme.spacing.md + theme.sizes.avatarSm + theme.spacing.sm,
+            paddingRight: theme.spacing.md,
             paddingVertical: theme.spacing.sm,
-            borderRadius: theme.radii.md,
+            borderRadius: theme.radii.lg,
             backgroundColor: theme.colors.colorSuccessTint,
             opacity,
             transform: [{ translateY }],
             ...theme.elevation.card,
           }}
         >
+          <View
+            accessible={false}
+            style={{
+              position: "absolute",
+              left: theme.spacing.md,
+              top: theme.spacing.sm,
+              width: theme.sizes.avatarSm,
+              height: theme.sizes.avatarSm,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: theme.radii.pill,
+              backgroundColor: theme.colors.colorSuccess,
+            }}
+          >
+            <AppIcon icon={CheckIcon} accessibilityLabel="" size="sm" tone="onPrimary" />
+          </View>
           <ThemedText
             variant="bodySmall"
             weight="semibold"
-            style={{ color: theme.colors.colorSuccess, textAlign: "center" }}
+            style={{ color: theme.colors.colorSuccess, flexShrink: 1 }}
           >
             {message}
           </ThemedText>

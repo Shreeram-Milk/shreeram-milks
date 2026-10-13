@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { AppIcon } from "../atoms/AppIcon";
 import { CheckIcon, AddIcon } from "../../icons/appIcons";
 import { useToast } from "../../providers/ToastProvider";
+import { getLocalizedProductName } from "../../lib/productLocalization";
 import { useTheme } from "../../theme";
 import type { Product } from "../../types/models";
 import { ThemedText } from "../atoms/ThemedText";
@@ -13,6 +14,7 @@ import { ThemedText } from "../atoms/ThemedText";
 interface ProductCardProps {
   isAdded?: boolean;
   onAdd: (productId: string) => void;
+  onRemove: (productId: string) => void;
   onPress: (productId: string) => void;
   product: Product;
 }
@@ -20,11 +22,12 @@ interface ProductCardProps {
 export const ProductCard = memo(function ProductCard({
   isAdded = false,
   onAdd,
+  onRemove,
   onPress,
   product,
 }: ProductCardProps) {
   const theme = useTheme();
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { showToast } = useToast();
   const cardScale = useRef(new Animated.Value(1)).current;
   const addScale = useRef(new Animated.Value(1)).current;
@@ -36,14 +39,20 @@ export const ProductCard = memo(function ProductCard({
       easing: Easing.bezier(...theme.motion.easing.standard),
       useNativeDriver: true,
     }).start();
+  const productName = getLocalizedProductName(product, i18n.resolvedLanguage ?? i18n.language);
 
-  const handleAdd = () => {
+  const handleCartAction = () => {
+    if (isAdded) {
+      onRemove(product.id);
+      showToast(t("productCard.removedToast", { product: productName }));
+      return;
+    }
     onAdd(product.id);
-    showToast(t("productCard.addedToast", { product: product.name }));
+    showToast(t("productCard.addedToast", { product: productName }));
   };
   const actionLabel = t(
-    isAdded ? "productCard.addedAction" : "productCard.addAction",
-    { product: product.name },
+    isAdded ? "productCard.removeAction" : "productCard.addAction",
+    { product: productName },
   );
 
   return (
@@ -58,7 +67,7 @@ export const ProductCard = memo(function ProductCard({
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={product.name}
+          accessibilityLabel={productName}
           onPress={() => onPress(product.id)}
           onPressIn={() => animate(cardScale, theme.motion.pressScale.card)}
           onPressOut={() => animate(cardScale, 1)}
@@ -80,7 +89,7 @@ export const ProductCard = memo(function ProductCard({
             }}
           >
             <ThemedText variant="bodySmall" weight="semibold" numberOfLines={1}>
-              {product.name}
+              {productName}
             </ThemedText>
             <ThemedText
               variant="caption"
@@ -107,7 +116,7 @@ export const ProductCard = memo(function ProductCard({
               accessibilityRole="button"
               accessibilityLabel={actionLabel}
               accessibilityState={{ selected: isAdded }}
-              onPress={handleAdd}
+              onPress={handleCartAction}
               onPressIn={() => animate(addScale, theme.motion.pressScale.control)}
               onPressOut={() => animate(addScale, 1)}
               style={({ pressed }) => ({

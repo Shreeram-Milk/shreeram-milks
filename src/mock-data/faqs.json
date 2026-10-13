@@ -1,0 +1,47 @@
+[
+  {
+    "id": "faq-arrival",
+    "topic": "late_delivery",
+    "questionEn": "When will my delivery arrive?",
+    "questionGu": "",
+    "answerEn": "Your scheduled delivery window appears in your order details and delivery calendar.",
+    "answerGu": "",
+    "searchKeywords": [
+      "time",
+      "window",
+      "morning"
+    ],
+    "featured": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "faq-pause",
+    "topic": "subscription_issue",
+    "questionEn": "How do I pause a subscription?",
+    "questionGu": "",
+    "answerEn": "Open your subscription and choose Pause subscription to select the dates you will be away.",
+    "answerGu": "",
+    "searchKeywords": [
+      "vacation",
+      "hold",
+      "skip"
+    ],
+    "featured": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "faq-refunds",
+    "topic": "payment_issue",
+    "questionEn": "How do payments and refunds work?",
+    "questionGu": "",
+    "answerEn": "Payments are confirmed when your order is placed. Refunds are returned to the original payment method.",
+    "answerGu": "",
+    "searchKeywords": [
+      "money",
+      "refund",
+      "charged"
+    ],
+    "featured": false,
+    "sortOrder": 1
+  }
+]

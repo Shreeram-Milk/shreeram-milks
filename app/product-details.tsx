@@ -1,11 +1,11 @@
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppIcon } from "../src/components/atoms/AppIcon";
+import { Chip } from "../src/components/atoms/Chip";
 import { Button } from "../src/components/atoms/Button";
 import { IconButton } from "../src/components/atoms/IconButton";
 import { ThemedText } from "../src/components/atoms/ThemedText";
@@ -14,28 +14,39 @@ import {
   PurchasePlanTabs,
   type PurchasePlan,
 } from "../src/components/molecules/PurchasePlanTabs";
+import { ProductDeliveryCard } from "../src/components/molecules/ProductDeliveryCard";
 import { QuantityStepper } from "../src/components/molecules/QuantityStepper";
 import { SubscriptionScheduleConfigurator } from "../src/components/molecules/SubscriptionScheduleConfigurator";
+import { ProductImageCarousel } from "../src/components/organisms/ProductImageCarousel";
 import { StateMessage } from "../src/components/organisms/StateMessage";
-import { BackIcon, CalendarIcon, CartIcon } from "../src/icons/appIcons";
-import { useProducts } from "../src/hooks/useProducts";
+import { BackIcon, CartIcon, CheckIcon } from "../src/icons/appIcons";
+import { useCatalogProduct, useProductDelivery } from "../src/hooks/useCatalog";
+import { useToast } from "../src/providers/ToastProvider";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
+import { formatRupees, toCartProduct } from "../src/lib/catalogCart";
+import { localized } from "../src/lib/contentLocalization";
+
+const PLAN_OF_METHOD = { buy_once: "single", trial: "trial", subscription: "subscription" } as const;
 
 export default function ProductDetailsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const language = useAppStore((state) => state.language);
   const { productId } = useLocalSearchParams<{ productId?: string }>();
   const id = Array.isArray(productId) ? productId[0] : productId;
-  const { data: products = [], isError, isLoading, refetch } = useProducts();
-  const product = useMemo(
-    () => products.find((item) => item.id === id),
-    [id, products],
-  );
+  const { data: product, isError, isLoading, refetch } = useCatalogProduct(id);
+  const deliveryPin = useAppStore((state) => state.deliveryPin);
+  const delivery = useProductDelivery(deliveryPin, product?.fulfilmentProfileId ?? null);
+  const [variantId, setVariantId] = useState<string | null>(null);
   const [plan, setPlan] = useState<PurchasePlan>("single");
+  const [trialPlanId, setTrialPlanId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [slot, setSlot] = useState<"early" | "regular">("early");
+  const [slotId, setSlotId] = useState<string | null>(null);
   const addToCart = useAppStore((state) => state.addToCart);
+  const cart = useAppStore((state) => state.cart);
+  const updateCartQuantity = useAppStore((state) => state.updateCartQuantity);
+  const { showToast } = useToast();
 
   if (isLoading)
     return (
@@ -60,8 +71,34 @@ export default function ProductDetailsScreen() {
       </SafeAreaView>
     );
 
+  const variant = product.variants.find((item) => item.id === variantId) ?? product.variants[0];
+  if (!variant) return null;
+  const cartProduct = toCartProduct(product, variant);
+  const productName = localized(product.name, product.nameGu, language);
+  const description = localized(product.longDescriptionEn || product.shortDescriptionEn, product.longDescriptionGu || product.shortDescriptionGu, language);
+  const highlights = language === "gu" && product.highlightsGu.length > 0 ? product.highlightsGu : product.highlightsEn;
+  const nutrition = localized(product.nutritionEn, product.nutritionGu, language);
+  const plans = product.purchaseMethods.map((method) => PLAN_OF_METHOD[method]);
+  const activePlan: PurchasePlan = plans.includes(plan) ? plan : (plans[0] ?? "single");
+  const activeTrialId = product.trialPlans.some((item) => item.id === trialPlanId) ? trialPlanId : (product.trialPlans[0]?.id ?? null);
+  const slots = delivery.data?.served && delivery.data.deliveryMethod === "local_delivery" ? delivery.data.slots : [];
+  const activeSlotId = slots.some((slot) => slot.slotId === slotId) ? slotId : (slots[0]?.slotId ?? null);
+  // Only a PIN code we are sure we cannot deliver to blocks buying; before a PIN is entered, or while checking, the customer can carry on.
+  const blocked = Boolean(deliveryPin) && delivery.data?.served === false;
+  const imageUrls = [product.imageUrl, ...product.galleryUrls].filter((url): url is string => Boolean(url));
+  const perDelivery = t("productDetails.perDelivery", { price: formatRupees(variant.pricePaise) });
+
   const addSelectedQuantity = () => {
-    for (let index = 0; index < quantity; index += 1) addToCart(product);
+    for (let index = 0; index < quantity; index += 1) addToCart(cartProduct);
+  };
+  const cartItem = cart.find((item) => item.product.id === cartProduct.id);
+  const isInCart = Boolean(cartItem);
+  const ensureSelectedQuantity = () => {
+    if (!cartItem) {
+      addSelectedQuantity();
+      return;
+    }
+    if (cartItem.quantity < quantity) updateCartQuantity(cartProduct.id, quantity);
   };
 
   return (
@@ -77,19 +114,8 @@ export default function ProductDetailsScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View
-            style={{
-              height: theme.sizes.productCardImageSize * 3,
-              overflow: "hidden",
-              backgroundColor: theme.colors.colorPrimaryTint,
-            }}
-          >
-            <Image
-              source={{ uri: product.imageUrl ?? undefined }}
-              contentFit="cover"
-              transition={theme.motion.duration.normal}
-              style={{ width: "100%", height: "100%" }}
-            />
+          <View>
+            <ProductImageCarousel imageUrls={imageUrls} accessibilityLabel={productName} />
             <View
               style={{
                 position: "absolute",
@@ -104,57 +130,46 @@ export default function ProductDetailsScreen() {
           </View>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: theme.spacing.xs,
-            }}
-          >
-            <View
-              style={{
-                width: theme.spacing.lg,
-                height: theme.spacing.xs,
-                borderRadius: theme.radii.pill,
-                backgroundColor: theme.colors.colorPrimary,
-              }}
-            />
-            <View
-              style={{
-                width: theme.spacing.xs,
-                height: theme.spacing.xs,
-                borderRadius: theme.radii.pill,
-                backgroundColor: theme.colors.colorBorder,
-              }}
-            />
-            <View
-              style={{
-                width: theme.spacing.xs,
-                height: theme.spacing.xs,
-                borderRadius: theme.radii.pill,
-                backgroundColor: theme.colors.colorBorder,
-              }}
-            />
-          </View>
-          <View
-            style={{
               gap: theme.spacing.lg,
               paddingHorizontal: theme.layout.screenHorizontalPadding,
             }}
           >
             <ProductSummary
-              name={product.name}
-              description={product.description}
-              price={product.price}
-              unit={product.unit}
-              isAvailable={product.isAvailable}
+              name={productName}
+              description={description}
+              price={formatRupees(variant.pricePaise)}
+              oldPrice={variant.compareAtPricePaise === null ? null : formatRupees(variant.compareAtPricePaise)}
+              rupees={formatRupees(variant.pricePaise).slice(1)}
+              unit={variant.name}
+              highlights={highlights}
             />
-            <PurchasePlanTabs value={plan} onChange={setPlan} />
-            {plan === "trial" ? <TrialPack price={product.price} /> : null}
-            {plan === "subscription" ? (
-              <SubscriptionScheduleConfigurator
-                pricePerDelivery={product.price}
-              />
+            {product.variants.length > 1 ? (
+              <View style={{ gap: theme.spacing.sm }}>
+                <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.size")}</ThemedText>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
+                  {product.variants.map((item) => (
+                    <Chip key={item.id} selected={item.id === variant.id} onPress={() => setVariantId(item.id)}>{item.name}</Chip>
+                  ))}
+                </View>
+              </View>
             ) : null}
-            <DeliveryDate />
+            <PurchasePlanTabs value={activePlan} onChange={setPlan} available={plans} />
+            {activePlan === "trial" ? (
+              <TrialPack plans={product.trialPlans} selectedId={activeTrialId} onSelect={setTrialPlanId} perDelivery={perDelivery} />
+            ) : null}
+            {activePlan === "subscription" ? (
+              <SubscriptionScheduleConfigurator pricePerDelivery={variant.pricePaise / 100} />
+            ) : null}
+            <ProductDeliveryCard
+              pin={deliveryPin}
+              delivery={delivery.data}
+              isLoading={delivery.isLoading}
+              isError={delivery.isError}
+              language={language}
+              selectedSlotId={activeSlotId}
+              onSelectSlot={setSlotId}
+              onRetry={() => void delivery.refetch()}
+            />
             <View
               style={{
                 flexDirection: "row",
@@ -187,25 +202,6 @@ export default function ProductDetailsScreen() {
                 onIncrement={() => setQuantity((current) => current + 1)}
               />
             </View>
-            <View style={{ gap: theme.spacing.sm }}>
-              <ThemedText variant="bodySmall" weight="semibold">
-                {t("productDetails.slotTitle")}
-              </ThemedText>
-              <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-                <SlotCard
-                  active={slot === "early"}
-                  title={t("productDetails.earlySlot")}
-                  description={t("productDetails.earlySlotDetail")}
-                  onPress={() => setSlot("early")}
-                />
-                <SlotCard
-                  active={slot === "regular"}
-                  title={t("productDetails.regularSlot")}
-                  description={t("productDetails.regularSlotDetail")}
-                  onPress={() => setSlot("regular")}
-                />
-              </View>
-            </View>
             <View
               style={{
                 flexDirection: "row",
@@ -227,10 +223,7 @@ export default function ProductDetailsScreen() {
                 {t("productDetails.deliveryReassurance")}
               </ThemedText>
             </View>
-            <NutritionAccordion
-              title={t("productDetails.nutritionTitle")}
-              content={t("productDetails.nutritionContent")}
-            />
+            {nutrition ? <NutritionAccordion title={t("productDetails.nutritionTitle")} content={nutrition} /> : null}
           </View>
         </ScrollView>
         <View
@@ -244,18 +237,24 @@ export default function ProductDetailsScreen() {
           }}
         >
           <Button
-            icon={CartIcon}
+            icon={isInCart ? CheckIcon : CartIcon}
             variant="secondary"
             style={{ flex: 1 }}
+            disabled={isInCart || blocked}
             onPress={() => {
               addSelectedQuantity();
+              showToast(t("productCard.addedToast", { product: productName }));
             }}
           >
-            {t("productDetails.addToCart")}
+            {t(isInCart ? "productDetails.inCart" : "productDetails.addToCart")}
           </Button>
           <Button
             style={{ flex: 1 }}
-            onPress={addSelectedQuantity}
+            disabled={blocked}
+            onPress={() => {
+              ensureSelectedQuantity();
+              router.push("/checkout-address");
+            }}
           >
             {t("productDetails.buyNow")}
           </Button>
@@ -267,163 +266,57 @@ export default function ProductDetailsScreen() {
 
 function ProductSummary({
   description,
+  highlights,
   name,
+  oldPrice,
   price,
+  rupees,
   unit,
-  isAvailable,
 }: {
   description: string;
+  highlights: string[];
   name: string;
-  price: number;
+  oldPrice: string | null;
+  price: string;
+  rupees: string;
   unit: string;
-  isAvailable: boolean;
 }) {
   const theme = useTheme();
   const { t } = useTranslation();
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          gap: theme.spacing.md,
-        }}
-      >
+      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
         <View style={{ flex: 1 }}>
           <ThemedText variant="h1">{name}</ThemedText>
-          <ThemedText
-            variant="bodySmall"
-            style={{ color: theme.colors.colorTextSecondary }}
-          >
-            {t("productDetails.inclusiveTaxes", { price, unit })}
+          <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>
+            {t("productDetails.inclusiveTaxes", { price: rupees, unit })}
           </ThemedText>
         </View>
         <View style={{ alignItems: "flex-end", gap: theme.spacing.xs }}>
-          <ThemedText variant="h2">
-            ₹{price}
-          </ThemedText>
-          <View
-            style={{
-              borderRadius: theme.radii.md,
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: theme.spacing.xs,
-              backgroundColor: isAvailable
-                ? theme.colors.colorSuccessTint
-                : theme.colors.colorDangerTint,
-            }}
-          >
-            <ThemedText
-              variant="caption"
-              weight="semibold"
-              style={{
-                color: isAvailable
-                  ? theme.colors.colorSuccess
-                  : theme.colors.colorDanger,
-              }}
-            >
-              {t(isAvailable ? "productDetails.inStock" : "productDetails.outOfStock")}
-            </ThemedText>
-          </View>
+          <ThemedText variant="h2">{price}</ThemedText>
+          {oldPrice ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textDecorationLine: "line-through" }}>{oldPrice}</ThemedText> : null}
         </View>
       </View>
-      <ThemedText
-        variant="bodySmall"
-        style={{ color: theme.colors.colorTextSecondary }}
-      >
-        {t("productDetails.productDescription", { description })}
-      </ThemedText>
+      {description ? <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.productDescription", { description })}</ThemedText> : null}
+      {highlights.map((line) => (
+        <ThemedText key={line} variant="bodySmall">{`• ${line}`}</ThemedText>
+      ))}
     </View>
   );
 }
 
-function TrialPack({ price }: { price: number }) {
+function TrialPack({ perDelivery, plans, selectedId, onSelect }: { perDelivery: string; plans: { id: string; name: string; durationDays: number }[]; selectedId: string | null; onSelect: (id: string) => void }) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const [trial, setTrial] = useState<"three" | "seven">("three");
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <ThemedText
-        variant="caption"
-        weight="semibold"
-        style={{ color: theme.colors.colorTextSecondary }}
-      >
+      <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>
         {t("productDetails.trialLabel")}
       </ThemedText>
-      <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-        <PlanOption
-          active={trial === "three"}
-          title={t("productDetails.threeDayTrial")}
-          description={t("productDetails.threeDayDetail")}
-          value={"₹" + price * 3}
-          onPress={() => setTrial("three")}
-        />
-        <PlanOption
-          active={trial === "seven"}
-          badges={[t("productDetails.discount")]}
-          description={t("productDetails.sevenDayDetail")}
-          title={t("productDetails.sevenDayTrial")}
-          value={"₹" + price * 7}
-          onPress={() => setTrial("seven")}
-        />
-      </View>
-    </View>
-  );
-}
-
-function DeliveryDate() {
-  const theme = useTheme();
-  const { t } = useTranslation();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: theme.spacing.md,
-        padding: theme.spacing.md,
-        borderRadius: theme.radii.lg,
-        borderWidth: theme.borderWidths.hairline,
-        borderColor: theme.colors.colorBorder,
-        backgroundColor: theme.colors.colorSurface,
-      }}
-    >
-      <View
-        style={{
-          width: theme.sizes.avatarMd,
-          height: theme.sizes.avatarMd,
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: theme.radii.pill,
-          backgroundColor: theme.colors.colorSurfaceMuted,
-        }}
-      >
-        <AppIcon
-          icon={CalendarIcon}
-          accessibilityLabel={t("productDetails.deliveryDate")}
-          size="sm"
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        <ThemedText
-          variant="caption"
-          style={{ color: theme.colors.colorTextSecondary }}
-        >
-          {t("productDetails.deliveryDate")}
-        </ThemedText>
-        <ThemedText variant="body" weight="semibold">
-          {t("productDetails.tomorrow")}
-        </ThemedText>
-      </View>
-      <View
-        style={{
-          borderRadius: theme.radii.pill,
-          paddingHorizontal: theme.spacing.md,
-          paddingVertical: theme.spacing.sm,
-          backgroundColor: theme.colors.colorSurfaceMuted,
-        }}
-      >
-        <ThemedText variant="caption" weight="semibold">
-          {t("productDetails.beforeSeven")}
-        </ThemedText>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
+        {plans.map((item) => (
+          <PlanOption key={item.id} active={item.id === selectedId} title={t("productDetails.trialDays", { count: item.durationDays })} description={item.name} value={perDelivery} onPress={() => onSelect(item.id)} />
+        ))}
       </View>
     </View>
   );
@@ -528,50 +421,6 @@ function PlanOption({
         style={{ color: theme.colors.colorTextPrimary }}
       >
         {value}
-      </ThemedText>
-    </Pressable>
-  );
-}
-
-function SlotCard({
-  active,
-  description,
-  onPress,
-  title,
-}: {
-  active: boolean;
-  description: string;
-  onPress: () => void;
-  title: string;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={{
-        flex: 1,
-        gap: theme.spacing.xs,
-        padding: theme.spacing.md,
-        borderRadius: theme.radii.lg,
-        borderWidth: active
-          ? theme.borderWidths.medium
-          : theme.borderWidths.hairline,
-        borderColor: active
-          ? theme.colors.colorPrimary
-          : theme.colors.colorBorder,
-        backgroundColor: theme.colors.colorSurface,
-      }}
-    >
-      <ThemedText variant="bodySmall" weight="semibold">
-        {title}
-      </ThemedText>
-      <ThemedText
-        variant="caption"
-        style={{ color: theme.colors.colorTextSecondary }}
-      >
-        {description}
       </ThemedText>
     </Pressable>
   );

@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../src/components/atoms/Button";
-import { AppIcon } from "../src/components/atoms/AppIcon";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { SharedCalendar, type CalendarDateStatus } from "../src/components/molecules/SharedCalendar";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";

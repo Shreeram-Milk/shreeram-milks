@@ -97,8 +97,14 @@ export default function OrdersScreen() {
               {(["all", "active", "delivered"] as OrderFilter[]).map((item) => (
                 <Pressable
                   key={item}
+                  accessibilityRole="tab"
+                  accessibilityLabel={t(`orders.${item}`)}
+                  accessibilityState={{ selected: filter === item }}
                   onPress={() => setFilter(item)}
                   style={{
+                    minHeight: theme.layout.touchTargetMin,
+                    alignItems: "center",
+                    justifyContent: "center",
                     paddingHorizontal: theme.spacing.md,
                     paddingVertical: theme.spacing.sm,
                     borderRadius: theme.radii.pill,

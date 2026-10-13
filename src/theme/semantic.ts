@@ -5,7 +5,7 @@ export const semantic = {
   // The solid primary is deliberately darker than the fresh interaction
   // orange so white labels remain comfortably readable.
   colorPrimary: primitives.orange900,
-  colorPrimaryPressed: primitives.orange700,
+  colorPrimaryPressed: primitives.orange800,
   colorPrimaryTint: primitives.orange100,
   colorSelected: primitives.orange600,
   colorSelectedTint: primitives.orange100,

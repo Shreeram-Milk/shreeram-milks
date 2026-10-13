@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppIcon } from "../src/components/atoms/AppIcon";
 import { Button } from "../src/components/atoms/Button";
+import { IconButton } from "../src/components/atoms/IconButton";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { SubscriptionBottomSheet } from "../src/components/organisms/SubscriptionBottomSheet";
 import { BackIcon, CalendarIcon } from "../src/icons/appIcons";
@@ -42,13 +43,11 @@ export default function ManageSubscriptionScreen() {
             borderColor: theme.colors.colorBorder,
           }}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("subscriptionManage.back")}
+          <IconButton
+            icon={BackIcon}
+            label={t("subscriptionManage.back")}
             onPress={() => router.back()}
-          >
-            <AppIcon icon={BackIcon} accessibilityLabel="" size="md" />
-          </Pressable>
+          />
           <ThemedText variant="body" weight="semibold">
             {t("subscriptionManage.title")}
           </ThemedText>

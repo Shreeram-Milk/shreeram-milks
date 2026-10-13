@@ -6,6 +6,10 @@ Read this file **in full before writing, editing, moving, deleting, or generatin
 
 These rules are mandatory unless the human explicitly overrides a rule for a specific task.
 
+Also read `STORE-COMPLIANCE.md` (App Store and Google Play rules and our status against them) before adding anything that collects data, asks a permission, takes payment, sends notifications or shows staff-written content.
+
+Also read `PERFORMANCE-AND-AWS.md` (speed, caching, pictures, AWS and scaling standards) before changing anything that loads data or pictures.
+
 Do not weaken, bypass, reinterpret, or silently ignore these rules just to complete a task faster.
 
 ---

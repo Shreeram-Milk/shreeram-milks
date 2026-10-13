@@ -1,0 +1,26 @@
+{
+  "supportPhone": "",
+  "supportEmail": "",
+  "supportWhatsApp": "",
+  "callEnabled": false,
+  "chatEnabled": false,
+  "whatsappEnabled": false,
+  "supportHoursEn": "Daily, 5:00 AM – 8:00 PM",
+  "supportHoursGu": "",
+  "afterHoursMessageEn": "",
+  "afterHoursMessageGu": "",
+  "deliveryPromiseEn": "Delivered before 7:00 AM",
+  "deliveryPromiseGu": "",
+  "minimumAppVersion": "1.0.0",
+  "maintenanceMode": false,
+  "maintenanceMessageEn": "",
+  "maintenanceMessageGu": "",
+  "showMaintenanceContact": false,
+  "flags": {
+    "showTrials": true,
+    "showSubscriptions": true,
+    "showOffers": true,
+    "showQualityReports": true,
+    "showSeasonalBanner": true
+  }
+}

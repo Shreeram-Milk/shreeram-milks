@@ -66,6 +66,7 @@ export function ProfileDetailScreen({
           }}
         >
           <Pressable
+            accessibilityRole="button"
             accessibilityLabel={t("profileDetail.back")}
             onPress={() => router.back()}
             style={{
@@ -134,8 +135,16 @@ export function ProfileDetailScreen({
                 </ThemedText>
               </View>
               <Pressable
+                accessibilityRole="button"
                 accessibilityLabel={t("profileDetail.editRow", { title: row.title })}
                 onPress={() => startEdit(index)}
+                hitSlop={theme.spacing.xs}
+                style={{
+                  width: theme.layout.touchTargetMin,
+                  height: theme.layout.touchTargetMin,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
                 <AppIcon
                   icon={EditIcon}
@@ -165,6 +174,13 @@ export function ProfileDetailScreen({
             autoFocus
             value={draft}
             onChangeText={setDraft}
+            accessibilityLabel={
+              editingIndex === null
+                ? t("profileDetail.updatedDetails")
+                : t("profileDetail.editRow", {
+                    title: editableRows[editingIndex].title,
+                  })
+            }
             placeholder={
               editingIndex === null
                 ? t("profileDetail.updatedDetails")

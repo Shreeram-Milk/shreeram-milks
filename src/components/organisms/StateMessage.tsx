@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Animated, Easing, View } from "react-native";
 
 import { AppIcon, type IconSvgElement } from "../atoms/AppIcon";
+import { HelpIcon, ProductsIcon } from "../../icons/appIcons";
 import { Button } from "../atoms/Button";
 import { ThemedText } from "../atoms/ThemedText";
 import { useTheme } from "../../theme";
@@ -47,7 +48,8 @@ export function StateMessage({
       style={{
         alignItems: "center",
         paddingVertical: theme.spacing.xxl,
-        gap: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
+        gap: theme.spacing.sm,
         opacity: progress,
         transform: [
           {
@@ -64,8 +66,8 @@ export function StateMessage({
       ) : (
         <View
           style={{
-            width: theme.sizes.avatarLg,
-            height: theme.sizes.avatarLg,
+            width: theme.sizes.avatarMd,
+            height: theme.sizes.avatarMd,
             alignItems: "center",
             justifyContent: "center",
             borderRadius: theme.radii.pill,
@@ -75,18 +77,24 @@ export function StateMessage({
                 : theme.colors.colorPrimaryTint,
           }}
         >
-          {icon ? (
-            <AppIcon icon={icon} accessibilityLabel="" tone="primary" />
-          ) : null}
+          <AppIcon icon={icon ?? (type === "error" ? HelpIcon : ProductsIcon)} accessibilityLabel="" tone="primary" />
         </View>
       )}
-      <ThemedText variant={type === "loading" ? "body" : "h2"}>
+      <ThemedText
+        variant="bodySmall"
+        weight="medium"
+        style={{
+          color: theme.colors.colorTextSecondary,
+          textAlign: "center",
+        }}
+      >
         {title}
       </ThemedText>
       {description ? (
         <ThemedText
+          variant="caption"
           style={{
-            color: theme.colors.colorTextSecondary,
+            color: theme.colors.colorTextDisabled,
             textAlign: "center",
           }}
         >
@@ -94,7 +102,9 @@ export function StateMessage({
         </ThemedText>
       ) : null}
       {actionLabel && onAction ? (
-        <Button onPress={onAction}>{actionLabel}</Button>
+        <Button variant="secondary" onPress={onAction}>
+          {actionLabel}
+        </Button>
       ) : null}
     </Animated.View>
   );

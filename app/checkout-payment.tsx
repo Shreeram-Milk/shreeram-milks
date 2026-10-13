@@ -9,6 +9,7 @@ import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { CheckoutProgress } from "../src/components/molecules/CheckoutProgress";
 import { LockIcon, WalletIcon } from "../src/icons/appIcons";
+import { useAddresses } from "../src/hooks/useAddresses";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
 
@@ -18,16 +19,19 @@ export default function CheckoutPaymentScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const cart = useAppStore((state) => state.cart);
-  const validAddress = useAppStore((state) => state.addresses.some((address) => address.id === state.checkoutSelection.addressId && address.isServiceable));
+  const { data: addresses = [] } = useAddresses();
+  const checkoutAddressId = useAppStore((state) => state.checkoutSelection.addressId);
+  const selectedAddress = addresses.find((address) => address.id === checkoutAddressId && address.isServiceable);
+  const validAddress = selectedAddress !== undefined;
   const confirmPreviewOrder = useAppStore((state) => state.confirmPreviewOrder);
   const [method, setMethod] = useState<PaymentMethod>("upi");
   const [confirming, setConfirming] = useState(false);
   const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const methods: { key: PaymentMethod; detail: string; disabled?: boolean; title: string }[] = [{ key: "upi", title: t("payment.upi"), detail: t("payment.upiDetail") }, { key: "card", title: t("payment.card"), detail: t("payment.cardDetail"), disabled: true }, { key: "wallet", title: t("payment.wallet"), detail: t("payment.walletDetail"), disabled: true }];
   const confirmPreview = () => {
-    if (confirming || cart.length === 0 || !validAddress) return;
+    if (confirming || cart.length === 0 || !selectedAddress) return;
     setConfirming(true);
-    if (!confirmPreviewOrder()) { setConfirming(false); return; }
+    if (!confirmPreviewOrder(`${selectedAddress.line1}, ${selectedAddress.line2}, ${selectedAddress.city} – ${selectedAddress.pincode}`)) { setConfirming(false); return; }
     router.dismissAll();
     router.replace("/order-success");
   };
@@ -131,6 +135,7 @@ export default function CheckoutPaymentScreen() {
                   <Pressable
                     key={item.key}
                     accessibilityRole="radio"
+                    accessibilityLabel={item.title}
                     accessibilityState={{ selected, disabled: item.disabled }}
                     disabled={item.disabled}
                     onPress={() => setMethod(item.key)}

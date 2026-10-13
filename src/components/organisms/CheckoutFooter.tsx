@@ -32,7 +32,7 @@ export function CheckoutFooter({
         theme.elevation.card,
       ]}
     >
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 0.9 }}>
         <ThemedText variant="h2">₹{amount}</ThemedText>
         <ThemedText
           variant="caption"
@@ -41,7 +41,11 @@ export function CheckoutFooter({
           {t("checkout.footer.inclusive")}
         </ThemedText>
       </View>
-      <Button style={{ flex: 1 }} disabled={disabled} onPress={onPress}>
+      <Button
+        style={{ flex: 1.1, paddingHorizontal: theme.spacing.sm }}
+        disabled={disabled}
+        onPress={onPress}
+      >
         {label}
       </Button>
     </View>

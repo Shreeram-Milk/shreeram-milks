@@ -52,6 +52,7 @@ export function Button({
       <Pressable
         {...props}
         accessibilityRole="button"
+        accessibilityState={{ disabled: isDisabled }}
         disabled={isDisabled}
         onPressIn={(event) => {
           Animated.timing(scale, {

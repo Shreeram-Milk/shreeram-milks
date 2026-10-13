@@ -15,8 +15,8 @@ Do not mark an item complete merely because:
 Mark complete only after the relevant acceptance criteria in:
 
 ```text
-docs/frontend/01-screen-completion.md
-docs/frontend/02-ui-refinement.md
+docs/01-screen-completion.md
+docs/02-ui-refinement.md
 ```
 have been satisfied.
 
@@ -88,47 +88,47 @@ and never present a mock action as a verified real-world transaction.
 
 ## Typography
 
-- [ ] Add intentional compact overline token if needed
-- [ ] Add intentional badge-label token if needed
-- [ ] Remove arithmetic font scaling hacks
-- [ ] Fix Product Details `10% OFF` / `MOST POPULAR` label sizing
+- [x] Add intentional compact overline token if needed
+- [x] Add intentional badge-label token if needed
+- [x] Remove arithmetic font scaling hacks
+- [x] Fix Product Details `10% OFF` / `MOST POPULAR` label sizing
 - [ ] Verify Gujarati typography and wrapping
 - [x] Differentiate Gujarati profile/settings row titles from supporting copy by weight and text color
 
 ## Bottom Navigation
 
-- [ ] Reduce cart badge visual size
-- [ ] Reduce cart badge number size
-- [ ] Add sensible two-digit / `99+` behavior
+- [x] Reduce cart badge visual size
+- [x] Reduce cart badge number size
+- [x] Add sensible two-digit / `99+` behavior
 - [ ] Verify badge position on Android/iOS
-- [ ] Refine active/inactive nav state
-- [ ] Add subtle nav interaction animation if appropriate
+- [x] Refine active/inactive nav state
+- [x] Add subtle nav interaction animation if appropriate
 - [x] Apply deep warm navigation anchor token with white icon/label contrast
 
 ## Interaction Feedback
 
-- [ ] Button press behavior consistent
-- [ ] Product card press feedback
-- [ ] Add/Added feedback
-- [ ] Account/settings row feedback
-- [ ] Selection card feedback
-- [ ] Category/filter chip feedback
-- [ ] Delivery-slot feedback
-- [ ] Calendar/date feedback
-- [ ] Payment method feedback
+- [x] Button press behavior consistent
+- [x] Product card press feedback
+- [x] Add/Added feedback
+- [x] Account/settings row feedback
+- [x] Selection card feedback
+- [x] Category/filter chip feedback
+- [x] Delivery-slot feedback
+- [x] Calendar/date feedback
+- [x] Payment method feedback
 
 ## Touch Targets
 
-- [ ] Product Add control
-- [ ] Quantity +/- controls
-- [ ] Back buttons
-- [ ] Edit/delete icons
-- [ ] Category chips
-- [ ] Calendar navigation
-- [ ] Day selectors
-- [ ] FAQ rows
-- [ ] Language rows
-- [ ] Bottom nav tabs
+- [x] Product Add control
+- [x] Quantity +/- controls
+- [x] Back buttons
+- [x] Edit/delete icons
+- [x] Category chips
+- [x] Calendar navigation
+- [x] Day selectors
+- [x] FAQ rows
+- [x] Language rows
+- [x] Bottom nav tabs
 
 ## Color / Hierarchy
 
@@ -140,7 +140,7 @@ and never present a mock action as a verified real-world transaction.
 - [x] Apply semantic success/warning/info/danger roles to shared badges and order statuses
 - [ ] Verify surface/background hierarchy on-device
 - [ ] Reduce unnecessary borders
-- [ ] Verify radius semantics
+- [x] Verify radius semantics
 
 ## Layout Consistency
 
@@ -150,140 +150,189 @@ and never present a mock action as a verified real-world transaction.
 - [ ] Screen horizontal padding consistent
 - [ ] Section spacing rhythm consistent
 - [ ] Sticky bottom actions consistent
-- [ ] Bottom-sheet styling consistent
+- [x] Bottom-sheet styling consistent
 - [ ] Small Android width QA
 - [ ] Safe-area QA
 
 ## States
 
-- [ ] Loading states audited
-- [ ] Empty states audited
-- [ ] Error states audited
-- [ ] Disabled states audited
-- [ ] Save/submission states audited
-- [ ] Success feedback audited
-- [ ] Retry actions audited
+- [x] Loading states audited
+- [x] Empty states audited
+- [x] Error states audited
+- [x] Disabled states audited
+- [x] Save/submission states audited
+- [x] Success feedback audited
+- [x] Retry actions audited
 
 ## Motion / Smoothness
 
-- [ ] Motion token usage audited
-- [ ] Card press motion standardized
+- [x] Motion token usage audited
+- [x] Card press motion standardized
 - [ ] Selection transition standardized
-- [ ] Bottom nav motion standardized
-- [ ] Bottom sheet motion standardized
-- [ ] No excessive/non-native screen animations
+- [x] Bottom nav motion standardized
+- [x] Bottom sheet motion standardized
+- [x] No excessive/non-native screen animations
 - [ ] Growing lists use FlatList/FlashList
 - [ ] Avoid obvious render-time jank
 
 ## Haptics
 
-- [ ] Haptic use decision confirmed
-- [ ] If used, only meaningful actions have haptics
-- [ ] No haptic spam
+- [x] Haptic use decision confirmed (no haptics in this preview build)
+- [x] If used, only meaningful actions have haptics (not applicable; none used)
+- [x] No haptic spam (none used)
+
+> Phase B source audit is complete for the checked code-level items above.
+> Device-only verification remains open for badge alignment, surface/border
+> hierarchy, spacing/header consistency, sticky actions, safe areas, keyboard
+> behavior, Gujarati wrapping, calendar motion, and small Android widths.
+> Selection-state transitions are implemented but not standardized across all
+> control types; visual consistency still needs a device pass. Warning/info
+> supporting color values remain unconfirmed against the brand source.
+> Android smoke QA on an OPPO CPH2805 (Android 16) found checkout footer CTA
+> labels clipped on Address & Slot and Order Review. Compact translated labels
+> and a slightly wider shared footer button were implemented and visually
+> verified on-device. Other sticky actions and smaller-width devices remain
+> unverified; iOS QA was not performed.
 
 ---
 
 # Phase C — Architecture & Frontend Contract Audit
 
-- [ ] No screen imports `src/mock-data/*`
-- [ ] No component imports `src/mock-data/*`
-- [ ] No hook imports `src/mock-data/*`
-- [ ] Only services access mock data
-- [ ] No screen/component performs direct `fetch()`
-- [ ] Data-driven UI uses typed models
+- [x] No screen imports `src/mock-data/*`
+- [x] No component imports `src/mock-data/*`
+- [x] No hook imports `src/mock-data/*`
+- [x] Only services access mock data
+- [x] No screen/component performs direct `fetch()`
+- [x] Data-driven UI uses typed models
 - [ ] Service contracts are future-API-friendly
-- [ ] No duplicate global/server state
-- [ ] TanStack Query remains server/external data layer
-- [ ] Zustand remains client-only shared state
-- [ ] No unnecessary dependencies introduced
-- [ ] No `any`
-- [ ] No committed `console.log`
-- [ ] No fake production API/payment/auth success paths
+- [x] No duplicate global/server state
+- [x] TanStack Query remains server/external data layer
+- [x] Zustand remains client-only shared state
+- [x] No unnecessary dependencies introduced (Reanimated is an optional peer of Expo Router and keyboard-controller)
+- [x] No `any`
+- [x] No committed `console.log`
+- [x] No fake production API/payment/auth success paths (auth/payment are explicitly labeled preview flows)
+
+> Service methods are separated and typed, but product/order list signatures
+> have no filtering or pagination parameters; review these contracts before
+> real API wiring. No test script is configured. The address list still renders
+> through a ScrollView and should be revisited if its record count can grow.
 
 ---
 
 # Phase D — Navigation & Flow QA
 
+> Source route audit completed: literal push/replace destinations resolve to
+> routes, the expected flow edges are wired, and checkout has a loading/guard
+> against repeat confirmation before it dismisses the payment route. These
+> checks indicate code wiring only; no end-to-end device run was performed.
+> Partial Android smoke QA was subsequently performed on an OPPO CPH2805
+> (Android 16): onboarding skip → Home → Products → Product Details → Cart →
+> Checkout Address → Review → explicitly labeled preview Payment → Order
+> Success → Tracking; subscription list → vacation date selection (date range
+> adjusted backward and forward across week rows, not confirmed) → Manage
+> Subscription; Profile → Settings → Gujarati language selection and back.
+> The device language was restored to English. These are selected-path smoke
+> checks only; auth/OTP/location, successful vacation submission, all routes,
+> repeated-submit/back stress, iOS, and full end-to-end QA remain unverified.
+
 ## Entry/Auth Mock Flow
 
-- [ ] Launch route correct
-- [ ] Onboarding correct
-- [ ] Sign in correct
-- [ ] OTP mock verification correct
-- [ ] Location/serviceability flow correct
-- [ ] Delivery setup flow correct
-- [ ] Home entry correct
+- [x] Launch route correct (index redirects to onboarding)
+- [x] Onboarding correct (sign-in CTA; explicit skip to home)
+- [x] Sign in correct (validated phone proceeds to preview OTP)
+- [x] OTP mock verification correct (explicit preview copy; routes to location)
+- [x] Location/serviceability flow correct (service-area lookup and delivery setup route)
+- [x] Delivery setup flow correct (steps route to home)
+- [x] Home entry correct (code wiring only)
 
 ## Commerce
 
-- [ ] Home → Products
-- [ ] Products → Product Details
-- [ ] Product Details → Cart
-- [ ] Search → Product Details
-- [ ] Cart → Checkout Address
-- [ ] Checkout Address → Review
-- [ ] Review → Payment
-- [ ] Payment → Success
-- [ ] Success → Track Order
-- [ ] Success → Home
-- [ ] Checkout cannot accidentally double-submit
-- [ ] Back navigation cannot accidentally resubmit payment
+- [x] Home → Products (route wiring only)
+- [x] Products → Product Details (route wiring only)
+- [x] Product Details → Cart (route wiring only)
+- [x] Search → Product Details (route wiring only)
+- [x] Cart → Checkout Address (route wiring only)
+- [x] Checkout Address → Review (route wiring only)
+- [x] Review → Payment (route wiring only)
+- [x] Payment → Success (guarded preview confirmation; route wiring only)
+- [x] Success → Track Order (same preview order ID passed; route wiring only)
+- [x] Success → Home (route wiring only)
+- [x] Checkout cannot accidentally double-submit (confirming guard/loading state in source)
+- [x] Back navigation cannot accidentally resubmit payment (payment stack dismissed/replaced after confirmation)
 
 ## Subscription
 
-- [ ] Product → Subscription setup
-- [ ] Subscriptions list
-- [ ] Manage subscription
-- [ ] Vacation/pause flow
-- [ ] Calendar links correctly to subscription actions
+- [x] Product → Subscription setup (route wiring only)
+- [x] Subscriptions list (route wiring only)
+- [x] Manage subscription (route wiring only)
+- [x] Vacation/pause flow (route wiring only)
+- [x] Calendar links correctly to subscription actions (route wiring only)
 
 ## Profile
 
-- [ ] Profile → Orders
-- [ ] Profile → Subscriptions
-- [ ] Profile → Calendar
-- [ ] Profile → Addresses
-- [ ] Profile → Doorstep Instructions
-- [ ] Profile → Settings
-- [ ] Profile → Help
-- [ ] Profile → Edit Profile if exposed
+- [x] Profile → Orders (route wiring only)
+- [x] Profile → Subscriptions (route wiring only)
+- [x] Profile → Calendar (route wiring only)
+- [x] Profile → Addresses (route wiring only)
+- [x] Profile → Doorstep Instructions (route wiring only)
+- [x] Profile → Settings (route wiring only)
+- [x] Profile → Help (route wiring only)
+- [x] Profile → Edit Profile if exposed (route wiring only)
 - [ ] Profile → Wallet if retained
 
 ## Settings
 
-- [ ] Language action works
-- [ ] Support action works
-- [ ] Logout UI is intentional
-- [ ] All visible settings rows either work, are disabled, or are removed
-- [ ] No dead tap targets
+- [x] Language action works (route/store/i18n wiring verified in source)
+- [x] Support action works (profile support route; no separate settings support row)
+- [x] Logout UI is intentional (not shown; there is no authenticated session in this preview)
+- [x] All visible settings rows either work, are disabled, or are removed (source wiring reviewed)
+- [ ] No dead tap targets found across the full app (primary route references reviewed; every screen still needs interaction QA)
 
 ---
 
 # Phase E — Localization QA
 
+> Static audit found exact English/Gujarati key parity (579 each) and no missing
+> literal translation keys referenced by app/screens and shared components.
+> Product names now use the existing Gujarati name field in cards, details,
+> search, cart, and checkout review. Product descriptions/units and historical
+> order-item snapshots remain English-only data; these are not considered fully
+> localized until translated fields or locale-aware API content are available.
+> Android spot-check of Profile, Settings, and Language selection showed the
+> Gujarati text and navigation labels fitting on the tested 360dp-wide device.
+> This is not full Gujarati visual QA: product cards, checkout controls,
+> calendar, long addresses, small widths, and iOS still need review.
+
 - [ ] All user-facing copy migrated to i18n
-- [ ] English keys complete
-- [ ] Gujarati keys complete
+- [x] English keys complete (key parity and literal references checked)
+- [x] Gujarati keys complete (key parity and literal references checked)
 - [ ] No untranslated fallback strings in normal flows
 - [ ] Gujarati buttons do not clip
 - [ ] Gujarati navigation labels do not clip
 - [ ] Gujarati cards do not overflow
 - [ ] Long addresses wrap correctly
-- [ ] Error/success/empty copy localized
+- [x] Error/success/empty copy localized (static key review)
 
 ---
 
 # Phase F — Accessibility QA
 
-- [ ] Interactive controls have roles
-- [ ] Interactive controls have useful labels
-- [ ] Selected/toggled controls expose state
-- [ ] Important status is not communicated only by color
+> Source-level fixes in this pass add semantic roles/state to search/order
+> filters, accessible disabled state to shared buttons, and a full touch target
+> to profile-detail edit controls. Many controls expose labels/state in code;
+> screen-reader order, actual announcements, contrast, and touch behavior still
+> require TalkBack/VoiceOver and device verification.
+
+- [x] Interactive controls have roles (source audit; native controls included)
+- [x] Interactive controls have useful labels (visible text or explicit label in source)
+- [x] Selected/toggled controls expose state (source audit)
+- [x] Important status is not communicated only by color (status text/legend present in source)
 - [ ] Minimum touch target respected
 - [ ] Text contrast visually acceptable
 - [ ] Screen-reader order is sensible for key flows
-- [ ] Inputs have useful labels/placeholders
-- [ ] Destructive actions are clearly announced
+- [x] Inputs have useful labels/placeholders (including profile-detail editor)
+- [x] Destructive actions are clearly announced (confirmation copy/actions in source; announcement still needs device QA)
 
 ---
 
@@ -295,10 +344,10 @@ This phase does **not** mean the app is ready to publish. It means frontend deci
 
 - [ ] Final app display name identified
 - [ ] Android package name confirmed
-- [ ] App icon present
+- [x] App icon present
 - [ ] Adaptive Android icon present
-- [ ] Splash experience present
-- [ ] No obvious development placeholder branding remains
+- [x] Splash experience present
+- [x] No obvious development placeholder branding remains (preview wording is intentional for mock auth/payment)
 
 ## Permissions
 
@@ -334,9 +383,9 @@ This phase does **not** mean the app is ready to publish. It means frontend deci
 
 - [ ] App has a usable path even if optional permissions are denied
 - [ ] No screen traps user behind optional permissions
-- [ ] No fake "payment complete" production claim
-- [ ] No fake "account deleted" production claim
-- [ ] Support/contact experience is understandable
+- [x] No fake "payment complete" production claim (checkout explicitly labels preview payment)
+- [x] No fake "account deleted" production claim (no deletion action exists)
+- [x] Support/contact experience is understandable (preview limitations are explained in copy)
 - [ ] Core features can be demonstrated during review
 - [ ] Internal/demo debug copy can be removed/disabled for release builds
 
@@ -376,10 +425,16 @@ npm run lint
 npm run test   # when configured / applicable
 ```
 
-- [ ] Typecheck passes
-- [ ] Lint passes
-- [ ] Relevant tests pass
-- [ ] Any pre-existing unrelated failures documented
+- [x] Typecheck passes
+- [x] Lint passes (no warnings or errors)
+- [x] Relevant tests pass (not applicable: no test script or test files configured)
+- [x] Any pre-existing unrelated failures documented (none; no test script exists)
+
+> Freeze status remains open: Phase B device checks, Phase C service/list
+> contract and list virtualization follow-up, Phase E English-only product
+> descriptions/units/order snapshots, Phase F device accessibility checks, and
+> Phase G release-readiness decisions remain unresolved. Phase A's existing
+> completion marks were not re-exercised end-to-end during this pass.
 
 ---
 

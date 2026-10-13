@@ -7,7 +7,9 @@ import { AppInput } from "../src/components/atoms/AppInput";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
-import { useAppStore } from "../src/store/useAppStore";
+import { StateMessage } from "../src/components/organisms/StateMessage";
+import { useDoorstepInstructions, useSaveDoorstepInstructions } from "../src/hooks/useAddresses";
+import { describeError } from "../src/services/errorMapper";
 import { useTheme } from "../src/theme";
 import type { DoorstepInstructions } from "../src/types/models";
 
@@ -30,17 +32,13 @@ const dropOptions: {
   { key: "security-desk", label: "instructions.securityDesk" },
 ];
 
-export default function DoorstepInstructionsScreen() {
+function InstructionsForm({ savedInstructions }: { savedInstructions: DoorstepInstructions }) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const savedInstructions = useAppStore((state) => state.doorstepInstructions);
-  const setInstructions = useAppStore((state) => state.setDoorstepInstructions);
+  const saver = useSaveDoorstepInstructions();
   const [draft, setDraft] = useState(savedInstructions);
   const [saved, setSaved] = useState(false);
-  const save = () => {
-    setInstructions(draft);
-    setSaved(true);
-  };
+  const save = () => saver.mutate(draft, { onSuccess: () => setSaved(true) });
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
@@ -122,8 +120,13 @@ export default function DoorstepInstructionsScreen() {
               }
             />
           </View>
-          <Button onPress={save}>{t("instructions.save")}</Button>
-          {saved && draft === savedInstructions ? (
+          {saver.error ? (
+            <ThemedText accessibilityLiveRegion="polite" variant="bodySmall" style={{ color: theme.colors.colorDanger }}>
+              {describeError(saver.error)}
+            </ThemedText>
+          ) : null}
+          <Button loading={saver.isPending} onPress={save}>{t("instructions.save")}</Button>
+          {saved && JSON.stringify(draft) === JSON.stringify(savedInstructions) ? (
             <ThemedText
               accessibilityLiveRegion="polite"
               variant="bodySmall"
@@ -231,4 +234,20 @@ function Preference({
       />
     </View>
   );
+}
+
+/** Loads the saved preferences first, so the form starts from what the customer chose last time. */
+export default function DoorstepInstructionsScreen() {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const { data, isLoading, isError, refetch } = useDoorstepInstructions();
+  if (isLoading || isError || !data) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground, padding: theme.layout.screenHorizontalPadding }}>
+        <ScreenHeader backLabel={t("commonActions.back")} title={t("instructions.title")} />
+        {isError ? <StateMessage type="error" title={t("instructions.errorTitle")} description={t("addresses.errorDetail")} actionLabel={t("addresses.retry")} onAction={() => void refetch()} /> : <StateMessage type="loading" title={t("instructions.loading")} />}
+      </SafeAreaView>
+    );
+  }
+  return <InstructionsForm savedInstructions={data} />;
 }

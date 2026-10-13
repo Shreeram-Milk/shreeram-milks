@@ -11,23 +11,19 @@ import { ThemedText } from "../src/components/atoms/ThemedText";
 import { Chip } from "../src/components/atoms/Chip";
 import { FormField } from "../src/components/molecules/FormField";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
-import { useAppStore } from "../src/store/useAppStore";
+import { StateMessage } from "../src/components/organisms/StateMessage";
+import { useAddresses, useSaveAddress } from "../src/hooks/useAddresses";
+import { describeError } from "../src/services/errorMapper";
 import { useTheme } from "../src/theme";
-import { useServiceAreas } from "../src/hooks/useServiceAreas";
 import type { AddressType, DeliveryAddress } from "../src/types/models";
 
 type AddressFormValues = Omit<DeliveryAddress, "id" | "isServiceable">;
 
-export default function DeliveryAddressFormScreen() {
+function AddressForm({ existing, addresses }: { existing: DeliveryAddress | undefined; addresses: DeliveryAddress[] }) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { addressId } = useLocalSearchParams<{ addressId?: string }>();
-  const addresses = useAppStore((state) => state.addresses);
-  const { data: serviceAreas = [], isLoading: areasLoading } =
-    useServiceAreas();
-  const addAddress = useAppStore((state) => state.addAddress);
-  const updateAddress = useAppStore((state) => state.updateAddress);
-  const existing = addresses.find((address) => address.id === addressId);
+  const save = useSaveAddress();
+  const [serverError, setServerError] = useState("");
   const {
     control,
     formState: { errors, isSubmitting },
@@ -37,7 +33,7 @@ export default function DeliveryAddressFormScreen() {
   } = useForm<AddressFormValues>({
     defaultValues: existing ?? {
       addressType: "home",
-      city: "Satara",
+      city: "",
       fullName: "",
       isDefault: addresses.length === 0,
       landmark: "",
@@ -93,21 +89,24 @@ export default function DeliveryAddressFormScreen() {
     transitionToStep(2, 1);
   };
 
-  const submit = (values: AddressFormValues) => {
-    const normalized = {
-      ...values,
-      fullName: values.fullName.trim(),
-      line1: values.line1.trim(),
-      line2: values.line2.trim(),
-      city: values.city.trim(),
-      phone: values.phone.replace(/\D/g, ""),
-    };
-    const isServiceable = serviceAreas.some(
-      (area) => area.pincode === normalized.pincode && area.isServiceable,
-    );
-    if (existing) updateAddress({ ...existing, ...normalized, isServiceable });
-    else addAddress({ ...normalized, isServiceable });
-    router.back();
+  const submit = async (values: AddressFormValues) => {
+    setServerError("");
+    try {
+      await save.mutateAsync({
+        id: existing?.id,
+        draft: {
+          ...values,
+          fullName: values.fullName.trim(),
+          line1: values.line1.trim(),
+          line2: values.line2.trim(),
+          city: values.city.trim(),
+          phone: values.phone.replace(/\D/g, ""),
+        },
+      });
+      router.back();
+    } catch (failure) {
+      setServerError(describeError(failure));
+    }
   };
 
   return (
@@ -343,6 +342,11 @@ export default function DeliveryAddressFormScreen() {
                     }
                   />
                 </View>
+                {serverError ? (
+                  <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>
+                    {serverError}
+                  </ThemedText>
+                ) : null}
                 <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
                   <Button
                     variant="secondary"
@@ -353,7 +357,6 @@ export default function DeliveryAddressFormScreen() {
                   </Button>
                   <Button
                     style={{ flex: 1 }}
-                    disabled={areasLoading}
                     loading={isSubmitting}
                     onPress={handleSubmit(submit)}
                   >
@@ -367,4 +370,21 @@ export default function DeliveryAddressFormScreen() {
       </View>
     </SafeAreaView>
   );
+}
+
+/** Loads the saved addresses first, so an edit always starts from the saved record. */
+export default function DeliveryAddressFormScreen() {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const { addressId } = useLocalSearchParams<{ addressId?: string }>();
+  const { data: addresses, isLoading, isError, refetch } = useAddresses();
+  if (isLoading || isError || !addresses) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground, padding: theme.layout.screenHorizontalPadding }}>
+        <ScreenHeader backLabel={t("commonActions.back")} title={t("addresses.title")} />
+        {isError ? <StateMessage type="error" title={t("addresses.errorTitle")} description={t("addresses.errorDetail")} actionLabel={t("addresses.retry")} onAction={() => void refetch()} /> : <StateMessage type="loading" title={t("addresses.loading")} />}
+      </SafeAreaView>
+    );
+  }
+  return <AddressForm key={addressId ?? "new"} existing={addresses.find((address) => address.id === addressId)} addresses={addresses} />;
 }

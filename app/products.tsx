@@ -1,16 +1,16 @@
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, ScrollView, StatusBar, View } from "react-native";
+import { FlatList, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Chip } from "../src/components/atoms/Chip";
-import { ThemedText } from "../src/components/atoms/ThemedText";
+import { CategoryChips } from "../src/components/molecules/CategoryChips";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { BottomNavigation } from "../src/components/organisms/BottomNavigation";
-import { ProductCard } from "../src/components/organisms/ProductCard";
+import { CatalogProductCard } from "../src/components/organisms/CatalogProductCard";
 import { StateMessage } from "../src/components/organisms/StateMessage";
-import { useProducts } from "../src/hooks/useProducts";
+import { useCatalogCart } from "../src/hooks/useCatalogCart";
+import { useCatalogCategories, useCatalogProducts } from "../src/hooks/useCatalog";
 import {
   CartIcon,
   CalendarIcon,
@@ -18,66 +18,26 @@ import {
   ProductsIcon,
   ProfileIcon,
 } from "../src/icons/appIcons";
+import { localized } from "../src/lib/contentLocalization";
 import { useTheme } from "../src/theme";
-import type { Product } from "../src/types/models";
+import type { CatalogProduct } from "../src/types/catalog";
 import { useAppStore } from "../src/store/useAppStore";
-
-const categories = ["All", "Milk", "Curd", "Paneer", "Ghee", "Butter"] as const;
 
 export default function ProductsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { data: products = [], isError, isLoading, refetch } = useProducts();
-  const [activeCategory, setActiveCategory] =
-    useState<(typeof categories)[number]>("All");
-  const cart = useAppStore((state) => state.cart);
-  const addToCart = useAppStore((state) => state.addToCart);
-  const filteredProducts =
-    activeCategory === "All"
-      ? products
-      : products.filter((product) => product.category === activeCategory);
-  const handleAdd = useCallback(
-    (productId: string) => {
-      const product = products.find((item) => item.id === productId);
-      if (product) addToCart(product);
-    },
-    [addToCart, products],
-  );
-  const renderProduct = useCallback(
-    ({ item }: { item: Product }) => (
-      <View style={{ flex: 1, marginBottom: theme.spacing.md }}>
-        <ProductCard
-          isAdded={cart.some((cartItem) => cartItem.product.id === item.id)}
-          product={item}
-          onAdd={handleAdd}
-          onPress={(productId) =>
-            router.push({ pathname: "/product-details", params: { productId } })
-          }
-        />
-      </View>
-    ),
-    [cart, handleAdd, theme.spacing.md],
-  );
+  const language = useAppStore((state) => state.language);
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const { data: products = [], isError, isLoading, refetch } = useCatalogProducts(activeCategoryId);
+  const { data: categories = [] } = useCatalogCategories();
+  const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
+  const activeCategory = categories.find((category) => category.id === activeCategoryId);
+  const activeCategoryName = activeCategory ? localized(activeCategory.name, activeCategory.nameGu, language) : t("home.categories.all");
 
-  const categoryTabs = (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: theme.spacing.sm }}
-    >
-      {categories.map((category) => {
-        const selected = category === activeCategory;
-        return (
-          <Chip
-            key={category}
-            onPress={() => setActiveCategory(category)}
-            selected={selected}
-          >
-            {t(`home.categories.${category.toLowerCase()}`)}
-          </Chip>
-        );
-      })}
-    </ScrollView>
+  const renderProduct = ({ item }: { item: CatalogProduct }) => (
+    <View style={{ flex: 1, marginBottom: theme.spacing.md }}>
+      <CatalogProductCard isAdded={isAdded(item)} product={item} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
+    </View>
   );
 
   const header = (
@@ -89,7 +49,7 @@ export default function ProductsScreen() {
       }}
     >
       <ScreenHeader backLabel={t("products.back")} title={t("products.title")} />
-      {categoryTabs}
+      <CategoryChips categories={categories} language={language} selectedId={activeCategoryId} onSelect={setActiveCategoryId} />
     </View>
   );
 
@@ -111,7 +71,7 @@ export default function ProductsScreen() {
           />
         ) : (
           <FlatList
-            data={filteredProducts}
+            data={products}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id}
             numColumns={2}
@@ -120,7 +80,7 @@ export default function ProductsScreen() {
             ListEmptyComponent={
               <StateMessage
                 type="empty"
-                title={t("products.empty", { category: t(`home.categories.${activeCategory.toLowerCase()}`) })}
+                title={activeCategory ? t("products.empty", { category: activeCategoryName }) : t("products.emptyAll")}
               />
             }
             showsVerticalScrollIndicator={false}

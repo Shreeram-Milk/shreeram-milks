@@ -1,60 +1,45 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, StatusBar, View } from "react-native";
+import { FlatList, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "../src/components/atoms/AppIcon";
 import { AppInput } from "../src/components/atoms/AppInput";
+import { IconButton } from "../src/components/atoms/IconButton";
 import { ThemedText } from "../src/components/atoms/ThemedText";
-import { ProductCard } from "../src/components/organisms/ProductCard";
+import { CategoryChips } from "../src/components/molecules/CategoryChips";
+import { CatalogProductCard } from "../src/components/organisms/CatalogProductCard";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { BackIcon, CartIcon, SearchIcon } from "../src/icons/appIcons";
-import { useProducts } from "../src/hooks/useProducts";
+import { useCatalogCart } from "../src/hooks/useCatalogCart";
+import { useCatalogCategories, useCatalogProducts } from "../src/hooks/useCatalog";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
-import type { Product } from "../src/types/models";
+import type { CatalogProduct } from "../src/types/catalog";
 
-const categoryNames = ["All", "Raw Milk", "Bilona Ghee", "Pot Curd"] as const;
-const categoryLabelKeys: Record<(typeof categoryNames)[number], string> = {
-  All: "search.all",
-  "Raw Milk": "search.rawMilk",
-  "Bilona Ghee": "search.bilonaGhee",
-  "Pot Curd": "search.potCurd",
-};
+/** Waits for a pause in typing before asking the server, so each keystroke does not become a request. */
+function useDebounced(value: string, delayMs = 300): string {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return settled;
+}
 
 export default function SearchScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { data: products = [], isError, isLoading, refetch } = useProducts();
-  const addToCart = useAppStore((state) => state.addToCart);
-  const cart = useAppStore((state) => state.cart);
+  const language = useAppStore((state) => state.language);
   const [query, setQuery] = useState("");
-  const [category, setCategory] =
-    useState<(typeof categoryNames)[number]>("All");
-  const results = useMemo(
-    () =>
-      products.filter(
-        (product) =>
-          (category === "All" ||
-            product.category ===
-              category.replace("Raw ", "").replace("Pot ", "")) &&
-          product.name.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [category, products, query],
-  );
-  const renderItem = ({ item }: { item: Product }) => (
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const search = useDebounced(query.trim());
+  const { data: results = [], isError, isLoading, refetch } = useCatalogProducts(categoryId, search);
+  const { data: categories = [] } = useCatalogCategories();
+  const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
+  const renderItem = ({ item }: { item: CatalogProduct }) => (
     <View style={{ marginBottom: theme.spacing.sm }}>
-      <ProductCard
-        product={item}
-        isAdded={cart.some((row) => row.product.id === item.id)}
-        onAdd={(id) => {
-          const product = products.find((row) => row.id === id);
-          if (product) addToCart(product);
-        }}
-        onPress={(productId) =>
-          router.push({ pathname: "/product-details", params: { productId } })
-        }
-      />
+      <CatalogProductCard product={item} isAdded={isAdded(item)} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
     </View>
   );
   return (
@@ -87,21 +72,19 @@ export default function SearchScreen() {
                 gap: theme.spacing.sm,
               }}
             >
-              <Pressable
-                accessibilityLabel={t("search.back")}
+              <IconButton
+                icon={BackIcon}
+                label={t("search.back")}
                 onPress={() => router.back()}
-              >
-                <AppIcon icon={BackIcon} accessibilityLabel="" />
-              </Pressable>
+              />
               <ThemedText variant="h2" style={{ flex: 1 }}>
                 {t("search.title")}
               </ThemedText>
-              <Pressable
-                accessibilityLabel={t("search.cart")}
+              <IconButton
+                icon={CartIcon}
+                label={t("search.cart")}
                 onPress={() => router.push("/cart")}
-              >
-                <AppIcon icon={CartIcon} accessibilityLabel="" />
-              </Pressable>
+              />
             </View>
             <View style={{ position: "relative" }}>
               <AppInput
@@ -127,36 +110,7 @@ export default function SearchScreen() {
                 />
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-              {categoryNames.map((name) => (
-                <Pressable
-                  key={name}
-                  onPress={() => setCategory(name)}
-                  style={{
-                    paddingHorizontal: theme.spacing.sm,
-                    paddingVertical: theme.spacing.xs,
-                    borderRadius: theme.radii.pill,
-                    backgroundColor:
-                      category === name
-                        ? theme.colors.colorPrimary
-                        : theme.colors.colorSurfaceMuted,
-                  }}
-                >
-                  <ThemedText
-                    variant="caption"
-                    weight="semibold"
-                    style={{
-                      color:
-                        category === name
-                          ? theme.colors.colorTextInverse
-                          : theme.colors.colorTextPrimary,
-                    }}
-                  >
-                    {t(categoryLabelKeys[name])}
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </View>
+            <CategoryChips categories={categories} language={language} selectedId={categoryId} onSelect={setCategoryId} />
             <View
               style={{ flexDirection: "row", justifyContent: "space-between" }}
             >
