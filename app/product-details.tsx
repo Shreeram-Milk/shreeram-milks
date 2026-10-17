@@ -1,73 +1,111 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { BlurTargetView } from "expo-blur";
+import { Image } from "expo-image";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StatusBar, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, ScrollView, StatusBar, View, useWindowDimensions } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppIcon } from "../src/components/atoms/AppIcon";
-import { Chip } from "../src/components/atoms/Chip";
 import { Button } from "../src/components/atoms/Button";
 import { IconButton } from "../src/components/atoms/IconButton";
+import { PressableScale } from "../src/components/atoms/PressableScale";
 import { ThemedText } from "../src/components/atoms/ThemedText";
+import { ProductDetailSkeleton } from "../src/components/molecules/LoadingSkeletons";
 import { NutritionAccordion } from "../src/components/molecules/NutritionAccordion";
-import {
-  PurchasePlanTabs,
-  type PurchasePlan,
-} from "../src/components/molecules/PurchasePlanTabs";
 import { ProductDeliveryCard } from "../src/components/molecules/ProductDeliveryCard";
 import { QuantityStepper } from "../src/components/molecules/QuantityStepper";
-import { SubscriptionScheduleConfigurator } from "../src/components/molecules/SubscriptionScheduleConfigurator";
+import { SegmentedTabs } from "../src/components/molecules/SegmentedTabs";
+import { ExistingPlanCard } from "../src/components/organisms/ExistingPlanCard";
+import { PinCodeSheet } from "../src/components/organisms/PinCodeSheet";
 import { ProductImageCarousel } from "../src/components/organisms/ProductImageCarousel";
 import { StateMessage } from "../src/components/organisms/StateMessage";
-import { BackIcon, CartIcon, CheckIcon } from "../src/icons/appIcons";
-import { useCatalogProduct, useProductDelivery } from "../src/hooks/useCatalog";
+import { SubscribeSetup, emptyChoice, resolveChoice, type SubscribeChoice } from "../src/components/organisms/SubscribeSetup";
+import { useCatalogProduct, useCatalogProductPreview, useProductDelivery } from "../src/hooks/useCatalog";
+import { useFeatureFlags } from "../src/hooks/useContent";
+import { useMySubscriptions } from "../src/hooks/useSubscriptions";
+import { BackIcon, CartIcon, SuccessIcon } from "../src/icons/appIcons";
+import { formatRupees, toCartProduct } from "../src/lib/catalogCart";
+import { localized } from "../src/lib/contentLocalization";
+import { tapFeedback } from "../src/lib/haptics";
 import { useToast } from "../src/providers/ToastProvider";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
-import { formatRupees, toCartProduct } from "../src/lib/catalogCart";
-import { localized } from "../src/lib/contentLocalization";
 
+type PurchasePlan = "single" | "trial" | "subscription";
 const PLAN_OF_METHOD = { buy_once: "single", trial: "trial", subscription: "subscription" } as const;
+const PLAN_LABEL: Record<PurchasePlan, string> = { single: "purchasePlans.single", trial: "purchasePlans.trial", subscription: "purchasePlans.subscription" };
+
+/** Back and cart as small white circles floating on the photo. The same on the loading page, so nothing jumps when it fills in. */
+function PhotoButtons() {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const circle = { backgroundColor: theme.colors.colorSurface, borderRadius: theme.radii.pill, ...theme.elevation.sm };
+  return (
+    <View pointerEvents="box-none" style={{ position: "absolute", top: theme.spacing.sm, left: theme.layout.screenHorizontalPadding, right: theme.layout.screenHorizontalPadding, flexDirection: "row", justifyContent: "space-between" }}>
+      <View style={circle}><IconButton icon={BackIcon} label={t("productDetails.back")} onPress={() => router.back()} /></View>
+      <View style={circle}><IconButton icon={CartIcon} label={t("navigation.cart")} onPress={() => router.navigate("/cart")} /></View>
+    </View>
+  );
+}
+
+function SectionTitle({ children }: { children: string }) {
+  return <ThemedText variant="body" weight="bold">{children}</ThemedText>;
+}
 
 export default function ProductDetailsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const language = useAppStore((state) => state.language);
   const { productId } = useLocalSearchParams<{ productId?: string }>();
   const id = Array.isArray(productId) ? productId[0] : productId;
   const { data: product, isError, isLoading, refetch } = useCatalogProduct(id);
+  // Name, photo and price are already known from the list the customer tapped, so they show while the rest loads.
+  const preview = useCatalogProductPreview(id);
   const deliveryPin = useAppStore((state) => state.deliveryPin);
-  const delivery = useProductDelivery(deliveryPin, product?.fulfilmentProfileId ?? null);
+  const delivery = useProductDelivery(deliveryPin, product?.id ?? null);
+  const { data: mySubscriptions = [] } = useMySubscriptions();
+  const { showTrials, showSubscriptions } = useFeatureFlags();
   const [variantId, setVariantId] = useState<string | null>(null);
   const [plan, setPlan] = useState<PurchasePlan>("single");
-  const [trialPlanId, setTrialPlanId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [slotId, setSlotId] = useState<string | null>(null);
+  const [pinSheetOpen, setPinSheetOpen] = useState(false);
+  const [choice, setChoice] = useState<SubscribeChoice>(emptyChoice);
+  const [expanded, setExpanded] = useState(false);
+  // The PIN pop-up frosts the page behind it (on iPhone), which needs the page wrapped as a blur target.
+  const blurTargetRef = useRef<View>(null);
   const addToCart = useAppStore((state) => state.addToCart);
   const cart = useAppStore((state) => state.cart);
-  const updateCartQuantity = useAppStore((state) => state.updateCartQuantity);
   const { showToast } = useToast();
 
   if (isLoading)
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
-      >
-        <StateMessage type="loading" title={t("productDetails.loading")} />
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
+        <StatusBar barStyle="dark-content" />
+        <View accessibilityLabel={t("productDetails.loading")} style={{ flex: 1 }}>
+          <View style={{ width, height: width, backgroundColor: theme.colors.colorSurfaceMuted }}>
+            {preview?.imageUrl ? <Image source={{ uri: preview.imageUrl }} contentFit="cover" style={{ width, height: width }} /> : null}
+            <PhotoButtons />
+          </View>
+          <View style={{ gap: theme.spacing.lg, padding: theme.layout.screenHorizontalPadding }}>
+            {preview ? (
+              <View style={{ gap: theme.spacing.xs }}>
+                <ThemedText variant="h1">{localized(preview.name, preview.nameGu, language)}</ThemedText>
+                <ThemedText variant="h1" weight="extrabold">{formatRupees(preview.priceFromPaise)}</ThemedText>
+              </View>
+            ) : null}
+            <ProductDetailSkeleton compact />
+          </View>
+        </View>
       </SafeAreaView>
     );
   if (isError || !product)
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
-      >
-        <StateMessage
-          type="error"
-          title={t("productDetails.unavailableTitle")}
-          description={t("productDetails.unavailableDetail")}
-          actionLabel={isError ? t("common.retry") : undefined}
-          onAction={isError ? () => refetch() : undefined}
-        />
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
+        <StateMessage type="error" title={t("productDetails.unavailableTitle")} description={t("productDetails.unavailableDetail")} actionLabel={isError ? t("common.retry") : undefined} onAction={isError ? () => void refetch() : undefined} />
       </SafeAreaView>
     );
 
@@ -78,89 +116,103 @@ export default function ProductDetailsScreen() {
   const description = localized(product.longDescriptionEn || product.shortDescriptionEn, product.longDescriptionGu || product.shortDescriptionGu, language);
   const highlights = language === "gu" && product.highlightsGu.length > 0 ? product.highlightsGu : product.highlightsEn;
   const nutrition = localized(product.nutritionEn, product.nutritionGu, language);
-  const plans = product.purchaseMethods.map((method) => PLAN_OF_METHOD[method]);
+  // A courier product is bought once only: trials and subscriptions need a delivery window every day. The admin can switch trials and subscriptions off.
+  const plans = product.purchaseMethods
+    .filter((method) => product.deliveryMethod !== "shipping" || method === "buy_once")
+    .map((method) => PLAN_OF_METHOD[method])
+    .filter((key) => (key !== "trial" || showTrials) && (key !== "subscription" || showSubscriptions));
   const activePlan: PurchasePlan = plans.includes(plan) ? plan : (plans[0] ?? "single");
-  const activeTrialId = product.trialPlans.some((item) => item.id === trialPlanId) ? trialPlanId : (product.trialPlans[0]?.id ?? null);
   const slots = delivery.data?.served && delivery.data.deliveryMethod === "local_delivery" ? delivery.data.slots : [];
   const activeSlotId = slots.some((slot) => slot.slotId === slotId) ? slotId : (slots[0]?.slotId ?? null);
   // Only a PIN code we are sure we cannot deliver to blocks buying; before a PIN is entered, or while checking, the customer can carry on.
   const blocked = Boolean(deliveryPin) && delivery.data?.served === false;
   const imageUrls = [product.imageUrl, ...product.galleryUrls].filter((url): url is string => Boolean(url));
-  const perDelivery = t("productDetails.perDelivery", { price: formatRupees(variant.pricePaise) });
+  const savePercent = variant.compareAtPricePaise !== null && variant.compareAtPricePaise > variant.pricePaise ? Math.round(((variant.compareAtPricePaise - variant.pricePaise) / variant.compareAtPricePaise) * 100) : null;
 
+  const repeating = activePlan === "trial" || activePlan === "subscription" ? activePlan : null;
+  // A live subscription (or trial) of this product is shown instead of the set-up; a new one can start once it has ended.
+  const existing = repeating ? mySubscriptions.find((item) => item.productId === product.id && item.kind === repeating && (item.status === "active" || item.status === "paused")) ?? null : null;
+  const setup = repeating && !existing ? resolveChoice(choice, repeating, product, slots) : null;
+  const reviewSubscription = () => {
+    if (!repeating || !setup?.ready || !setup.startDate) return;
+    const draft = { kind: repeating, variantId: variant.id, ruleId: repeating === "subscription" ? setup.rule?.id : undefined, endDate: repeating === "subscription" ? (setup.endDate ?? undefined) : undefined, trialPlanId: setup.trialPlanId ?? undefined, weekdays: setup.weekdays, startDate: setup.startDate, lines: setup.lines };
+    router.push({ pathname: "/subscribe-review", params: { draft: JSON.stringify(draft) } });
+  };
+
+  const isInCart = cart.some((item) => item.product.id === cartProduct.id);
   const addSelectedQuantity = () => {
-    for (let index = 0; index < quantity; index += 1) addToCart(cartProduct);
+    tapFeedback();
+    for (let index = 0; index < quantity; index += 1) addToCart(cartProduct, activeSlotId);
+    showToast(t("productCard.addedToast", { product: productName }));
   };
-  const cartItem = cart.find((item) => item.product.id === cartProduct.id);
-  const isInCart = Boolean(cartItem);
-  const ensureSelectedQuantity = () => {
-    if (!cartItem) {
-      addSelectedQuantity();
-      return;
-    }
-    if (cartItem.quantity < quantity) updateCartQuantity(cartProduct.id, quantity);
-  };
+
+  // The bottom bar: one clear action for the chosen way of buying. A preview price only; the server prices it at checkout.
+  const bottomBar = existing ? (
+    <Button onPress={() => router.push({ pathname: "/subscription-manage", params: { id: existing.id } })}>{t(existing.kind === "trial" ? "subs.manageTrial" : "subscriptionManage.title")}</Button>
+  ) : repeating && setup ? (
+    <View style={{ gap: theme.spacing.sm }}>
+      <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: theme.spacing.md }}>
+        <ThemedText variant="caption" numberOfLines={2} style={{ flex: 1, color: theme.colors.colorTextSecondary }}>{t("subs.summary", { count: setup.deliveries ?? 0, quantity: setup.perDelivery })}</ThemedText>
+        <ThemedText variant="h2" weight="extrabold" style={{ fontVariant: ["tabular-nums"] }}>{formatRupees(variant.pricePaise * setup.perDelivery * (setup.deliveries ?? 0))}</ThemedText>
+      </View>
+      <Button disabled={blocked || !setup.ready || !deliveryPin} onPress={reviewSubscription}>{t(!deliveryPin ? "subs.addPinFirst" : repeating === "trial" ? "subs.continueTrial" : "subs.continue")}</Button>
+    </View>
+  ) : (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4 }}>
+      {isInCart ? null : <QuantityStepper value={quantity} onDecrement={() => setQuantity((current) => Math.max(1, current - 1))} onIncrement={() => setQuantity((current) => current + 1)} />}
+      {isInCart ? (
+        <Button variant="tonal" icon={CartIcon} style={{ flex: 1 }} onPress={() => router.navigate("/cart")}>{t("productDetails.viewCart")}</Button>
+      ) : (
+        <Button style={{ flex: 1 }} disabled={blocked} onPress={addSelectedQuantity}>{t("productDetails.addPrice", { price: formatRupees(variant.pricePaise * quantity) })}</Button>
+      )}
+    </View>
+  );
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
-    >
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{
-            gap: theme.spacing.lg,
-            paddingBottom: theme.spacing.xxl,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
+      <BlurTargetView ref={blurTargetRef} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: theme.spacing.xl }} showsVerticalScrollIndicator={false}>
           <View>
             <ProductImageCarousel imageUrls={imageUrls} accessibilityLabel={productName} />
-            <View
-              style={{
-                position: "absolute",
-                top: theme.spacing.md,
-                left: theme.layout.screenHorizontalPadding,
-                backgroundColor: theme.colors.colorSurface,
-                borderRadius: theme.radii.md,
-              }}
-            >
-              <IconButton icon={BackIcon} label={t("productDetails.back")} onPress={() => router.back()} />
-            </View>
+            <PhotoButtons />
           </View>
-          <View
-            style={{
-              gap: theme.spacing.lg,
-              paddingHorizontal: theme.layout.screenHorizontalPadding,
-            }}
-          >
-            <ProductSummary
-              name={productName}
-              description={description}
-              price={formatRupees(variant.pricePaise)}
-              oldPrice={variant.compareAtPricePaise === null ? null : formatRupees(variant.compareAtPricePaise)}
-              rupees={formatRupees(variant.pricePaise).slice(1)}
-              unit={variant.name}
-              highlights={highlights}
-            />
+          <View style={{ gap: theme.spacing.lg + 4, padding: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.lg }}>
+            {/* Name, size and price. */}
+            <View style={{ gap: theme.spacing.xs }}>
+              <ThemedText variant="h1">{productName}</ThemedText>
+              <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{variant.name}</ThemedText>
+              <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
+                <ThemedText variant="display" style={{ fontVariant: ["tabular-nums"] }}>{formatRupees(variant.pricePaise)}</ThemedText>
+                {variant.compareAtPricePaise !== null && savePercent ? <ThemedText variant="body" style={{ color: theme.colors.colorTextSecondary, textDecorationLine: "line-through" }}>{formatRupees(variant.compareAtPricePaise)}</ThemedText> : null}
+                {savePercent ? (
+                  <View style={{ paddingHorizontal: theme.spacing.sm, paddingVertical: 2, borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorHighlightTint }}>
+                    <ThemedText variant="caption" weight="bold" style={{ color: theme.colors.colorHighlightText }}>{t("productDetails.savePercent", { percent: savePercent })}</ThemedText>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
             {product.variants.length > 1 ? (
               <View style={{ gap: theme.spacing.sm }}>
-                <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.size")}</ThemedText>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
-                  {product.variants.map((item) => (
-                    <Chip key={item.id} selected={item.id === variant.id} onPress={() => setVariantId(item.id)}>{item.name}</Chip>
-                  ))}
-                </View>
+                <SectionTitle>{t("productDetails.size")}</SectionTitle>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing.sm }}>
+                  {product.variants.map((item) => {
+                    const selected = item.id === variant.id;
+                    return (
+                      <PressableScale key={item.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => setVariantId(item.id)} pressScale={theme.motion.pressScale.control} style={{ minHeight: 40, justifyContent: "center", paddingHorizontal: theme.spacing.md - 2, borderRadius: theme.radii.pill, borderWidth: 1.5, borderColor: selected ? theme.colors.colorAccent : theme.colors.colorBorder, backgroundColor: selected ? theme.colors.colorAccentTint : theme.colors.colorSurface }}>
+                        <ThemedText variant="label" weight={selected ? "bold" : "medium"} style={{ color: selected ? theme.colors.colorAccent : theme.colors.colorTextPrimary }}>{item.name} · {formatRupees(item.pricePaise)}</ThemedText>
+                      </PressableScale>
+                    );
+                  })}
+                </ScrollView>
               </View>
             ) : null}
-            <PurchasePlanTabs value={activePlan} onChange={setPlan} available={plans} />
-            {activePlan === "trial" ? (
-              <TrialPack plans={product.trialPlans} selectedId={activeTrialId} onSelect={setTrialPlanId} perDelivery={perDelivery} />
-            ) : null}
-            {activePlan === "subscription" ? (
-              <SubscriptionScheduleConfigurator pricePerDelivery={variant.pricePaise / 100} />
-            ) : null}
+
+            {plans.length > 1 ? <SegmentedTabs tabs={plans.map((key) => ({ key, label: t(PLAN_LABEL[key]) }))} value={activePlan} onChange={setPlan} /> : null}
+
             <ProductDeliveryCard
+              showSlots={!repeating}
               pin={deliveryPin}
               delivery={delivery.data}
               isLoading={delivery.isLoading}
@@ -168,260 +220,38 @@ export default function ProductDetailsScreen() {
               language={language}
               selectedSlotId={activeSlotId}
               onSelectSlot={setSlotId}
+              onChangePin={() => setPinSheetOpen(true)}
               onRetry={() => void delivery.refetch()}
             />
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: theme.spacing.md,
-                padding: theme.spacing.md,
-                borderRadius: theme.radii.lg,
-                borderWidth: theme.borderWidths.hairline,
-                borderColor: theme.colors.colorBorder,
-                backgroundColor: theme.colors.colorSurface,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <ThemedText variant="body" weight="semibold">
-                  {t("productDetails.quantity")}
-                </ThemedText>
-                <ThemedText
-                  variant="caption"
-                  style={{ color: theme.colors.colorTextSecondary }}
-                >
-                  {t("productDetails.bottleHint")}
-                </ThemedText>
+
+            {existing ? <ExistingPlanCard subscription={existing} language={language} /> : repeating ? <SubscribeSetup kind={repeating} product={product} unitPricePaise={variant.pricePaise} slots={slots} language={language} choice={choice} onChange={setChoice} /> : null}
+
+            {description || highlights.length > 0 ? (
+              <View style={{ gap: theme.spacing.sm }}>
+                <SectionTitle>{t("productDetails.about")}</SectionTitle>
+                {highlights.map((line) => (
+                  <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
+                    <AppIcon icon={SuccessIcon} size="sm" tone="accent" accessibilityLabel="" />
+                    <ThemedText variant="bodySmall" style={{ flex: 1 }}>{line}</ThemedText>
+                  </View>
+                ))}
+                {description ? (
+                  <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded((value) => !value)} style={{ gap: theme.spacing.xs }}>
+                    <ThemedText variant="bodySmall" numberOfLines={expanded ? undefined : 3} style={{ color: theme.colors.colorTextSecondary }}>{description}</ThemedText>
+                    <ThemedText variant="label" weight="bold" style={{ color: theme.colors.colorPrimary }}>{t(expanded ? "productDetails.readLess" : "productDetails.readMore")}</ThemedText>
+                  </Pressable>
+                ) : null}
               </View>
-              <QuantityStepper
-                value={quantity}
-                onDecrement={() =>
-                  setQuantity((current) => Math.max(1, current - 1))
-                }
-                onIncrement={() => setQuantity((current) => current + 1)}
-              />
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                gap: theme.spacing.md,
-                padding: theme.spacing.md,
-                borderRadius: theme.radii.lg,
-                backgroundColor: theme.colors.colorSurfaceMuted,
-              }}
-            >
-              <AppIcon
-                icon={CartIcon}
-                accessibilityLabel={t("productDetails.freshDelivery")}
-                size="sm"
-              />
-              <ThemedText
-                variant="bodySmall"
-                style={{ flex: 1, color: theme.colors.colorTextSecondary }}
-              >
-                {t("productDetails.deliveryReassurance")}
-              </ThemedText>
-            </View>
+            ) : null}
+
             {nutrition ? <NutritionAccordion title={t("productDetails.nutritionTitle")} content={nutrition} /> : null}
           </View>
         </ScrollView>
-        <View
-          style={{
-            flexDirection: "row",
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.layout.screenHorizontalPadding,
-            paddingTop: theme.spacing.sm,
-            paddingBottom: theme.spacing.md,
-            backgroundColor: theme.colors.colorBackground,
-          }}
-        >
-          <Button
-            icon={isInCart ? CheckIcon : CartIcon}
-            variant="secondary"
-            style={{ flex: 1 }}
-            disabled={isInCart || blocked}
-            onPress={() => {
-              addSelectedQuantity();
-              showToast(t("productCard.addedToast", { product: productName }));
-            }}
-          >
-            {t(isInCart ? "productDetails.inCart" : "productDetails.addToCart")}
-          </Button>
-          <Button
-            style={{ flex: 1 }}
-            disabled={blocked}
-            onPress={() => {
-              ensureSelectedQuantity();
-              router.push("/checkout-address");
-            }}
-          >
-            {t("productDetails.buyNow")}
-          </Button>
-        </View>
+      </BlurTargetView>
+      <View accessibilityLiveRegion="polite" style={{ paddingHorizontal: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.md - 4, paddingBottom: Math.max(insets.bottom, theme.spacing.md - 4), backgroundColor: theme.colors.colorSurface, borderTopWidth: theme.borderWidths.hairline, borderTopColor: theme.colors.colorBorder }}>
+        {bottomBar}
       </View>
+      {pinSheetOpen ? <PinCodeSheet blurTarget={blurTargetRef} onClose={() => setPinSheetOpen(false)} /> : null}
     </SafeAreaView>
-  );
-}
-
-function ProductSummary({
-  description,
-  highlights,
-  name,
-  oldPrice,
-  price,
-  rupees,
-  unit,
-}: {
-  description: string;
-  highlights: string[];
-  name: string;
-  oldPrice: string | null;
-  price: string;
-  rupees: string;
-  unit: string;
-}) {
-  const theme = useTheme();
-  const { t } = useTranslation();
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
-        <View style={{ flex: 1 }}>
-          <ThemedText variant="h1">{name}</ThemedText>
-          <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>
-            {t("productDetails.inclusiveTaxes", { price: rupees, unit })}
-          </ThemedText>
-        </View>
-        <View style={{ alignItems: "flex-end", gap: theme.spacing.xs }}>
-          <ThemedText variant="h2">{price}</ThemedText>
-          {oldPrice ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textDecorationLine: "line-through" }}>{oldPrice}</ThemedText> : null}
-        </View>
-      </View>
-      {description ? <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.productDescription", { description })}</ThemedText> : null}
-      {highlights.map((line) => (
-        <ThemedText key={line} variant="bodySmall">{`• ${line}`}</ThemedText>
-      ))}
-    </View>
-  );
-}
-
-function TrialPack({ perDelivery, plans, selectedId, onSelect }: { perDelivery: string; plans: { id: string; name: string; durationDays: number }[]; selectedId: string | null; onSelect: (id: string) => void }) {
-  const theme = useTheme();
-  const { t } = useTranslation();
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>
-        {t("productDetails.trialLabel")}
-      </ThemedText>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
-        {plans.map((item) => (
-          <PlanOption key={item.id} active={item.id === selectedId} title={t("productDetails.trialDays", { count: item.durationDays })} description={item.name} value={perDelivery} onPress={() => onSelect(item.id)} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function PlanOption({
-  active,
-  badges,
-  description,
-  onPress,
-  title,
-  value,
-}: {
-  active: boolean;
-  badges?: string[];
-  description: string;
-  onPress: () => void;
-  title: string;
-  value: string;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={{
-        flex: 1,
-        gap: theme.spacing.xs,
-        marginTop: badges ? theme.spacing.xs : theme.spacing.none,
-        padding: theme.spacing.md,
-        borderRadius: theme.radii.lg,
-        borderWidth: active
-          ? theme.borderWidths.none
-          : theme.borderWidths.hairline,
-        borderColor: theme.colors.colorBorder,
-        backgroundColor: active
-          ? theme.colors.colorPrimaryTint
-          : theme.colors.colorSurface,
-      }}
-    >
-      {badges ? (
-        <View
-          style={{
-            position: "absolute",
-            top: -theme.spacing.sm,
-            left: 0,
-            right: 0,
-            zIndex: theme.zIndex.card,
-            flexDirection: "row",
-            justifyContent: "center",
-            gap: theme.spacing.xs,
-          }}
-        >
-          {badges.map((badge, index) => (
-            <View
-              key={badge}
-              style={{
-                paddingHorizontal: theme.spacing.sm,
-                borderRadius: theme.radii.pill,
-                backgroundColor:
-                  index === 0
-                    ? theme.colors.colorPrimary
-                    : theme.colors.colorTextSecondary,
-              }}
-            >
-              <ThemedText
-                variant="badgeLabel"
-                weight="semibold"
-                style={{ color: theme.colors.colorTextInverse }}
-              >
-                {badge}
-              </ThemedText>
-            </View>
-          ))}
-        </View>
-      ) : null}
-      <ThemedText
-        variant="bodySmall"
-        weight="semibold"
-        style={{ color: theme.colors.colorTextPrimary }}
-      >
-        {title}
-      </ThemedText>
-      <ThemedText
-        variant="caption"
-        style={{
-          color: theme.colors.colorTextSecondary,
-        }}
-      >
-        {description}
-      </ThemedText>
-      <View
-        style={{
-          height: theme.borderWidths.hairline,
-          backgroundColor: theme.colors.colorBorder,
-        }}
-      />
-      <ThemedText
-        variant="body"
-        weight="bold"
-        style={{ color: theme.colors.colorTextPrimary }}
-      >
-        {value}
-      </ThemedText>
-    </Pressable>
   );
 }

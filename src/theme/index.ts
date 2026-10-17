@@ -6,7 +6,7 @@ export { spacing } from './spacing';
 export { radii } from './radii';
 export { borderWidths } from './borders';
 export { componentSizes } from './sizes';
-export { fontWeights, typeScale } from './typography';
+export { fontWeights, gujaratiText, typeScale } from './typography';
 export { opacity } from './opacity';
 export { motion } from './motion';
 export { elevation } from './elevation';

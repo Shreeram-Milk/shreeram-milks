@@ -1,12 +1,15 @@
-import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
-import { formatDeliveryDate, formatWindow } from "../../lib/deliveryText";
+import { LocationIcon, TruckIcon } from "../../icons/appIcons";
+import { formatOrderBy, formatShortDay, formatWindow } from "../../lib/deliveryText";
 import { useTheme } from "../../theme";
 import type { ProductDelivery } from "../../types/delivery";
 import type { AppLanguage } from "../../types/models";
-import { Button } from "../atoms/Button";
+import { AppIcon } from "../atoms/AppIcon";
+import { Card } from "../atoms/Card";
+import { PressableScale } from "../atoms/PressableScale";
+import { Skeleton } from "../atoms/Skeleton";
 import { ThemedText } from "../atoms/ThemedText";
 
 interface ProductDeliveryCardProps {
@@ -18,82 +21,79 @@ interface ProductDeliveryCardProps {
   language: AppLanguage;
   selectedSlotId: string | null;
   onSelectSlot: (slotId: string) => void;
+  onChangePin: () => void;
   onRetry: () => void;
+  /** False for a subscription or trial, which picks its windows (with a quantity each) elsewhere. */
+  showSlots?: boolean;
+}
+
+/** One line: an icon, a title with a small grey line, and a text action on the right. */
+function DeliveryLine({ action, detail, onAction, title, tone = "default" }: { action?: string; detail?: string; onAction?: () => void; title: string; tone?: "default" | "warning" }) {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4, padding: theme.spacing.md - 2 }}>
+      <View style={{ width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.md - 2, backgroundColor: tone === "warning" ? theme.colors.colorHighlightTint : theme.colors.colorAccentTint }}>
+        <AppIcon icon={LocationIcon} accessibilityLabel="" size="sm" tone={tone === "warning" ? "highlight" : "accent"} />
+      </View>
+      <View style={{ flex: 1, gap: 1 }}>
+        <ThemedText variant="bodySmall" weight="bold" numberOfLines={2}>{title}</ThemedText>
+        {detail ? <ThemedText variant="caption" numberOfLines={2} style={{ color: theme.colors.colorTextSecondary }}>{detail}</ThemedText> : null}
+      </View>
+      {action && onAction ? (
+        <PressableScale accessibilityRole="button" accessibilityLabel={action} hitSlop={theme.spacing.sm} onPress={onAction}>
+          <ThemedText variant="label" weight="bold" style={{ color: theme.colors.colorPrimary }}>{action}</ThemedText>
+        </PressableScale>
+      ) : null}
+    </View>
+  );
 }
 
 /** Where and when this product can be delivered to the customer's PIN code. The server decides; this only shows the answer. */
-export function ProductDeliveryCard({ pin, delivery, isLoading, isError, language, selectedSlotId, onSelectSlot, onRetry }: ProductDeliveryCardProps) {
+export function ProductDeliveryCard({ pin, delivery, isLoading, isError, language, selectedSlotId, onSelectSlot, onChangePin, onRetry, showSlots = true }: ProductDeliveryCardProps) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const box = { gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: theme.radii.lg } as const;
-  const changePin = () => router.push("/location");
 
-  if (!pin) {
-    return (
-      <View style={{ ...box, backgroundColor: theme.colors.colorSurfaceMuted }}>
-        <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.addPin")}</ThemedText>
-        <Button variant="secondary" onPress={changePin}>{t("productDetails.addPinAction")}</Button>
-      </View>
-    );
-  }
-  if (isLoading) return <View style={{ ...box, backgroundColor: theme.colors.colorSurfaceMuted }}><ThemedText variant="bodySmall">{t("productDetails.checkingDelivery")}</ThemedText></View>;
-  if (isError || !delivery) {
-    return (
-      <View accessibilityRole="alert" style={{ ...box, backgroundColor: theme.colors.colorWarningTint }}>
-        <ThemedText variant="bodySmall">{t("productDetails.deliveryError")}</ThemedText>
-        <Button variant="secondary" onPress={onRetry}>{t("common.retry")}</Button>
-      </View>
-    );
-  }
-  if (!delivery.served) {
-    return (
-      <View accessibilityRole="alert" style={{ ...box, backgroundColor: theme.colors.colorWarningTint }}>
-        <ThemedText variant="bodySmall" weight="semibold">{t("productDetails.notDeliverableTitle", { pin })}</ThemedText>
-        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.notDeliverableDetail")}</ThemedText>
-        <Button variant="secondary" onPress={changePin}>{t("productDetails.changePin")}</Button>
-      </View>
-    );
-  }
+  if (!pin) return <Card padded={false}><DeliveryLine title={t("productDetails.addPinAction")} detail={t("productDetails.addPin")} action={t("productDetails.add")} onAction={onChangePin} /></Card>;
+  if (isLoading) return <Skeleton height={64} radius={theme.radii.lg} />;
+  if (isError || !delivery) return <Card padded={false}><DeliveryLine tone="warning" title={t("productDetails.deliveryError")} action={t("common.retry")} onAction={onRetry} /></Card>;
+  if (!delivery.served) return <Card padded={false}><DeliveryLine tone="warning" title={t("productDetails.notDeliverableTitle", { pin })} detail={t("productDetails.notDeliverableDetail")} action={t("productDetails.change")} onAction={onChangePin} /></Card>;
+
+  const place = delivery.locality ? `${delivery.locality} · ${pin}` : pin;
+  const showSlotPicker = showSlots && delivery.deliveryMethod === "local_delivery" && delivery.slots.length > 0;
 
   return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.sm }}>
-        <ThemedText variant="bodySmall" weight="semibold" style={{ flex: 1 }}>
-          {delivery.locality ? t("productDetails.deliverTo", { place: delivery.locality }) : t("productDetails.deliverToPin", { pin })}
-        </ThemedText>
-        <Pressable accessibilityRole="button" onPress={changePin} hitSlop={theme.spacing.sm}>
-          <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorPrimary }}>{t("productDetails.changePin")}</ThemedText>
-        </Pressable>
-      </View>
+    <Card padded={false}>
+      <DeliveryLine title={place} detail={t("productDetails.deliveringTo")} action={t("productDetails.change")} onAction={onChangePin} />
       {delivery.deliveryMethod === "shipping" ? (
-        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.courierDetail")}</ThemedText>
-      ) : (
-        <View style={{ gap: theme.spacing.sm }}>
-          <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.slotTitle")}</ThemedText>
+        <View style={{ flexDirection: "row", gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md - 2, paddingBottom: theme.spacing.md - 2 }}>
+          <AppIcon icon={TruckIcon} size="sm" tone="secondary" accessibilityLabel="" />
+          <ThemedText variant="caption" style={{ flex: 1, color: theme.colors.colorTextSecondary }}>{t("productDetails.courierDetail")}</ThemedText>
+        </View>
+      ) : null}
+      {showSlotPicker ? (
+        <View accessibilityRole="radiogroup" accessibilityLabel={t("productDetails.slotTitle")} style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: theme.spacing.sm, paddingHorizontal: theme.spacing.md - 2, paddingBottom: theme.spacing.md - 2 }}>
           {delivery.slots.map((slot) => {
             const active = slot.slotId === selectedSlotId;
+            const orderBy = formatOrderBy(slot.orderBy, language, t);
             return (
-              <Pressable
+              <PressableScale
                 key={slot.slotId}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
                 onPress={() => onSelectSlot(slot.slotId)}
-                style={{
-                  gap: theme.spacing.xs,
-                  padding: theme.spacing.md,
-                  borderRadius: theme.radii.lg,
-                  borderWidth: active ? theme.borderWidths.medium : theme.borderWidths.hairline,
-                  borderColor: active ? theme.colors.colorPrimary : theme.colors.colorBorder,
-                  backgroundColor: theme.colors.colorSurface,
-                }}
+                pressScale={theme.motion.pressScale.control}
+                // Two per row; a single time keeps half the width instead of stretching across.
+                containerStyle={{ width: "48%" }}
+                style={{ gap: 3, paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.md - 2, borderRadius: theme.radii.md, borderWidth: active ? 1.5 : theme.borderWidths.hairline, borderColor: active ? theme.colors.colorTextPrimary : theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface }}
               >
-                <ThemedText variant="bodySmall" weight="semibold">{slot.name} · {formatWindow(slot.startTime, slot.endTime)}</ThemedText>
-                <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.earliestFrom", { date: formatDeliveryDate(slot.earliestDate, language) })}</ThemedText>
-              </Pressable>
+                <ThemedText variant="bodySmall" weight="semibold">{slot.name}</ThemedText>
+                <ThemedText variant="caption" style={{ color: theme.colors.colorTextPrimary }}>{formatWindow(slot.startTime, slot.endTime)}</ThemedText>
+                <ThemedText variant="caption" numberOfLines={2} style={{ color: theme.colors.colorTextSecondary }}>{[formatShortDay(slot.earliestDate, language, t), orderBy].filter(Boolean).join(" · ")}</ThemedText>
+              </PressableScale>
             );
           })}
         </View>
-      )}
-    </View>
+      ) : null}
+    </Card>
   );
 }

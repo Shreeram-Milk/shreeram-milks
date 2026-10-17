@@ -37,7 +37,7 @@ export interface FaqItem {
 }
 
 export type BannerType = "promotion" | "warning" | "maintenance" | "informational";
-export type BannerCtaType = "none" | "product" | "category";
+export type BannerCtaType = "none" | "product" | "category" | "offers";
 
 export interface BannerContent {
   id: string;
@@ -76,23 +76,6 @@ export interface PolicyDocument {
   bodyGu: string;
   version: string;
   effectiveDate: string;
-}
-
-export type QualityReportType = "lab_report" | "quality_certificate" | "purity_certificate" | "other";
-
-export interface QualityReport {
-  id: string;
-  titleEn: string;
-  titleGu: string;
-  reportType: QualityReportType;
-  productId: string | null;
-  batchReference: string;
-  labName: string;
-  reportDate: string;
-  validUntil: string | null;
-  summaryEn: string;
-  summaryGu: string;
-  fileUrl: string | null;
 }
 
 /** Switches for features the installed app already has. They show or hide; they never add new native behaviour. */

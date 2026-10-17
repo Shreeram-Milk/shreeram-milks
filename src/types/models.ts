@@ -32,7 +32,6 @@ export interface DeliveryAddress {
   fullName: string;
   id: string;
   isDefault: boolean;
-  isServiceable: boolean;
   landmark: string;
   line1: string;
   line2: string;
@@ -49,34 +48,3 @@ export interface DoorstepInstructions {
   notifyAfterDelivery: boolean;
 }
 
-export type DeliveryState = "scheduled" | "delivered" | "paused" | "skipped";
-
-export interface DeliveryCalendarEntry {
-  addressLabel: string;
-  date: string;
-  id: string;
-  productName: string;
-  quantity: string;
-  state: DeliveryState;
-  timeSlot: string;
-}
-
-export type OrderStatus = "confirmed" | "out-for-delivery" | "delivered";
-
-export interface OrderItem {
-  imageUrl: string | null;
-  name: string;
-  quantity: number;
-  total: number;
-  unit: string;
-}
-
-export interface Order {
-  address: string;
-  deliveryWindow: string;
-  id: string;
-  items: OrderItem[];
-  placedAt: string;
-  status: OrderStatus;
-  total: number;
-}

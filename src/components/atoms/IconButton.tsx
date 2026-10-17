@@ -1,63 +1,36 @@
 import type { PressableProps } from "react-native";
-import { useState } from "react";
-import { Animated, Easing, Pressable } from "react-native";
 
 import { AppIcon, type IconSvgElement } from "./AppIcon";
+import { PressableScale } from "./PressableScale";
 import { useTheme } from "../../theme";
 
-interface IconButtonProps extends PressableProps {
+interface IconButtonProps extends Omit<PressableProps, "style"> {
   icon: IconSvgElement;
   label: string;
   tone?: "primary" | "secondary";
+  /** A soft grey circle behind the icon, for buttons that sit on top of content (back over a photo, bell on Home). */
+  filled?: boolean;
 }
-export function IconButton({
-  icon,
-  label,
-  tone = "primary",
-  ...props
-}: IconButtonProps) {
+
+export function IconButton({ filled = false, icon, label, tone = "primary", ...props }: IconButtonProps) {
   const theme = useTheme();
-  const [scale] = useState(() => new Animated.Value(1));
-  const animateScale = (toValue: number) =>
-    Animated.timing(scale, {
-      toValue,
-      duration: theme.motion.duration.fast,
-      easing: Easing.bezier(...theme.motion.easing.standard),
-      useNativeDriver: true,
-    }).start();
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      <Pressable
-        {...props}
-        onPressIn={(event) => {
-          animateScale(theme.motion.pressScale.compactControl);
-          props.onPressIn?.(event);
-        }}
-        onPressOut={(event) => {
-          animateScale(1);
-          props.onPressOut?.(event);
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        hitSlop={theme.spacing.sm}
-        style={({ pressed }) => [
-          {
-            width: theme.layout.touchTargetMin,
-            height: theme.layout.touchTargetMin,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: theme.radii.md,
-            backgroundColor: pressed
-              ? theme.colors.colorPrimaryTint
-              : theme.colors.colorTransparent,
-          },
-          typeof props.style === "function"
-            ? props.style({ pressed })
-            : props.style,
-        ]}
-      >
-        <AppIcon icon={icon} accessibilityLabel="" tone={tone} />
-      </Pressable>
-    </Animated.View>
+    <PressableScale
+      {...props}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={theme.spacing.sm}
+      pressScale={theme.motion.pressScale.compactControl}
+      style={{
+        width: theme.layout.touchTargetMin,
+        height: theme.layout.touchTargetMin,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: theme.radii.pill,
+        backgroundColor: filled ? theme.colors.colorSurfaceMuted : theme.colors.colorTransparent,
+      }}
+    >
+      <AppIcon icon={icon} accessibilityLabel="" tone={tone} />
+    </PressableScale>
   );
 }

@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StatusBar, TextInput, View } from 'react-native';
@@ -7,10 +8,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/atoms/Button';
 import { IconButton } from '../src/components/atoms/IconButton';
 import { ThemedText } from '../src/components/atoms/ThemedText';
+import { OtpBoxes } from '../src/components/molecules/OtpBoxes';
 import { KeyboardAwareBottomDrawer } from '../src/components/organisms/KeyboardAwareBottomDrawer';
+import { pickDefaultAddress } from '../src/hooks/useAddresses';
 import { useRequestCode, useVerifyCode } from '../src/hooks/useCustomerAuth';
-import { formatPhone, isIndianMobile, toInternationalPhone } from '../src/lib/phone';
+import { isEmail } from '../src/lib/phone';
+import { fetchAddresses } from '../src/services/addressService';
 import { describeError } from '../src/services/errorMapper';
+import { queryKeys } from '../src/services/queryKeys';
+import { useAppStore } from '../src/store/useAppStore';
 import { useTheme } from '../src/theme';
 import { BackIcon } from '../src/icons/appIcons';
 
@@ -20,13 +26,15 @@ const RESEND_SECONDS = 60;
 export default function VerifyScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { phone: typedPhone } = useLocalSearchParams<{ phone?: string }>();
-  const digits = typeof typedPhone === 'string' ? typedPhone : '';
-  const phone = toInternationalPhone(digits);
+  const { email: typedEmail } = useLocalSearchParams<{ email?: string }>();
+  const email = typeof typedEmail === 'string' ? typedEmail : '';
   const inputRef = useRef<TextInput>(null);
   const [otp, setOtp] = useState('');
+  const [focused, setFocused] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [resent, setResent] = useState(false);
+  const client = useQueryClient();
+  const [routing, setRouting] = useState(false);
   const verify = useVerifyCode();
   const resend = useRequestCode();
   const canContinue = otp.length === CODE_LENGTH;
@@ -37,13 +45,28 @@ export default function VerifyScreen() {
     return () => clearTimeout(timer);
   }, [secondsLeft]);
 
-  // Opened without a number (a deep link or a restored screen): there is nothing to verify, so start again.
+  // Opened without an email (a deep link or a restored screen): there is nothing to verify, so start again.
   useEffect(() => {
-    if (!isIndianMobile(digits)) router.replace('/sign-in');
-  }, [digits]);
+    if (!isEmail(email)) router.replace('/sign-in');
+  }, [email]);
 
-  const submit = () => verify.mutate({ phone, code: otp }, { onSuccess: ({ customer }) => router.replace(customer.needsProfile ? { pathname: '/edit-profile', params: { first: '1' } } : '/location') });
-  const sendAgain = () => resend.mutate(phone, { onSuccess: () => { setSecondsLeft(RESEND_SECONDS); setResent(true); setOtp(''); verify.reset(); } });
+  // A customer who has already set up a delivery address does not repeat the location step: their default address becomes the delivery PIN and they go to Home.
+  const continueAfterSignIn = async (customerId: string) => {
+    setRouting(true);
+    try {
+      const address = pickDefaultAddress(await client.fetchQuery({ queryKey: queryKeys.addresses(customerId), queryFn: fetchAddresses, staleTime: 15_000 }));
+      if (address) {
+        useAppStore.getState().setDeliveryPin(address.pincode);
+        router.replace('/home');
+        return;
+      }
+    } catch {
+      // The address list could not be loaded; the location step still works, so carry on there.
+    }
+    router.replace('/location');
+  };
+  const submit = () => verify.mutate({ email, code: otp }, { onSuccess: ({ customer }) => { if (customer.needsProfile) router.replace({ pathname: '/edit-profile', params: { first: '1' } }); else void continueAfterSignIn(customer.id); } });
+  const sendAgain = () => resend.mutate(email, { onSuccess: () => { setSecondsLeft(RESEND_SECONDS); setResent(true); setOtp(''); verify.reset(); } });
   const error = verify.error ?? resend.error;
 
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
@@ -51,13 +74,14 @@ export default function VerifyScreen() {
     <View style={{ flex: 1, padding: theme.spacing.lg }}>
       <IconButton icon={BackIcon} label={t('commonActions.back')} onPress={() => router.back()} />
       <View style={{ flex: 1, paddingTop: theme.spacing.xl, gap: theme.spacing.xl }}>
-        <View style={{ gap: theme.spacing.sm }}><ThemedText variant="h1">{t('verify.title')}</ThemedText><ThemedText variant="body" style={{ color: theme.colors.colorTextSecondary }}>{t('verify.description', { phone: formatPhone(phone) })}</ThemedText></View>
+        <View style={{ gap: theme.spacing.sm }}><ThemedText variant="h1">{t('verify.title')}</ThemedText><ThemedText variant="body" style={{ color: theme.colors.colorTextSecondary }}>{t('verify.description', { email })}</ThemedText></View>
         <View style={{ gap: theme.spacing.sm }}>
           <ThemedText variant="bodySmall">{t('verify.code')}</ThemedText>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('verify.enterCode')} onPress={() => inputRef.current?.focus()}>
-            <View style={{ flexDirection: 'row', gap: theme.spacing.xs }}>{Array.from({ length: CODE_LENGTH }, (_unused, index) => { const digit = otp[index]; const selected = index === otp.length && otp.length < CODE_LENGTH; return <View key={index} style={{ flex: 1, height: 56, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radii.lg, borderWidth: selected ? theme.borderWidths.medium : theme.borderWidths.hairline, borderColor: error ? theme.colors.colorDanger : selected ? theme.colors.colorPrimary : theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface }}>{digit ? <ThemedText variant="h2" style={{ color: theme.colors.colorTextPrimary }}>{digit}</ThemedText> : <ThemedText variant="h2" style={{ color: theme.colors.colorTextSecondary }}>•</ThemedText>}</View>; })}</View>
-          </Pressable>
-          <TextInput ref={inputRef} accessibilityLabel={t('verify.code')} autoComplete="sms-otp" autoFocus keyboardType="number-pad" maxLength={CODE_LENGTH} onChangeText={(value) => { setOtp(value.replace(/\D/g, '')); if (verify.isError) verify.reset(); }} style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }} textContentType="oneTimeCode" value={otp} />
+          <View>
+            <OtpBoxes value={otp} length={CODE_LENGTH} invalid={Boolean(error)} focused={focused} />
+            {/* The real input lies invisibly over the boxes, so a tap or a long-press (paste) lands on it directly and always opens the keyboard. */}
+            <TextInput ref={inputRef} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} accessibilityLabel={t('verify.code')} autoComplete="sms-otp" autoFocus caretHidden contextMenuHidden={false} keyboardType="number-pad" maxLength={CODE_LENGTH} onChangeText={(value) => { setOtp(value.replace(/\D/g, '')); if (verify.isError) verify.reset(); }} showSoftInputOnFocus style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0.02, color: 'transparent' }} textContentType="oneTimeCode" value={otp} />
+          </View>
           {error ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(error)}</ThemedText> : resent ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorPrimary }}>{t('verify.codeSent')}</ThemedText> : null}
         </View>
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: secondsLeft > 0 || resend.isPending }} disabled={secondsLeft > 0 || resend.isPending} hitSlop={theme.spacing.sm} onPress={sendAgain}>
@@ -65,7 +89,7 @@ export default function VerifyScreen() {
         </Pressable>
       </View>
       <KeyboardAwareBottomDrawer style={{ position: 'absolute', right: theme.spacing.lg, bottom: theme.spacing.md, left: theme.spacing.lg, gap: theme.spacing.md, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.sm, backgroundColor: theme.colors.colorBackground }}>
-        <Button disabled={!canContinue} loading={verify.isPending} onPress={submit}>{t('verify.continue')}</Button>
+        <Button disabled={!canContinue || routing} loading={verify.isPending || routing} onPress={submit}>{t('verify.continue')}</Button>
       </KeyboardAwareBottomDrawer>
     </View>
   </SafeAreaView>;

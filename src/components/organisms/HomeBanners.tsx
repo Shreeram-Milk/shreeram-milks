@@ -1,7 +1,8 @@
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { Pressable, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 
 import { localized } from "../../lib/contentLocalization";
@@ -11,8 +12,16 @@ import type { AppLanguage } from "../../types/models";
 import { ThemedText } from "../atoms/ThemedText";
 import { PageDots } from "../molecules/PageDots";
 
-const BANNER_HEIGHT = 146;
+/** The slideshow is taller than before, with tighter corners. */
+const BANNER_HEIGHT = 196;
 const NOTICE_ORDER: readonly BannerType[] = ["warning", "maintenance", "informational"];
+
+/** Opens what a promotion points at. A banner with no link does nothing; the server already checked the target exists. */
+function openBanner(banner: BannerContent): void {
+  if (banner.ctaType === "offers") router.push("/offers");
+  else if (banner.ctaType === "product" && banner.ctaTarget) router.push({ pathname: "/product-details", params: { productId: banner.ctaTarget } });
+  else if (banner.ctaType === "category") router.navigate("/products");
+}
 
 type Props = { banners: BannerContent[] | undefined; isLoading: boolean; language: AppLanguage };
 
@@ -33,7 +42,7 @@ export function HomeBanners({ banners, isLoading, language }: Props) {
   const renderSeparator = useCallback(() => <View style={{ width: gap }} />, [gap]);
 
   if (isLoading) {
-    return <View accessibilityLabel={t("home.loading")} style={{ height: BANNER_HEIGHT, borderRadius: theme.radii.lg, backgroundColor: theme.colors.colorSurface }} />;
+    return <View accessibilityLabel={t("home.loading")} style={{ height: BANNER_HEIGHT, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurface }} />;
   }
   const promotions = (banners ?? []).filter((item) => item.type === "promotion");
   const notices = NOTICE_ORDER.flatMap((type) => (banners ?? []).filter((item) => item.type === type));
@@ -106,7 +115,13 @@ export function HomeBanners({ banners, isLoading, language }: Props) {
                 const label = localized(item.labelEn, item.labelGu, language);
                 const message = localized(item.messageEn, item.messageGu, language);
                 return (
-                  <View style={{ width, height: BANNER_HEIGHT, overflow: "hidden", borderRadius: theme.radii.lg, backgroundColor: theme.colors.colorPrimary }}>
+                  <Pressable
+                    accessibilityRole={item.ctaType === "none" ? "image" : "button"}
+                    accessibilityLabel={localized(item.titleEn, item.titleGu, language)}
+                    disabled={item.ctaType === "none"}
+                    onPress={() => openBanner(item)}
+                    style={{ width, height: BANNER_HEIGHT, overflow: "hidden", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorPrimary }}
+                  >
                     <Image
                       source={item.imageUrl ? { uri: item.imageUrl } : require("../../../assets/onboarding-milk-hero.png")}
                       contentFit="cover"
@@ -131,7 +146,7 @@ export function HomeBanners({ banners, isLoading, language }: Props) {
                         </ThemedText>
                       ) : null}
                     </View>
-                  </View>
+                  </Pressable>
                 );
               }}
             />

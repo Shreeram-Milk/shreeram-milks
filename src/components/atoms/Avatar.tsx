@@ -22,7 +22,7 @@ export function Avatar({ imageUrl, initials, size = "md" }: AvatarProps) {
     width: dimension,
     height: dimension,
     borderRadius: theme.radii.pill,
-    backgroundColor: theme.colors.colorPrimaryTint,
+    backgroundColor: theme.colors.colorAccentTint,
     alignItems: "center" as const,
     justifyContent: "center" as const,
     overflow: "hidden" as const,
@@ -38,8 +38,9 @@ export function Avatar({ imageUrl, initials, size = "md" }: AvatarProps) {
         />
       ) : (
         <ThemedText
-          variant="caption"
-          style={{ color: theme.colors.colorPrimary }}
+          variant={size === "lg" ? "h2" : "caption"}
+          weight="extrabold"
+          style={{ color: theme.colors.colorAccent }}
         >
           {initials}
         </ThemedText>

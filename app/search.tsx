@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,20 +12,14 @@ import { CatalogProductCard } from "../src/components/organisms/CatalogProductCa
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { BackIcon, CartIcon, SearchIcon } from "../src/icons/appIcons";
 import { useCatalogCart } from "../src/hooks/useCatalogCart";
+import { useDebouncedValue } from "../src/hooks/useDebouncedValue";
 import { useCatalogCategories, useCatalogProducts } from "../src/hooks/useCatalog";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
+import { isSpacer, padToColumns, type GridSpacer } from "../src/lib/gridList";
 import type { CatalogProduct } from "../src/types/catalog";
 
-/** Waits for a pause in typing before asking the server, so each keystroke does not become a request. */
-function useDebounced(value: string, delayMs = 300): string {
-  const [settled, setSettled] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-  return settled;
-}
+const SEARCH_PAUSE_MS = 300;
 
 export default function SearchScreen() {
   const theme = useTheme();
@@ -33,22 +27,26 @@ export default function SearchScreen() {
   const language = useAppStore((state) => state.language);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const search = useDebounced(query.trim());
+  // Waits for a pause in typing before asking the server, so each keystroke does not become a request.
+  const search = useDebouncedValue(query.trim(), SEARCH_PAUSE_MS);
   const { data: results = [], isError, isLoading, refetch } = useCatalogProducts(categoryId, search);
   const { data: categories = [] } = useCatalogCategories();
   const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
-  const renderItem = ({ item }: { item: CatalogProduct }) => (
-    <View style={{ marginBottom: theme.spacing.sm }}>
-      <CatalogProductCard product={item} isAdded={isAdded(item)} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
-    </View>
-  );
+  const renderItem = ({ item }: { item: CatalogProduct | GridSpacer }) =>
+    isSpacer(item) ? (
+      <View style={{ flex: 1 }} />
+    ) : (
+      <View style={{ flex: 1, marginBottom: theme.spacing.sm }}>
+        <CatalogProductCard product={item} isAdded={isAdded(item)} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
+      </View>
+    );
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
     >
       <StatusBar barStyle="dark-content" />
       <FlatList
-        data={results}
+        data={padToColumns(results)}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets

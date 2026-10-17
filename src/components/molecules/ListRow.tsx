@@ -56,7 +56,7 @@ export function ListRow({ badge, disabled = false, icon, isLast = false, onPress
       ) : null}
       {trailing === "chevron" && !disabled ? <AppIcon icon={ForwardIcon} accessibilityLabel="" size="sm" tone="secondary" /> : null}
       {isRadio ? (
-        <View style={{ width: theme.spacing.lg, height: theme.spacing.lg, borderRadius: theme.radii.pill, alignItems: "center", justifyContent: "center", borderWidth: theme.borderWidths.hairline * 2, borderColor: selected ? theme.colors.colorPrimary : theme.colors.colorBorder }}>
+        <View style={{ width: theme.spacing.lg, height: theme.spacing.lg, borderRadius: theme.radii.pill, alignItems: "center", justifyContent: "center", borderWidth: theme.borderWidths.hairline * 2, borderColor: selected ? theme.colors.colorAccent : theme.colors.colorBorder }}>
           {selected ? <View style={{ width: theme.spacing.sm, height: theme.spacing.sm, borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorPrimary }} /> : null}
         </View>
       ) : null}

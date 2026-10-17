@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "437753691628",
+    "project_id": "shreeram-milks",
+    "storage_bucket": "shreeram-milks.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:437753691628:android:b0b726c8e9b12f85fbd4c9",
+        "android_client_info": {
+          "package_name": "com.shreerammilks.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEZmr6GdUlWfYLjBnC0EwBfCzJNcD8MMM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

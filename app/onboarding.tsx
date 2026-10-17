@@ -74,7 +74,7 @@ export default function OnboardingScreen() {
           onMomentumScrollEnd={onSlideEnd}
           getItemLayout={(_, position) => ({ length: width, offset: step * position, index: position })}
           renderItem={({ item }) => <View style={{ width }}>
-            <Image source={item.imageUrl ? { uri: item.imageUrl } : require('../assets/onboarding-milk-hero.png')} contentFit="cover" accessibilityLabel={t('onboarding.heroLabel')} style={{ height: 264, marginTop: theme.spacing.sm, borderRadius: theme.radii.lg, backgroundColor: theme.colors.colorPrimaryTint }} />
+            <Image source={item.imageUrl ? { uri: item.imageUrl } : require('../assets/onboarding-milk-hero.png')} contentFit="cover" accessibilityLabel={t('onboarding.heroLabel')} style={{ height: 264, marginTop: theme.spacing.sm, borderRadius: theme.radii.lg, backgroundColor: theme.colors.colorSurfaceMuted }} />
             <View style={{ paddingTop: theme.spacing.lg, gap: theme.spacing.md }}>
               <ThemedText variant="h1" weight="extrabold">{localized(item.titleEn, item.titleGu, language)}</ThemedText>
               <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{localized(item.descriptionEn, item.descriptionGu, language)}</ThemedText>

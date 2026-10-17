@@ -1,374 +1,153 @@
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StatusBar, View } from "react-native";
+import { Linking, RefreshControl, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../src/components/atoms/Button";
-import { AppIcon } from "../src/components/atoms/AppIcon";
+import { RiseIn } from "../src/components/atoms/RiseIn";
 import { ThemedText } from "../src/components/atoms/ThemedText";
-import { StateMessage } from "../src/components/organisms/StateMessage";
-import { OrderStatusBadge } from "../src/components/molecules/OrderStatusBadge";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
-import {
-  DownloadIcon,
-  LocationIcon,
-  PhoneIcon,
-  TruckIcon,
-} from "../src/icons/appIcons";
-import { useOrder } from "../src/hooks/useOrders";
+import { TrackingTimeline, type TimelineStep } from "../src/components/molecules/TrackingTimeline";
+import { ConfirmSheet } from "../src/components/organisms/ConfirmSheet";
+import { StateMessage } from "../src/components/organisms/StateMessage";
+import { TrackingHero } from "../src/components/organisms/TrackingHero";
+import { useCountdownLabel } from "../src/hooks/useCountdownLabel";
+import { useCancelOrder, useMyOrder } from "../src/hooks/useOrders";
+import { formatRupees } from "../src/lib/catalogCart";
+import { localized } from "../src/lib/contentLocalization";
+import { formatPlacedAt, formatShortDay, formatWindow } from "../src/lib/deliveryText";
+import { AlertCircleIcon, CloseIcon, HomeIcon, PackageIcon, SuccessIcon, TruckIcon } from "../src/icons/appIcons";
+import { describeError } from "../src/services/errorMapper";
+import { useToast } from "../src/providers/ToastProvider";
+import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
+import type { OrderStatus } from "../src/types/orders";
 
+const STEPS: readonly OrderStatus[] = ["placed", "out_for_delivery", "delivered"];
+const STEP_ICONS = { placed: PackageIcon, out_for_delivery: TruckIcon, delivered: HomeIcon } as const;
+const HERO_ICONS = { placed: PackageIcon, out_for_delivery: TruckIcon, delivered: SuccessIcon, missed: AlertCircleIcon, cancelled: CloseIcon } as const;
+
+/** One order: where it is (an animated hero and a three-step timeline), what and when, the address, the money, and cancelling while that is still allowed. */
 export default function OrderTrackingScreen() {
+  const { showToast } = useToast();
   const theme = useTheme();
   const { t } = useTranslation();
+  const language = useAppStore((state) => state.language);
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
   const id = Array.isArray(orderId) ? orderId[0] : orderId;
-  const { data: order, isError, isLoading, refetch } = useOrder(id);
-  const completedSteps = order?.status === "delivered" ? 4 : order?.status === "out-for-delivery" ? 3 : 0;
-  if (isLoading || isError || !order)
+  const { data: order, isError, isLoading, error, refetch, isRefetching } = useMyOrder(id);
+  const cancel = useCancelOrder(id ?? "");
+  const [confirming, setConfirming] = useState(false);
+  const countdown = useCountdownLabel(order?.status === "placed" ? order.deliveryDate : null, order?.slot?.startTime);
+
+  if (isLoading || isError || !order) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
-      >
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
         <StateMessage
           type={isError || !order ? "error" : "loading"}
           title={t(isError || !order ? "tracking.unavailable" : "tracking.loading")}
+          description={isError ? describeError(error) : undefined}
           actionLabel={id && isError ? t("common.retry") : undefined}
-          onAction={id && isError ? () => refetch() : undefined}
+          onAction={id && isError ? () => void refetch() : undefined}
         />
       </SafeAreaView>
     );
+  }
+
+  const stopped = order.status === "cancelled" || order.status === "missed";
+  const reached = STEPS.indexOf(order.status);
+  const when = order.deliveryMethod === "local_delivery" && order.slot
+    ? `${formatShortDay(order.deliveryDate, language, t)} · ${order.slot.name} ${formatWindow(order.slot.startTime, order.slot.endTime)}${countdown ? ` · ${t("subs.arrivesIn", { when: countdown })}` : ""}`
+    : t("shop.courier");
+  const stoppedNote = order.status === "missed" ? t("shop.tracking.missedNote") : order.cancelReason ? t("shop.tracking.cancelledWithReason", { reason: order.cancelReason }) : t("shop.tracking.cancelledNote");
+  const timelineSteps: TimelineStep[] = STEPS.map((step) => ({ key: step, label: t(`shop.status.${step}`), hint: t(`shop.tracking.hint.${step}`), icon: STEP_ICONS[step as keyof typeof STEP_ICONS] }));
+  const card = { gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface } as const;
+  const goBack = () => { if (router.canGoBack()) router.back(); else router.replace("/orders"); };
+
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
-      <View style={{ flex: 1 }}>
-      <View style={{ paddingHorizontal: theme.layout.screenHorizontalPadding, backgroundColor: theme.colors.colorBackground, zIndex: theme.zIndex.stickyHeader }}>
-        <ScreenHeader backLabel={t("commonActions.back")} title={t("tracking.title", { number: order.id })} onBack={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace("/orders");
-            }
-          }} />
+      <View style={{ paddingHorizontal: theme.layout.screenHorizontalPadding, backgroundColor: theme.colors.colorBackground }}>
+        <ScreenHeader backLabel={t("commonActions.back")} title={t("tracking.title", { number: order.orderNumber })} onBack={goBack} />
       </View>
-      <ScrollView
-        contentContainerStyle={{
-          padding: theme.layout.screenHorizontalPadding,
-          paddingBottom: theme.spacing.xxl,
-          gap: theme.spacing.md,
-        }}
-      >
-        <View
-          style={{
-            padding: theme.spacing.md,
-            gap: theme.spacing.md,
-            borderRadius: theme.radii.lg,
-            borderWidth: theme.borderWidths.hairline,
-            borderColor: theme.colors.colorBorder,
-            backgroundColor: theme.colors.colorSurface,
-          }}
-        >
-          <View
-            style={{ flexDirection: "row", alignItems: "flex-start", gap: theme.spacing.md }}
-          >
-            <View>
-              <OrderStatusBadge status={order.status}>
-                  {t(order.status === "confirmed" ? "tracking.confirmedStatus" : "tracking.status")}
-              </OrderStatusBadge>
-              <ThemedText variant="body" weight="bold" numberOfLines={2} style={{ flexShrink: 1 }}>
-                {t("tracking.arriving", { window: order.deliveryWindow })}
-              </ThemedText>
-              <ThemedText
-                variant="caption"
-                style={{ color: theme.colors.colorTextSecondary }}
-              >
-                {t("tracking.silentDrop")}
-              </ThemedText>
-            </View>
-          </View>
-          <View style={{ gap: theme.spacing.sm }}>
-            {(["packed", "chilled", "onWay", "doorstep"] as const).map(
-              (status, index) => (
-                <View
-                  key={status}
-                  style={{
-                    minHeight: theme.sizes.avatarSm + theme.spacing.xs,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: theme.spacing.sm,
-                  }}
-                >
-                  <View
-                    style={{
-                      position: "relative",
-                      width: theme.sizes.avatarSm,
-                      height: theme.sizes.avatarSm,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: theme.radii.pill,
-                      backgroundColor:
-                        index < completedSteps
-                          ? theme.colors.colorSuccess
-                          : theme.colors.colorSurfaceMuted,
-                    }}
-                  >
-                    <AppIcon
-                      icon={TruckIcon}
-                      accessibilityLabel=""
-                      size="sm"
-                      tone={index < completedSteps ? "onPrimary" : "disabled"}
-                    />
-                  </View>
-                  <ThemedText
-                    variant="caption"
-                    weight={index < completedSteps ? "semibold" : "regular"}
-                    style={{
-                      color: theme.colors.colorTextSecondary,
-                      flex: 1,
-                    }}
-                  >
-                    {t(`tracking.steps.${status}`)}
-                  </ThemedText>
-                  {index < 3 ? (
-                    <View
-                      style={{
-                        position: "absolute",
-                        left: theme.sizes.avatarSm / 2 - theme.borderWidths.hairline / 2,
-                        top: theme.sizes.avatarSm,
-                        width: theme.borderWidths.hairline,
-                        height: theme.spacing.sm,
-                        backgroundColor: theme.colors.colorBorder,
-                      }}
-                    />
-                  ) : null}
-                </View>
-              ),
-            )}
-          </View>
-        </View>
-        <View
-          style={{
-            padding: theme.spacing.md,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: theme.spacing.sm,
-            borderRadius: theme.radii.lg,
-            borderWidth: theme.borderWidths.hairline,
-            borderColor: theme.colors.colorBorder,
-            backgroundColor: theme.colors.colorSurface,
-          }}
-        >
-          <View
-            style={{
-              width: theme.sizes.avatarMd,
-              height: theme.sizes.avatarMd,
-              borderRadius: theme.radii.pill,
-              backgroundColor: theme.colors.colorInfoTint,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ThemedText
-              variant="caption"
-              weight="bold"
-              style={{ color: theme.colors.colorInfo }}
-            >
-              RR
-            </ThemedText>
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText variant="bodySmall" weight="semibold">
-              {t("tracking.partner")}
-            </ThemedText>
-            <ThemedText
-              variant="caption"
-              style={{ color: theme.colors.colorTextSecondary }}
-            >
-              {t("tracking.partnerDetail")}
-            </ThemedText>
-          </View>
-          <View
-            style={{
-              width: theme.layout.touchTargetMin,
-              height: theme.layout.touchTargetMin,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: theme.radii.pill,
-              backgroundColor: theme.colors.colorSurfaceMuted,
-            }}
-          >
-            <AppIcon
-              icon={PhoneIcon}
-              accessibilityLabel={t("tracking.callUnavailable")}
-              size="sm"
-            />
-          </View>
-        </View>
-        <InfoCard
-          icon={LocationIcon}
-          label={t("tracking.address")}
-          value={order.address}
-          detail={t("tracking.addressDetail")}
-        />
-        <View
-          style={{
-            padding: theme.spacing.md,
-            gap: theme.spacing.sm,
-            borderRadius: theme.radii.lg,
-            borderWidth: theme.borderWidths.hairline,
-            borderColor: theme.colors.colorBorder,
-            backgroundColor: theme.colors.colorSurface,
-          }}
-        >
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <ThemedText variant="bodySmall" weight="bold" style={{ flex: 1 }}>
-              {t("tracking.itemsPayment", { count: order.items.length })}
-            </ThemedText>
-            <ThemedText
-              variant="caption"
-              style={{ color: theme.colors.colorTextSecondary, flexShrink: 1, textAlign: "right" }}
-            >
-              {t("tracking.batch")}
-            </ThemedText>
-          </View>
-          {order.items.map((item, index) => (
-            <View
-              key={item.name}
-              style={{
-                flexDirection: "row",
-                gap: theme.spacing.sm,
-                alignItems: "center",
-                paddingTop: index > 0 ? theme.spacing.sm : theme.spacing.xs,
-                borderTopWidth: index > 0 ? theme.borderWidths.hairline : theme.borderWidths.none,
-                borderTopColor: theme.colors.colorBorder,
-              }}
-            >
-              <Image
-                source={{ uri: item.imageUrl ?? undefined }}
-                contentFit="cover"
-                style={{
-                  width: theme.sizes.avatarMd,
-                  height: theme.sizes.avatarMd,
-                  borderRadius: theme.radii.md,
-                }}
-              />
-              <View style={{ flex: 1 }}>
-                <ThemedText variant="caption" weight="semibold" numberOfLines={2} style={{ flexShrink: 1 }}>
-                  {item.name}
-                </ThemedText>
-                <ThemedText
-                  variant="caption"
-                  style={{ color: theme.colors.colorTextSecondary }}
-                >
-                  {item.unit} · ×{item.quantity}
-                </ThemedText>
-              </View>
-              <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextPrimary }}>
-                ₹{item.total}
-              </ThemedText>
+      <ScrollView refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />} contentContainerStyle={{ padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.xxl, gap: theme.spacing.md }}>
+        <RiseIn>
+          <TrackingHero
+            status={order.status}
+            icon={HERO_ICONS[order.status]}
+            headline={t(`shop.tracking.headline.${order.status}`)}
+            when={when}
+            note={stopped ? stoppedNote : undefined}
+            progress={stopped ? undefined : order.status === "delivered" ? 1 : (reached + 0.5) / STEPS.length}
+          />
+        </RiseIn>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textAlign: "center" }}>{t("orders.placedOn", { when: formatPlacedAt(order.placedAt, language) })}</ThemedText>
+
+        {stopped ? null : (
+          <RiseIn index={1} style={card}>
+            <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("shop.tracking.progressTitle")}</ThemedText>
+            <TrackingTimeline steps={timelineSteps} reached={reached} />
+          </RiseIn>
+        )}
+
+        <RiseIn index={2} style={card}>
+          <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("shop.tracking.items")}</ThemedText>
+          {order.items.map((item) => (
+            <View key={item.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
+              <ThemedText variant="bodySmall" style={{ flex: 1 }}>{item.quantity} × {localized(item.productName, item.productNameGu, language)} ({item.variantName})</ThemedText>
+              <ThemedText variant="bodySmall" weight="medium">{item.isGift ? t("offers.free") : formatRupees(item.lineTotalPaise)}</ThemedText>
             </View>
           ))}
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: theme.spacing.md,
-            borderRadius: theme.radii.lg,
-            backgroundColor: theme.colors.colorSurfaceMuted,
-            borderWidth: theme.borderWidths.hairline,
-            borderColor: theme.colors.colorBorder,
-          }}
-        >
-          <View style={{ flex: 1, gap: theme.spacing.xs }}>
-            <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>
-              {t("tracking.paymentPreview")}
-            </ThemedText>
-            <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>
-              {t("tracking.prepaid", { total: order.total })}
-            </ThemedText>
+          {order.discountPaise > 0 ? (
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
+              <ThemedText variant="bodySmall" style={{ flex: 1, color: theme.colors.colorAccent }}>{t("offers.discount")}{order.offerTitle ? ` · ${localized(order.offerTitle, order.offerTitleGu, language)}` : ""}</ThemedText>
+              <ThemedText variant="bodySmall" weight="medium" style={{ color: theme.colors.colorAccent }}>−{formatRupees(order.discountPaise)}</ThemedText>
+            </View>
+          ) : order.offerTitle ? <ThemedText variant="caption" style={{ color: theme.colors.colorAccent }}>{t("offers.offerUsed")} · {localized(order.offerTitle, order.offerTitleGu, language)}</ThemedText> : null}
+          {order.discountPaise > 0 ? (
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
+              <ThemedText variant="bodySmall" style={{ flex: 1, color: theme.colors.colorAccent }}>{t("offers.discount")}{order.offerTitle ? ` · ${localized(order.offerTitle, order.offerTitleGu, language)}` : ""}</ThemedText>
+              <ThemedText variant="bodySmall" weight="medium" style={{ color: theme.colors.colorAccent }}>−{formatRupees(order.discountPaise)}</ThemedText>
+            </View>
+          ) : order.offerTitle ? <ThemedText variant="caption" style={{ color: theme.colors.colorAccent }}>{t("offers.offerUsed")} · {localized(order.offerTitle, order.offerTitleGu, language)}</ThemedText> : null}
+          <View style={{ height: theme.borderWidths.hairline, backgroundColor: theme.colors.colorBorder }} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <ThemedText variant="bodySmall" weight="semibold">{order.paymentMethod === "credit" ? t("shop.tracking.onCredit") : t("shop.tracking.paidOnline")}</ThemedText>
+            <ThemedText variant="bodySmall" weight="bold">{formatRupees(order.totalPaise)}</ThemedText>
           </View>
-          <ThemedText variant="h2" weight="bold" style={{ color: theme.colors.colorTextPrimary }}>
-            ₹{order.total}
-          </ThemedText>
-        </View>
-        <Button disabled variant="secondary" icon={DownloadIcon}>{t("tracking.invoiceUnavailable")}</Button>
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: theme.spacing.md,
-          }}
-        >
-          <ThemedText
-            variant="caption"
-            style={{ color: theme.colors.colorTextSecondary }}
-          >
-            {t("tracking.reportIssue")}
-          </ThemedText>
-          <ThemedText
-            variant="caption"
-            style={{ color: theme.colors.colorTextSecondary }}
-          >
-            {t("tracking.guidelines")}
-          </ThemedText>
-        </View>
-      </ScrollView>
-      </View>
-    </SafeAreaView>
-  );
-}
+        </RiseIn>
 
-function InfoCard({
-  detail,
-  icon,
-  label,
-  value,
-}: {
-  detail: string;
-  icon: typeof LocationIcon;
-  label: string;
-  value: string;
-}) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        padding: theme.spacing.md,
-        flexDirection: "row",
-        gap: theme.spacing.sm,
-        borderRadius: theme.radii.lg,
-        borderWidth: theme.borderWidths.hairline,
-        borderColor: theme.colors.colorBorder,
-        backgroundColor: theme.colors.colorSurface,
-      }}
-    >
-      <AppIcon icon={icon} accessibilityLabel="" size="sm" />
-      <View style={{ flex: 1 }}>
-        <ThemedText
-          variant="caption"
-          weight="semibold"
-          style={{ color: theme.colors.colorTextSecondary }}
-        >
-          {label}
-        </ThemedText>
-        <ThemedText variant="bodySmall" weight="semibold" numberOfLines={2}>
-          {value}
-        </ThemedText>
-        <ThemedText
-          variant="caption"
-          style={{ color: theme.colors.colorTextSecondary }}
-        >
-          {detail}
-        </ThemedText>
-      </View>
-    </View>
+        <RiseIn index={3} style={card}>
+          <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("shop.tracking.address")}</ThemedText>
+          <ThemedText variant="bodySmall" weight="medium">{order.recipientName}</ThemedText>
+          <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{order.addressText} – {order.pinCode}</ThemedText>
+        </RiseIn>
+
+        {order.deliveryMethod === "shipping" && (order.courierName || order.trackingUrl) ? (
+          <RiseIn index={4} style={card}>
+            <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.courierTitle")}</ThemedText>
+            {order.courierName ? <ThemedText variant="bodySmall" weight="medium">{order.courierName}</ThemedText> : null}
+            {order.trackingUrl ? <Button variant="secondary" onPress={() => void Linking.openURL(order.trackingUrl)}>{t("subs.trackParcel")}</Button> : null}
+          </RiseIn>
+        ) : null}
+
+        {order.canCancel ? <RiseIn index={5}><Button variant="secondary" onPress={() => setConfirming(true)}>{t("shop.tracking.cancelOrder")}</Button></RiseIn> : null}
+      </ScrollView>
+      <ConfirmSheet
+        visible={confirming}
+        tone="danger"
+        icon={AlertCircleIcon}
+        title={t("shop.tracking.cancelTitle")}
+        description={t("shop.tracking.cancelBody")}
+        consequences={[order.paymentMethod === "credit" ? t("shop.tracking.cancelCredit") : t("shop.tracking.cancelRefund")]}
+        cancelLabel={t("shop.tracking.keepOrder")}
+        confirmLabel={t("shop.tracking.cancelOrder")}
+        loading={cancel.isPending}
+        errorText={cancel.isError ? describeError(cancel.error) : undefined}
+        onCancel={() => { setConfirming(false); cancel.reset(); }}
+        onConfirm={() => cancel.mutate("", { onSuccess: () => { setConfirming(false); showToast(t("toast.orderCancelled")); } })}
+      />
+    </SafeAreaView>
   );
 }

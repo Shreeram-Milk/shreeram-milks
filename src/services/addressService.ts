@@ -32,7 +32,6 @@ export function parseAddress(raw: unknown): DeliveryAddress | null {
     city: text(item.city),
     pincode: text(item.pinCode),
     isDefault: item.isDefault === true,
-    isServiceable: item.serviceable === true,
   };
 }
 
@@ -48,7 +47,7 @@ export function parseInstructions(raw: unknown): DoorstepInstructions {
   };
 }
 
-export type AddressDraft = Omit<DeliveryAddress, 'id' | 'isServiceable'>;
+export type AddressDraft = Omit<DeliveryAddress, 'id'>;
 
 const toBody = (draft: AddressDraft) => ({
   label: draft.addressType,

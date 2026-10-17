@@ -5,12 +5,12 @@ import { deleteMyAccount, requestSignInCode, saveMyProfile, verifySignInCode } f
 import { useSessionStore } from '../store/useSessionStore';
 import type { ProfileInput } from '../types/customer';
 
-export const useRequestCode = () => useMutation({ mutationFn: (phone: string) => requestSignInCode(phone) });
+export const useRequestCode = () => useMutation({ mutationFn: (email: string) => requestSignInCode(email) });
 
 export function useVerifyCode() {
   const startSession = useSessionStore((state) => state.startSession);
   return useMutation({
-    mutationFn: ({ phone, code }: { phone: string; code: string }) => verifySignInCode(phone, code, Platform.OS),
+    mutationFn: ({ email, code }: { email: string; code: string }) => verifySignInCode(email, code, Platform.OS),
     onSuccess: ({ token, customer }) => startSession(token, customer),
   });
 }

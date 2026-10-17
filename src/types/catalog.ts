@@ -29,8 +29,6 @@ export interface CatalogProduct {
   shortDescriptionGu: string;
   badges: string[];
   purchaseMethods: PurchaseMethod[];
-  /** The delivery rules this product follows. The server uses it to say where and when it can be delivered. */
-  fulfilmentProfileId: string | null;
   imageUrl: string | null;
   priceFromPaise: number;
   variants: CatalogVariant[];
@@ -45,6 +43,10 @@ export interface CatalogProductDetail extends CatalogProduct {
   highlightsEn: string[];
   highlightsGu: string[];
   galleryUrls: string[];
+  /** Our own delivery (with windows) or courier. A courier product is bought once only. */
+  deliveryMethod: "local_delivery" | "shipping" | null;
   trialPlans: { id: string; name: string; durationDays: number }[];
-  subscriptionRules: { id: string; name: string; systemType: string }[];
+  /** `lengthOptions`: how many deliveries the customer may choose (for example 15 or 30). */
+  /** `minDays`/`maxDays`: the shortest and longest plan, in days from the first to the last delivery day. */
+  subscriptionRules: { id: string; name: string; systemType: "daily" | "alternate_days" | "custom_weekdays"; lengthOptions: number[]; minDays: number; maxDays: number }[];
 }

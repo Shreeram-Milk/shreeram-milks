@@ -1,121 +1,69 @@
 import type { PropsWithChildren } from "react";
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  Pressable,
-  type PressableProps,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { ActivityIndicator, View, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 
 import { AppIcon, type IconSvgElement } from "./AppIcon";
+import { PressableScale } from "./PressableScale";
 import { ThemedText } from "./ThemedText";
 import { useTheme } from "../../theme";
 
-type ButtonVariant = "primary" | "secondary" | "danger";
+/** primary: the one orange action on a screen. tonal: a softer orange action. secondary: white with a border. danger: destructive. */
+type ButtonVariant = "primary" | "tonal" | "secondary" | "danger";
 interface ButtonProps extends Omit<PressableProps, "style"> {
+  /** compact: a smaller button for use inside cards, next to other buttons. */
+  compact?: boolean;
   icon?: IconSvgElement;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   variant?: ButtonVariant;
 }
 
-export function Button({
-  children,
-  disabled = false,
-  icon,
-  loading = false,
-  style,
-  variant = "primary",
-  ...props
-}: PropsWithChildren<ButtonProps>) {
+export function Button({ children, compact = false, disabled = false, icon, loading = false, style, variant = "primary", ...props }: PropsWithChildren<ButtonProps>) {
   const theme = useTheme();
+  const colors = theme.colors;
   const isDisabled = disabled || loading;
-  const [scale] = useState(() => new Animated.Value(1));
-  const backgroundColor =
+  const palette =
     variant === "secondary"
-      ? theme.colors.colorSurfaceMuted
-      : variant === "danger"
-        ? theme.colors.colorDanger
-        : theme.colors.colorPrimary;
-  const textColor =
-    variant === "secondary"
-      ? theme.colors.colorPrimary
-      : theme.colors.colorTextInverse;
+      ? { background: colors.colorSurface, border: colors.colorBorder, text: colors.colorTextPrimary }
+      : variant === "tonal"
+        ? { background: colors.colorPrimaryTint, border: colors.colorPrimary, text: colors.colorPrimary }
+        : variant === "danger"
+          ? { background: colors.colorDanger, border: colors.colorDanger, text: colors.colorTextInverse }
+          : { background: colors.colorPrimary, border: colors.colorPrimary, text: colors.colorTextInverse };
+  const onFill = variant === "primary" || variant === "danger";
 
   return (
-    <Animated.View
-      style={[{ alignSelf: "stretch", transform: [{ scale }] }, style]}
+    <PressableScale
+      {...props}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      disabled={isDisabled}
+      pressScale={theme.motion.pressScale.control}
+      containerStyle={[{ alignSelf: "stretch" }, style]}
+      style={{
+        minHeight: compact ? theme.layout.touchTargetMin - 4 : theme.sizes.buttonHeight + theme.spacing.xs,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: theme.spacing.sm,
+        paddingHorizontal: compact ? theme.spacing.md - 4 : theme.spacing.lg,
+        borderRadius: theme.radii.md,
+        backgroundColor: palette.background,
+        borderColor: palette.border,
+        // Only the white secondary button needs an outline; the filled and soft-orange ones stand on their colour.
+        borderWidth: variant === "secondary" ? theme.borderWidths.hairline : theme.borderWidths.none,
+        opacity: isDisabled && !loading ? theme.opacity.disabled : theme.opacity.full,
+      }}
     >
-      <Pressable
-        {...props}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: isDisabled }}
-        disabled={isDisabled}
-        onPressIn={(event) => {
-          Animated.timing(scale, {
-            toValue: theme.motion.pressScale.control,
-            duration: theme.motion.duration.fast,
-            easing: Easing.bezier(...theme.motion.easing.standard),
-            useNativeDriver: true,
-          }).start();
-          props.onPressIn?.(event);
-        }}
-        onPressOut={(event) => {
-          Animated.timing(scale, {
-            toValue: 1,
-            duration: theme.motion.duration.fast,
-            easing: Easing.bezier(...theme.motion.easing.standard),
-            useNativeDriver: true,
-          }).start();
-          props.onPressOut?.(event);
-        }}
-        style={({ pressed }) => [
-          {
-            minHeight: theme.sizes.buttonHeight + theme.spacing.xs,
-            alignSelf: "stretch",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "row",
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-            borderRadius: theme.radii.md,
-            backgroundColor,
-            borderColor: theme.colors.colorBorder,
-            borderWidth:
-              variant === "secondary"
-                ? theme.borderWidths.hairline
-                : theme.borderWidths.none,
-            opacity: isDisabled
-              ? theme.opacity.disabled
-              : pressed
-                ? theme.opacity.subdued
-                : theme.opacity.full,
-          },
-          style,
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator color={textColor} />
-        ) : icon ? (
-          <AppIcon
-            icon={icon}
-            accessibilityLabel=""
-            tone={variant === "secondary" ? "primary" : "onPrimary"}
-            size="sm"
-          />
-        ) : null}
-        <ThemedText
-          numberOfLines={1}
-          variant="body"
-          weight="semibold"
-          style={{ color: textColor, flexShrink: 0 }}
-        >
-          {children}
-        </ThemedText>
-      </Pressable>
-    </Animated.View>
+      {loading ? (
+        <ActivityIndicator color={palette.text} />
+      ) : icon ? (
+        <View>
+          <AppIcon icon={icon} accessibilityLabel="" tone={onFill ? "onPrimary" : variant === "tonal" ? "brand" : "primary"} size="sm" />
+        </View>
+      ) : null}
+      <ThemedText numberOfLines={1} variant={compact ? "label" : "body"} weight="bold" style={{ color: palette.text, flexShrink: 1 }}>
+        {children}
+      </ThemedText>
+    </PressableScale>
   );
 }

@@ -25,7 +25,6 @@ import { useTheme } from "../src/theme";
 import { Button } from "../src/components/atoms/Button";
 import { ConfirmSheet } from "../src/components/organisms/ConfirmSheet";
 import { useDeleteAccount } from "../src/hooks/useCustomerAuth";
-import { formatPhone } from "../src/lib/phone";
 import { describeError } from "../src/services/errorMapper";
 import { useSessionStore } from "../src/store/useSessionStore";
 
@@ -68,7 +67,7 @@ export default function SettingsScreen() {
   const deleteAccount = useDeleteAccount();
   const [confirming, setConfirming] = useState<"signOut" | "delete" | null>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const profile = { fullName: customer?.name || t("account.guest"), phone: formatPhone(customer?.phone ?? "") };
+  const profile = { fullName: customer?.name || t("account.guest"), contact: customer?.email ?? "" };
   const [dispatchAlerts, setDispatchAlerts] = useState(true);
   const [photoProof, setPhotoProof] = useState(true);
   const [seasonalUpdates, setSeasonalUpdates] = useState(false);
@@ -117,7 +116,7 @@ export default function SettingsScreen() {
               variant="bodySmall"
               style={{ color: theme.colors.colorTextSecondary }}
             >
-              {profile.phone}
+              {profile.contact}
             </ThemedText>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel={t("profile.editProfile")} hitSlop={theme.spacing.sm} onPress={() => router.push("/edit-profile")} style={{ width: theme.layout.touchTargetMin, height: theme.layout.touchTargetMin, alignItems: "center", justifyContent: "center" }}><AppIcon icon={EditIcon} accessibilityLabel="" tone="secondary" size="sm" /></Pressable>
@@ -179,32 +178,6 @@ export default function SettingsScreen() {
             onPress={() => router.push("/language")}
           />
         </SettingsGroup>
-        <View
-          style={{
-            padding: theme.spacing.md,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: theme.spacing.sm,
-            borderRadius: theme.radii.lg,
-            borderWidth: theme.borderWidths.hairline,
-            borderColor: theme.colors.colorBorder,
-            backgroundColor: theme.colors.colorSurfaceMuted,
-          }}
-        >
-          <Avatar initials="R" size="lg" />
-          <View style={{ flex: 1, gap: theme.spacing.xs }}>
-            <ThemedText variant="body" weight="bold">
-              {t("settings.recycleTitle")}
-            </ThemedText>
-            <ThemedText
-              variant="bodySmall"
-              weight="regular"
-              style={{ color: theme.colors.colorTextSecondary }}
-            >
-              {t("settings.recycleSubtitle")}
-            </ThemedText>
-          </View>
-        </View>
         <View style={{ gap: theme.spacing.sm }}>
           <Button variant="secondary" onPress={() => setConfirming("signOut")}>
             {t("account.signOut")}

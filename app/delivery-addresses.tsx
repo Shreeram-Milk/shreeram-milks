@@ -25,7 +25,7 @@ export default function DeliveryAddressesScreen() {
   const removeAddress = useRemoveAddress();
   const saveAddress = useSaveAddress();
   const makeDefault = (address: DeliveryAddress) => {
-    const { id, isServiceable: _isServiceable, ...draft } = address;
+    const { id, ...draft } = address;
     saveAddress.mutate({ id, draft: { ...draft, isDefault: true } });
   };
   const [pendingDelete, setPendingDelete] = useState<DeliveryAddress | null>(null);
@@ -38,10 +38,10 @@ function AddressCard({ address, busy, onDelete, onEdit, onMakeDefault }: { addre
   const { t } = useTranslation();
   const lines = [address.line1, address.line2].filter(Boolean).join(", ");
   return (
-    <View style={{ borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: address.isServiceable ? theme.colors.colorBorder : theme.colors.colorDanger, backgroundColor: theme.colors.colorSurface, overflow: "hidden" }}>
+    <View style={{ borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface, overflow: "hidden" }}>
       <View style={{ gap: theme.spacing.sm, padding: theme.spacing.md }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
-          <View style={{ width: theme.sizes.avatarMd, height: theme.sizes.avatarMd, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorPrimaryTint }}>
+          <View style={{ width: theme.sizes.avatarMd, height: theme.sizes.avatarMd, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorAccentTint }}>
             <AppIcon icon={LocationIcon} accessibilityLabel="" size="sm" />
           </View>
           <View style={{ flex: 1, gap: theme.spacing.xs }}>
@@ -55,7 +55,6 @@ function AddressCard({ address, busy, onDelete, onEdit, onMakeDefault }: { addre
           {address.landmark ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{address.landmark}</ThemedText> : null}
           <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{[address.city, address.pincode].filter(Boolean).join(" · ")}</ThemedText>
         </View>
-        <Badge variant={address.isServiceable ? "success" : "danger"}>{t(address.isServiceable ? "addresses.serviceable" : "addresses.notServiceable")}</Badge>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm, padding: theme.spacing.md, borderTopWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurfaceMuted }}>
         <ActionButton icon={EditIcon} label={t("addresses.editShort")} accessibilityLabel={t("addresses.edit")} onPress={onEdit} />

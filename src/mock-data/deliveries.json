@@ -1,8 +1,0 @@
-[
-  { "id": "delivery-03", "date": "2026-09-03", "state": "delivered", "productName": "A2 Gir Cow Milk", "quantity": "1L", "timeSlot": "5:00 – 7:00 AM", "addressLabel": "Home" },
-  { "id": "delivery-08", "date": "2026-09-08", "state": "scheduled", "productName": "A2 Gir Cow Milk", "quantity": "1L", "timeSlot": "5:00 – 7:00 AM", "addressLabel": "Home" },
-  { "id": "delivery-10", "date": "2026-09-10", "state": "scheduled", "productName": "A2 Gir Cow Milk", "quantity": "1L", "timeSlot": "5:00 – 7:00 AM", "addressLabel": "Home" },
-  { "id": "delivery-13", "date": "2026-09-13", "state": "paused", "productName": "A2 Gir Cow Milk", "quantity": "1L", "timeSlot": "5:00 – 7:00 AM", "addressLabel": "Home" },
-  { "id": "delivery-18", "date": "2026-09-18", "state": "skipped", "productName": "A2 Gir Cow Milk", "quantity": "1L", "timeSlot": "5:00 – 7:00 AM", "addressLabel": "Home" },
-  { "id": "delivery-22", "date": "2026-09-22", "state": "scheduled", "productName": "A2 Gir Cow Milk", "quantity": "1L", "timeSlot": "5:00 – 7:00 AM", "addressLabel": "Home" }
-]

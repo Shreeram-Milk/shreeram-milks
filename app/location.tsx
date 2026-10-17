@@ -8,7 +8,8 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AppInput } from "../src/components/atoms/AppInput";
+import { LocationIcon, MapPinIcon } from "../src/icons/appIcons";
+import { TextField } from "../src/components/molecules/TextField";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { DeliverySetupHeader } from "../src/components/molecules/DeliverySetupHeader";
@@ -42,7 +43,6 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
   const complete = PIN_CODE.test(pin);
   const detailsComplete = address.trim() !== "" && landmark.trim() !== "";
   const { data: availability, isError, isLoading, refetch } = usePinAvailability(pin);
-  const served = complete && (availability?.options.length ?? 0) > 0;
 
   const next = async () => {
     setDeliveryPin(pin);
@@ -100,28 +100,17 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
           >
             {t("location.description")}
           </ThemedText>
-          <View style={{ gap: theme.spacing.xs }}>
-            <ThemedText variant="bodySmall" weight="semibold">
-              {t("location.pinLabel")}{" "}
-              <ThemedText
-                variant="bodySmall"
-                weight="bold"
-                style={{ color: theme.colors.colorDanger }}
-              >
-                *
-              </ThemedText>
-            </ThemedText>
-            <AppInput
-              accessibilityLabel={t("location.pinLabel")}
-              hasError={complete && !isLoading && !isError && !served}
-              inputMode="numeric"
-              keyboardType="number-pad"
-              maxLength={6}
-              onChangeText={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
-              placeholder={t("location.pinPlaceholder")}
-              value={pin}
-            />
-          </View>
+          <TextField
+            label={`${t("location.pinLabel")} *`}
+            icon={LocationIcon}
+            inputMode="numeric"
+            keyboardType="number-pad"
+            maxLength={6}
+            onChangeText={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
+            placeholder={t("location.pinPlaceholder")}
+            valid={pin.length === 6}
+            value={pin}
+          />
           <PinAvailabilityCard
             availability={availability}
             complete={complete}
@@ -130,40 +119,18 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
             language={language}
             onRetry={() => void refetch()}
           />
-          <View style={{ gap: theme.spacing.xs }}>
-            <ThemedText variant="bodySmall" weight="semibold">
-              {t("location.addressLine1")}{" "}
-              <ThemedText
-                variant="bodySmall"
-                weight="bold"
-                style={{ color: theme.colors.colorDanger }}
-              >
-                *
-              </ThemedText>
-            </ThemedText>
-            <AppInput
-              accessibilityLabel={t("location.addressLine1")}
-              onChangeText={setAddress}
-              value={address}
-            />
-          </View>
-          <View style={{ gap: theme.spacing.xs }}>
-            <ThemedText variant="bodySmall" weight="semibold">
-              {t("location.addressLine2")}{" "}
-              <ThemedText
-                variant="bodySmall"
-                weight="bold"
-                style={{ color: theme.colors.colorDanger }}
-              >
-                *
-              </ThemedText>
-            </ThemedText>
-            <AppInput
-              accessibilityLabel={t("location.addressLine2")}
-              onChangeText={setLandmark}
-              value={landmark}
-            />
-          </View>
+          <TextField
+            label={`${t("location.addressLine1")} *`}
+            icon={MapPinIcon}
+            onChangeText={setAddress}
+            value={address}
+          />
+          <TextField
+            label={`${t("location.addressLine2")} *`}
+            icon={MapPinIcon}
+            onChangeText={setLandmark}
+            value={landmark}
+          />
           <View
             style={{
               flexDirection: "row",
@@ -233,8 +200,8 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
                   {describeError(saveAddress.error)}
                 </ThemedText>
               ) : null}
-              <Button disabled={!served || !detailsComplete} loading={saveAddress.isPending} onPress={() => void next()}>
-                {served ? t("location.continue") : t("location.continueBlocked")}
+              <Button disabled={!complete || !detailsComplete} loading={saveAddress.isPending} onPress={() => void next()}>
+                {t("location.continue")}
               </Button>
             </View>
           </Animated.View>

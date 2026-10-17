@@ -51,7 +51,6 @@ export function parseProduct(raw: unknown): CatalogProduct | null {
     shortDescriptionGu: text(item.shortDescriptionGu),
     badges: strings(item.badges),
     purchaseMethods: strings(item.purchaseMethods).filter((method): method is PurchaseMethod => METHODS.includes(method as PurchaseMethod)),
-    fulfilmentProfileId: text(item.fulfilmentProfileId) || null,
     imageUrl: httpsUrl(item.imageUrl),
     priceFromPaise: Math.min(...variants.map((variant) => variant.pricePaise)),
     variants,
@@ -63,7 +62,7 @@ export function parseProductDetail(raw: unknown): CatalogProductDetail | null {
   const item = record(raw);
   if (!base || !item) return null;
   const trialPlans = Array.isArray(item.trialPlans) ? item.trialPlans.flatMap((plan) => { const entry = record(plan); return entry && text(entry.id) && typeof entry.durationDays === "number" ? [{ id: text(entry.id), name: text(entry.name), durationDays: entry.durationDays }] : []; }) : [];
-  const subscriptionRules = Array.isArray(item.subscriptionRules) ? item.subscriptionRules.flatMap((rule) => { const entry = record(rule); return entry && text(entry.id) ? [{ id: text(entry.id), name: text(entry.name), systemType: text(entry.systemType) }] : []; }) : [];
+  const subscriptionRules = Array.isArray(item.subscriptionRules) ? item.subscriptionRules.flatMap((rule) => { const entry = record(rule); const systemType: "daily" | "alternate_days" | "custom_weekdays" = entry?.systemType === "alternate_days" ? "alternate_days" : entry?.systemType === "custom_weekdays" ? "custom_weekdays" : "daily"; const lengthOptions = Array.isArray(entry?.lengthOptions) ? entry.lengthOptions.filter((value): value is number => typeof value === "number" && value > 0) : []; const minDays = typeof entry?.minDays === "number" && entry.minDays >= 1 ? Math.trunc(entry.minDays) : 5; const maxDays = typeof entry?.maxDays === "number" && entry.maxDays >= minDays ? Math.trunc(entry.maxDays) : Math.max(180, minDays); return entry && text(entry.id) && lengthOptions.length > 0 ? [{ id: text(entry.id), name: text(entry.name), systemType, lengthOptions, minDays, maxDays }] : []; }) : [];
   return {
     ...base,
     longDescriptionEn: text(item.longDescriptionEn),
@@ -73,6 +72,7 @@ export function parseProductDetail(raw: unknown): CatalogProductDetail | null {
     highlightsEn: strings(item.highlightsEn),
     highlightsGu: strings(item.highlightsGu),
     galleryUrls: strings(item.galleryUrls).filter((url) => url.startsWith("https://")),
+    deliveryMethod: item.deliveryMethod === "shipping" || item.deliveryMethod === "local_delivery" ? item.deliveryMethod : null,
     trialPlans,
     subscriptionRules,
   };
@@ -93,7 +93,6 @@ function sampleCatalog(): CatalogProductDetail[] {
     shortDescriptionGu: "",
     badges: [],
     purchaseMethods: ["buy_once", "trial", "subscription"],
-    fulfilmentProfileId: null,
     imageUrl: product.imageUrl,
     priceFromPaise: product.price * 100,
     variants: [{ id: `${product.id}-default`, name: product.unit, pricePaise: product.price * 100, compareAtPricePaise: null, displayUnit: product.unit, displayQuantity: 1 }],
@@ -104,6 +103,7 @@ function sampleCatalog(): CatalogProductDetail[] {
     highlightsEn: [],
     highlightsGu: [],
     galleryUrls: [],
+    deliveryMethod: "local_delivery" as const,
     trialPlans: [{ id: "sample-trial-3", name: "3-day trial", durationDays: 3 }, { id: "sample-trial-7", name: "7-day trial", durationDays: 7 }],
     subscriptionRules: [],
   }));

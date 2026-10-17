@@ -13,6 +13,7 @@ import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useMyTicket, useReplyToTicket } from "../src/hooks/useSupport";
 import { describeError } from "../src/services/errorMapper";
+import { useToast } from "../src/providers/ToastProvider";
 import { useTheme } from "../src/theme";
 import type { TicketStatus } from "../src/types/support";
 
@@ -30,7 +31,8 @@ export default function MyReportScreen() {
   const [draft, setDraft] = useState("");
   const trimmed = draft.trim();
 
-  const send = () => reply.mutate(trimmed, { onSuccess: () => setDraft("") });
+  const { showToast } = useToast();
+  const send = () => reply.mutate(trimmed, { onSuccess: () => { setDraft(""); showToast(t("toast.messageSent")); } });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>

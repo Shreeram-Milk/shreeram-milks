@@ -7,11 +7,14 @@ export interface ServedSlot {
   endTime: string;
   /** "YYYY-MM-DD". */
   earliestDate: string;
+  /** The last moment (an ISO time) an order can be placed for this delivery, or null when the slot has no cut-off. */
+  orderBy: string | null;
 }
 
 /** One way we can deliver to a PIN code: to the door in local slots, or by courier. */
 export interface ServedOption {
-  profileId: string;
+  /** Identifies one way of delivering (method, area and cut-off rule); only used as a list key. */
+  optionId: string;
   deliveryMethod: "local_delivery" | "shipping";
   locality: string;
   slots: ServedSlot[];

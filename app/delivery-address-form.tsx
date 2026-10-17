@@ -9,20 +9,23 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { Chip } from "../src/components/atoms/Chip";
+import { LocationIcon, MapPinIcon, PhoneIcon, ProfileIcon } from "../src/icons/appIcons";
 import { FormField } from "../src/components/molecules/FormField";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useAddresses, useSaveAddress } from "../src/hooks/useAddresses";
 import { describeError } from "../src/services/errorMapper";
+import { useToast } from "../src/providers/ToastProvider";
 import { useTheme } from "../src/theme";
 import type { AddressType, DeliveryAddress } from "../src/types/models";
 
-type AddressFormValues = Omit<DeliveryAddress, "id" | "isServiceable">;
+type AddressFormValues = Omit<DeliveryAddress, "id">;
 
 function AddressForm({ existing, addresses }: { existing: DeliveryAddress | undefined; addresses: DeliveryAddress[] }) {
   const theme = useTheme();
   const { t } = useTranslation();
   const save = useSaveAddress();
+  const { showToast } = useToast();
   const [serverError, setServerError] = useState("");
   const {
     control,
@@ -103,6 +106,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
           phone: values.phone.replace(/\D/g, ""),
         },
       });
+      showToast(t("toast.addressSaved"));
       router.back();
     } catch (failure) {
       setServerError(describeError(failure));
@@ -181,6 +185,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   render={({ field: { onChange, value } }) => (
                     <FormField
                       label={t("addresses.fullName")}
+                      icon={ProfileIcon}
                       value={value}
                       onChangeText={onChange}
                       error={errors.fullName?.message}
@@ -202,6 +207,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   render={({ field: { onChange, value } }) => (
                     <FormField
                       label={t("addresses.mobile")}
+                      icon={PhoneIcon}
                       value={value}
                       onChangeText={onChange}
                       error={errors.phone?.message}
@@ -227,6 +233,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   render={({ field: { onChange, value } }) => (
                     <FormField
                       label={t("addresses.line1")}
+                      icon={MapPinIcon}
                       value={value}
                       onChangeText={onChange}
                       error={errors.line1?.message}
@@ -243,6 +250,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   render={({ field: { onChange, value } }) => (
                     <FormField
                       label={t("addresses.line2")}
+                      icon={MapPinIcon}
                       value={value}
                       onChangeText={onChange}
                       error={errors.line2?.message}
@@ -255,6 +263,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   render={({ field: { onChange, value } }) => (
                     <FormField
                       label={t("addresses.landmark")}
+                      icon={LocationIcon}
                       value={value}
                       onChangeText={onChange}
                     />
@@ -273,6 +282,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   render={({ field: { onChange, value } }) => (
                     <FormField
                       label={t("addresses.pincode")}
+                      icon={LocationIcon}
                       value={value}
                       onChangeText={onChange}
                       error={errors.pincode?.message}
@@ -291,6 +301,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   render={({ field: { onChange, value } }) => (
                     <FormField
                       label={t("addresses.city")}
+                      icon={MapPinIcon}
                       value={value}
                       onChangeText={onChange}
                       error={errors.city?.message}

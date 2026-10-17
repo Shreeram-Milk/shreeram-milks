@@ -38,6 +38,7 @@ export default function SupportScreen() {
     config?.chatEnabled ? { key: "chat", icon: ChatIcon, title: t("support.chat"), subtitle: t("support.chatDetail"), badge: t("support.soon") } : null,
   ].filter((channel): channel is NonNullable<typeof channel> => channel !== null);
   const hours = config ? localized(config.supportHoursEn, config.supportHoursGu, language) : "";
+  const afterHours = config ? localized(config.afterHoursMessageEn, config.afterHoursMessageGu, language) : "";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
@@ -54,6 +55,7 @@ export default function SupportScreen() {
                 <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("support.hours", { hours })}</ThemedText>
               </View>
             ) : null}
+            {afterHours ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textAlign: "center" }}>{afterHours}</ThemedText> : null}
           </View>
 
           {isLoading ? (

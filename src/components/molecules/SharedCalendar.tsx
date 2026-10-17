@@ -23,6 +23,10 @@ interface SharedCalendarProps {
   fromDate?: string;
   toDate?: string;
   minDate?: string;
+  /** The latest day that can be picked; later days are greyed out. */
+  maxDate?: string;
+  /** Days that get a small dot under the number (for example the days a subscription delivers). */
+  markedDates?: ReadonlySet<string>;
   dateStatuses?: Readonly<Record<string, CalendarDateStatus>>;
   legend?: readonly CalendarDateStatus[];
 }
@@ -67,6 +71,8 @@ export function SharedCalendar({
   dateStatuses,
   fromDate,
   legend,
+  markedDates,
+  maxDate,
   minDate,
   mode,
   month,
@@ -189,7 +195,7 @@ export function SharedCalendar({
                     width: "100%",
                     height: theme.sizes.avatarSm,
                     borderRadius: theme.radii.pill,
-                    backgroundColor: theme.colors.colorPrimaryTint,
+                    backgroundColor: theme.colors.colorHighlightTint,
                     opacity: shouldAnimate
                       ? rangeProgress.interpolate({ inputRange: [0, 1], outputRange: [oldWidth > 0 ? theme.opacity.subdued : 0, newWidth > 0 ? theme.opacity.subdued : 0] })
                       : theme.opacity.subdued,
@@ -215,7 +221,8 @@ export function SharedCalendar({
                 );
                 const status = date ? dateStatuses?.[date] : undefined;
                 const isSelected = mode === "single" && Boolean(date) && date === selectedDate;
-                const isDisabled = Boolean(date && minDate && date < minDate);
+                const isDisabled = Boolean((date && minDate && date < minDate) || (date && maxDate && date > maxDate));
+                const isMarked = Boolean(date && markedDates?.has(date) && !isDisabled);
                 const label = date
                   ? new Date(`${date}T12:00:00`).toLocaleDateString(i18n.language, { day: "numeric", month: "long", year: "numeric" })
                   : "";
@@ -258,6 +265,7 @@ export function SharedCalendar({
                         {new Date(`${date}T12:00:00`).getDate()}
                       </ThemedText>
                     </View>
+                    {isMarked ? <View pointerEvents="none" style={{ position: "absolute", bottom: 1, width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.colorPrimary }} /> : null}
                   </Pressable>
                 ) : (
                   <View key={`blank-${weekIndex}-${dayIndex}`} style={{ flex: 1 }} />

@@ -7,11 +7,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { Avatar } from "../src/components/atoms/Avatar";
+import { MailIcon, PhoneIcon, ProfileIcon } from "../src/icons/appIcons";
 import { FormField } from "../src/components/molecules/FormField";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { useSaveProfile } from "../src/hooks/useCustomerAuth";
-import { formatPhone } from "../src/lib/phone";
+import { isIndianMobile, toTenDigits } from "../src/lib/phone";
 import { describeError } from "../src/services/errorMapper";
+import { useToast } from "../src/providers/ToastProvider";
 import { useAppStore } from "../src/store/useAppStore";
 import { useSessionStore } from "../src/store/useSessionStore";
 import { useTheme } from "../src/theme";
@@ -24,10 +26,9 @@ export default function EditProfileScreen() {
   const customer = useSessionStore((state) => state.customer);
   const language = useAppStore((state) => state.language);
   const save = useSaveProfile();
-  const [draft, setDraft] = useState({ fullName: customer?.name ?? "", email: customer?.email ?? "" });
-  const [saved, setSaved] = useState(false);
-  const emailError =
-    draft.email.length > 0 && !/^\S+@\S+\.\S+$/.test(draft.email);
+  const [draft, setDraft] = useState({ fullName: customer?.name ?? "", phone: toTenDigits(customer?.phone ?? "") });
+  const { showToast } = useToast();
+  const phoneError = draft.phone.length > 0 && !isIndianMobile(draft.phone);
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
@@ -68,46 +69,44 @@ export default function EditProfileScreen() {
           ) : null}
           <FormField
             label={t("editProfile.name")}
+            icon={ProfileIcon}
             value={draft.fullName}
             onChangeText={(fullName) => {
               setDraft({ ...draft, fullName });
-              setSaved(false);
             }}
             autoComplete="name"
           />
           <FormField
-            label={t("editProfile.phone")}
-            value={formatPhone(customer?.phone ?? "")}
-            editable={false}
-            keyboardType="phone-pad"
-          />
-          <ThemedText
-            variant="caption"
-            style={{ color: theme.colors.colorTextSecondary }}
-          >
-            {t("editProfile.phoneHint")}
-          </ThemedText>
-          <FormField
             label={t("editProfile.email")}
-            value={draft.email}
-            onChangeText={(email) => {
-              setDraft({ ...draft, email });
-              setSaved(false);
-            }}
-            error={emailError ? t("editProfile.invalidEmail") : undefined}
+            icon={MailIcon}
+            helper={t("editProfile.emailHint")}
+            value={customer?.email ?? ""}
+            editable={false}
             keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
+          />
+          <FormField
+            label={t("editProfile.phone")}
+            icon={PhoneIcon}
+            helper={t("editProfile.phoneHint")}
+            valid={!phoneError && draft.phone.length > 0}
+            value={draft.phone}
+            onChangeText={(phone) => {
+              setDraft({ ...draft, phone: phone.replace(/\D/g, "") });
+            }}
+            error={phoneError ? t("editProfile.invalidPhone") : undefined}
+            keyboardType="phone-pad"
+            maxLength={10}
+            autoComplete="tel"
           />
           <Button
-            disabled={emailError || !draft.fullName.trim()}
+            disabled={phoneError || !draft.fullName.trim()}
             loading={save.isPending}
             onPress={() =>
               save.mutate(
-                { name: draft.fullName.trim(), email: draft.email.trim(), language },
+                { name: draft.fullName.trim(), phone: draft.phone, language },
                 {
                   onSuccess: () => {
-                    setSaved(true);
+                    showToast(t("editProfile.saved"));
                     if (isFirstTime) router.replace("/location");
                   },
                 },
@@ -123,16 +122,6 @@ export default function EditProfileScreen() {
               style={{ color: theme.colors.colorDanger, textAlign: "center" }}
             >
               {describeError(save.error)}
-            </ThemedText>
-          ) : null}
-          {saved ? (
-            <ThemedText
-              accessibilityLiveRegion="polite"
-              variant="bodySmall"
-              weight="semibold"
-              style={{ color: theme.colors.colorPrimary, textAlign: "center" }}
-            >
-              {t("editProfile.saved")}
             </ThemedText>
           ) : null}
         </KeyboardAwareScrollView>

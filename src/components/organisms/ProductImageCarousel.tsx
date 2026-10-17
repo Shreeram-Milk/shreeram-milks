@@ -10,17 +10,16 @@ interface ProductImageCarouselProps {
   accessibilityLabel: string;
 }
 
-/** The product's pictures, one per swipe, with dots under them when there is more than one. */
+/** The product's pictures as full-width squares, one per swipe, with small dots on the photo when there is more than one. */
 export function ProductImageCarousel({ imageUrls, accessibilityLabel }: ProductImageCarouselProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
-  const height = theme.sizes.productCardImageSize * 3;
   const slides = imageUrls.length > 0 ? imageUrls : [null];
   const onScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
 
   return (
-    <View style={{ gap: theme.spacing.sm }}>
+    <View style={{ width, height: width, backgroundColor: theme.colors.colorSurfaceMuted }}>
       <FlatList
         data={slides}
         horizontal
@@ -30,23 +29,13 @@ export function ProductImageCarousel({ imageUrls, accessibilityLabel }: ProductI
         onMomentumScrollEnd={onScrollEnd}
         getItemLayout={(_data, position) => ({ length: width, offset: width * position, index: position })}
         renderItem={({ item }) => (
-          <View style={{ width, height, overflow: "hidden", backgroundColor: theme.colors.colorPrimaryTint }}>
-            <Image accessibilityLabel={accessibilityLabel} source={{ uri: item ?? undefined }} contentFit="cover" transition={theme.motion.duration.normal} style={{ width: "100%", height: "100%" }} />
-          </View>
+          <Image accessibilityLabel={accessibilityLabel} source={{ uri: item ?? undefined }} contentFit="cover" transition={theme.motion.duration.fast} style={{ width, height: width }} />
         )}
       />
       {slides.length > 1 ? (
-        <View style={{ flexDirection: "row", justifyContent: "center", gap: theme.spacing.xs }}>
+        <View pointerEvents="none" style={{ position: "absolute", bottom: theme.spacing.md, alignSelf: "center", flexDirection: "row", gap: theme.spacing.xs, paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs + 1, borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorNavigation }}>
           {slides.map((item, position) => (
-            <View
-              key={item ?? `dot-${position}`}
-              style={{
-                width: position === index ? theme.spacing.lg : theme.spacing.xs,
-                height: theme.spacing.xs,
-                borderRadius: theme.radii.pill,
-                backgroundColor: position === index ? theme.colors.colorPrimary : theme.colors.colorBorder,
-              }}
-            />
+            <View key={item ?? `dot-${position}`} style={{ width: position === index ? 14 : 5, height: 5, borderRadius: theme.radii.pill, backgroundColor: position === index ? theme.colors.colorTextInverse : theme.colors.colorNavigationText }} />
           ))}
         </View>
       ) : null}

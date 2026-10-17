@@ -12,7 +12,13 @@
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.drimindesign.shreerammilks"
+      "package": "com.shreerammilks.app",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#F07811",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,7 +37,9 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#B84A10", "defaultChannel": "deliveries" }],
+      "./plugins/withPhonePe"
     ]
   }
 }

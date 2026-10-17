@@ -229,7 +229,7 @@ use.
 ## 5. CORS — locked to known origins
 
 ```ts
-app.use(cors({ origin: ['https://admin.drimindesigns.co.in'], credentials: true }));
+app.use(cors({ origin: ['https://admin.shreerammilks.com'], credentials: true }));
 ```
 
 Never `origin: '*'` on an API handling payments and personal data. The

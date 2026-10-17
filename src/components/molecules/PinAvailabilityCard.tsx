@@ -3,7 +3,7 @@ import { View } from "react-native";
 
 import { ThemedText } from "../atoms/ThemedText";
 import { StateMessage } from "../organisms/StateMessage";
-import { formatDeliveryDate, formatWindow } from "../../lib/deliveryText";
+import { formatOrderBy, formatShortDay, formatWindow } from "../../lib/deliveryText";
 import type { PinAvailability } from "../../types/delivery";
 import type { AppLanguage } from "../../types/models";
 import { useTheme } from "../../theme";
@@ -18,7 +18,7 @@ interface PinAvailabilityCardProps {
   onRetry: () => void;
 }
 
-/** What the server said about a PIN code: a hint, a check in progress, the delivery options and dates, or "not yet". */
+/** What the server said about a PIN code: a hint, a check in progress, the delivery options and dates, or a note that no home delivery is set up here (the customer can still continue: each product says whether it can reach them). */
 export function PinAvailabilityCard({ availability, complete, isError, isLoading, language, onRetry }: PinAvailabilityCardProps) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -28,7 +28,7 @@ export function PinAvailabilityCard({ availability, complete, isError, isLoading
   if (isError) return <StateMessage type="error" title={t("location.errorTitle")} description={t("location.errorDetail")} actionLabel={t("common.retry")} onAction={onRetry} />;
   if (!availability || availability.options.length === 0) {
     return (
-      <View accessibilityRole="alert" style={{ gap: theme.spacing.xs, padding: theme.spacing.md, borderRadius: theme.radii.lg, backgroundColor: theme.colors.colorWarningTint }}>
+      <View accessibilityRole="summary" style={{ gap: theme.spacing.xs, padding: theme.spacing.md, borderRadius: theme.radii.lg, backgroundColor: theme.colors.colorSurfaceMuted }}>
         <ThemedText variant="bodySmall" weight="semibold">{t("location.notServedTitle")}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("location.notServedDetail")}</ThemedText>
       </View>
@@ -43,13 +43,16 @@ export function PinAvailabilityCard({ availability, complete, isError, isLoading
         {place ? t("location.servedTitle", { place }) : t("location.servedTitleNoPlace")}
       </ThemedText>
       {availability.options.map((option) => (
-        <View key={option.profileId} style={{ gap: theme.spacing.xs }}>
+        <View key={option.optionId} style={{ gap: theme.spacing.xs }}>
           <ThemedText variant="caption" weight="semibold">{option.deliveryMethod === "local_delivery" ? t("location.localDelivery") : t("location.shippingDelivery")}</ThemedText>
           {option.deliveryMethod === "local_delivery" ? (
             option.slots.map((slot) => (
-              <ThemedText key={slot.slotId} variant="caption" style={{ color: theme.colors.colorTextSecondary }}>
-                {slot.name} · {formatWindow(slot.startTime, slot.endTime)} · {t("location.earliest", { date: formatDeliveryDate(slot.earliestDate, language) })}
-              </ThemedText>
+              <View key={slot.slotId}>
+                <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>
+                  {slot.name} · {formatWindow(slot.startTime, slot.endTime)} · {formatShortDay(slot.earliestDate, language, t)}
+                </ThemedText>
+                {formatOrderBy(slot.orderBy, language, t) ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatOrderBy(slot.orderBy, language, t)}</ThemedText> : null}
+              </View>
             ))
           ) : (
             <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("location.shippingDetail")}</ThemedText>

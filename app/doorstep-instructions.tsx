@@ -10,6 +10,7 @@ import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useDoorstepInstructions, useSaveDoorstepInstructions } from "../src/hooks/useAddresses";
 import { describeError } from "../src/services/errorMapper";
+import { useToast } from "../src/providers/ToastProvider";
 import { useTheme } from "../src/theme";
 import type { DoorstepInstructions } from "../src/types/models";
 
@@ -37,8 +38,8 @@ function InstructionsForm({ savedInstructions }: { savedInstructions: DoorstepIn
   const { t } = useTranslation();
   const saver = useSaveDoorstepInstructions();
   const [draft, setDraft] = useState(savedInstructions);
-  const [saved, setSaved] = useState(false);
-  const save = () => saver.mutate(draft, { onSuccess: () => setSaved(true) });
+  const { showToast } = useToast();
+  const save = () => saver.mutate(draft, { onSuccess: () => showToast(t("instructions.saved")) });
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
@@ -126,16 +127,6 @@ function InstructionsForm({ savedInstructions }: { savedInstructions: DoorstepIn
             </ThemedText>
           ) : null}
           <Button loading={saver.isPending} onPress={save}>{t("instructions.save")}</Button>
-          {saved && JSON.stringify(draft) === JSON.stringify(savedInstructions) ? (
-            <ThemedText
-              accessibilityLiveRegion="polite"
-              variant="bodySmall"
-              weight="semibold"
-              style={{ color: theme.colors.colorPrimary, textAlign: "center" }}
-            >
-              {t("instructions.saved")}
-            </ThemedText>
-          ) : null}
         </KeyboardAwareScrollView>
       </View>
     </SafeAreaView>

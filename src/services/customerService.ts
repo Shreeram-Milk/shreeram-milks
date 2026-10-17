@@ -9,7 +9,7 @@ export function parseCustomer(raw: unknown): CustomerProfile {
   const item = record(raw);
   const id = text(item?.id);
   if (!item || !id) throw new ApiRequestError('UNKNOWN_ERROR', 0);
-  return { id, phone: text(item.phone), name: text(item.name), email: text(item.email), language: item.language === 'gu' ? 'gu' : 'en', needsProfile: item.needsProfile === true };
+  return { id, email: text(item.email), phone: text(item.phone), name: text(item.name), language: item.language === 'gu' ? 'gu' : 'en', needsProfile: item.needsProfile === true };
 }
 
 /** Sign-in needs the real backend; there is no sample sign-in, so a missing address reads as "no connection". */
@@ -17,14 +17,14 @@ const requireApi = (): void => {
   if (!hasApi()) throw new ApiRequestError('NETWORK_ERROR', 0);
 };
 
-export async function requestSignInCode(phone: string): Promise<void> {
+export async function requestSignInCode(email: string): Promise<void> {
   requireApi();
-  await apiSend('POST', '/customer/auth/request-code', { phone });
+  await apiSend('POST', '/customer/auth/request-code', { email });
 }
 
-export async function verifySignInCode(phone: string, code: string, deviceLabel: string): Promise<SignInResult> {
+export async function verifySignInCode(email: string, code: string, deviceLabel: string): Promise<SignInResult> {
   requireApi();
-  const body = record(await apiSend<unknown>('POST', '/customer/auth/verify', { phone, code, deviceLabel }));
+  const body = record(await apiSend<unknown>('POST', '/customer/auth/verify', { email, code, deviceLabel }));
   const token = text(body?.token);
   if (!body || !token) throw new ApiRequestError('UNKNOWN_ERROR', 0);
   return { token, customer: parseCustomer(body.customer), isNewCustomer: body.isNewCustomer === true };

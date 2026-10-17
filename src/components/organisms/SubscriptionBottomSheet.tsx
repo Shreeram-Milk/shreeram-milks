@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 
+import { ToastHost } from "../../providers/ToastProvider";
 import { useTheme } from "../../theme";
 import { AppIcon } from "../atoms/AppIcon";
 import { CloseIcon } from "../../icons/appIcons";
@@ -176,6 +177,8 @@ export function SubscriptionBottomSheet({
             {children}
           </Animated.View>
         </KeyboardAwareBottomDrawer>
+        {/* The sheet opens in its own window above the app, so it carries its own copy of the toast. */}
+        <ToastHost />
       </View>
     </Modal>
   );

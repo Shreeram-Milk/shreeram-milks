@@ -3,7 +3,7 @@ import type { BannerContent, BannerCtaType, BannerType } from "../types/content"
 import { apiGet, hasApi } from "./apiClient";
 
 const TYPES: readonly BannerType[] = ["promotion", "warning", "maintenance", "informational"];
-const CTA_TYPES: readonly BannerCtaType[] = ["none", "product", "category"];
+const CTA_TYPES: readonly BannerCtaType[] = ["none", "product", "category", "offers"];
 
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
 

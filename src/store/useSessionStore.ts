@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { clearSession, loadSession, saveSession } from '../lib/sessionVault';
 import { ApiRequestError, configureAuth } from '../services/apiClient';
 import { fetchMyProfile, signOutOnServer } from '../services/customerService';
+import { forgetPushToken } from '../services/notificationService';
 import type { CustomerProfile } from '../types/customer';
 
 type SessionStatus = 'restoring' | 'signedOut' | 'signedIn';
@@ -50,6 +51,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (token) void saveSession({ token, customer });
   },
   signOut: async () => {
+    // This phone stops getting the customer's notifications before the session ends (best effort, never blocks signing out).
+    await forgetPushToken();
     try {
       await signOutOnServer();
     } catch {

@@ -44,7 +44,7 @@ export const ProductCard = memo(function ProductCard({
   const handleCartAction = () => {
     if (isAdded) {
       onRemove(product.id);
-      showToast(t("productCard.removedToast", { product: productName }));
+      showToast(t("productCard.removedToast", { product: productName }), "info");
       return;
     }
     onAdd(product.id);
@@ -78,7 +78,7 @@ export const ProductCard = memo(function ProductCard({
             transition={theme.motion.duration.fast}
             style={{
               height: theme.sizes.productCardImageSize,
-              backgroundColor: theme.colors.colorPrimaryTint,
+              backgroundColor: theme.colors.colorSurfaceMuted,
             }}
           />
           <View

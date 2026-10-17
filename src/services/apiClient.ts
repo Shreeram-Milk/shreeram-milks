@@ -7,7 +7,8 @@ export interface ApiError {
 
 /** A failed request, carrying the backend's stable error code so screens can show a translated message. */
 export class ApiRequestError extends Error implements ApiError {
-  constructor(readonly code: string, readonly status: number, message?: string) {
+  /** Extra facts the backend sent with the error, for example the earliest date allowed. */
+  constructor(readonly code: string, readonly status: number, message?: string, readonly details: Record<string, unknown> = {}) {
     super(message ?? code);
   }
 }
@@ -50,11 +51,12 @@ async function request<Response>({ method, path, body, auth = false }: RequestOp
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     // A 204 answer has no body, so a missing body is not an error.
-    const parsed = (await result.json().catch(() => null)) as { error?: { code?: unknown } } | null;
+    const parsed = (await result.json().catch(() => null)) as { error?: { code?: unknown; details?: unknown } } | null;
     if (!result.ok) {
       const code = typeof parsed?.error?.code === 'string' ? parsed.error.code : 'UNKNOWN_ERROR';
       if (auth && code === 'UNAUTHENTICATED') authHooks.onUnauthorized();
-      throw new ApiRequestError(code, result.status);
+      const details = typeof parsed?.error?.details === 'object' && parsed.error.details !== null ? (parsed.error.details as Record<string, unknown>) : {};
+      throw new ApiRequestError(code, result.status, undefined, details);
     }
     return parsed as Response;
   } catch (error) {

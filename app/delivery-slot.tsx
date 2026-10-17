@@ -11,9 +11,9 @@ import { DeliverySetupHeader } from "../src/components/molecules/DeliverySetupHe
 import { useScrollResponsiveBottomAction } from "../src/components/organisms/ScrollResponsiveBottomAction";
 import { useAddresses, useDoorstepInstructions, useSaveDoorstepInstructions, pickDefaultAddress } from "../src/hooks/useAddresses";
 import { usePinAvailability } from "../src/hooks/usePinAvailability";
-import { formatDeliveryDate, formatWindow } from "../src/lib/deliveryText";
+import { formatOrderBy, formatShortDay, formatWindow } from "../src/lib/deliveryText";
 import { describeError } from "../src/services/errorMapper";
-import { CalendarIcon, LocationIcon } from "../src/icons/appIcons";
+import { CalendarIcon, LocationIcon, TruckIcon } from "../src/icons/appIcons";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
 import type { ServedSlot } from "../src/types/delivery";
@@ -114,15 +114,15 @@ function WindowCard({ slot, language }: { slot: ServedSlot; language: "en" | "gu
         <AppIcon icon={CalendarIcon} accessibilityLabel="" size="sm" tone="secondary" />
       </View>
       <View style={{ gap: theme.spacing.xs }}>
-        <ThemedText variant="bodySmall" weight="semibold">
-          {slot.name}
-        </ThemedText>
-        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>
-          {formatWindow(slot.startTime, slot.endTime)}
-        </ThemedText>
-        <ThemedText variant="caption" style={{ color: theme.colors.colorPrimary }}>
-          {t("location.earliest", { date: formatDeliveryDate(slot.earliestDate, language) })}
-        </ThemedText>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{slot.name}</ThemedText>
+        <ThemedText variant="bodySmall" weight="semibold">{formatWindow(slot.startTime, slot.endTime)}</ThemedText>
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: theme.spacing.xs }}>
+          <AppIcon icon={TruckIcon} size="sm" tone="secondary" accessibilityLabel={t("productDetails.firstDeliveryLabel")} />
+          <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatShortDay(slot.earliestDate, language, t)}</ThemedText>
+        </View>
+        {formatOrderBy(slot.orderBy, language, t) ? (
+          <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatOrderBy(slot.orderBy, language, t)}</ThemedText>
+        ) : null}
       </View>
     </View>
   );
