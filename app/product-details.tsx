@@ -145,6 +145,14 @@ export default function ProductDetailsScreen() {
     for (let index = 0; index < quantity; index += 1) addToCart(cartProduct, activeSlotId);
     showToast(t("productCard.addedToast", { product: productName }));
   };
+  // Buy now puts the chosen quantity in the cart (unless it is already there) and goes straight to checkout.
+  const buyNow = () => {
+    if (!isInCart) {
+      tapFeedback();
+      for (let index = 0; index < quantity; index += 1) addToCart(cartProduct, activeSlotId);
+    }
+    router.push("/checkout-address");
+  };
 
   // The bottom bar: one clear action for the chosen way of buying. A preview price only; the server prices it at checkout.
   const bottomBar = existing ? (
@@ -158,13 +166,13 @@ export default function ProductDetailsScreen() {
       <Button disabled={blocked || !setup.ready || !deliveryPin} onPress={reviewSubscription}>{t(!deliveryPin ? "subs.addPinFirst" : repeating === "trial" ? "subs.continueTrial" : "subs.continue")}</Button>
     </View>
   ) : (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4 }}>
-      {isInCart ? null : <QuantityStepper value={quantity} onDecrement={() => setQuantity((current) => Math.max(1, current - 1))} onIncrement={() => setQuantity((current) => current + 1)} />}
+    <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
       {isInCart ? (
-        <Button variant="tonal" icon={CartIcon} style={{ flex: 1 }} onPress={() => router.navigate("/cart")}>{t("productDetails.viewCart")}</Button>
+        <Button variant="secondary" icon={CartIcon} style={{ flex: 1 }} onPress={() => router.navigate("/cart")}>{t("productDetails.viewCart")}</Button>
       ) : (
-        <Button style={{ flex: 1 }} disabled={blocked} onPress={addSelectedQuantity}>{t("productDetails.addPrice", { price: formatRupees(variant.pricePaise * quantity) })}</Button>
+        <Button variant="secondary" icon={CartIcon} style={{ flex: 1 }} disabled={blocked} onPress={addSelectedQuantity}>{t("productDetails.addToCart")}</Button>
       )}
+      <Button style={{ flex: 1 }} disabled={blocked} onPress={buyNow}>{t("productDetails.buyNow")}</Button>
     </View>
   );
 
@@ -178,16 +186,32 @@ export default function ProductDetailsScreen() {
             <PhotoButtons />
           </View>
           <View style={{ gap: theme.spacing.lg + 4, padding: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.lg }}>
-            {/* Name, size and price. */}
-            <View style={{ gap: theme.spacing.xs }}>
-              <ThemedText variant="h1">{productName}</ThemedText>
-              <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{variant.name}</ThemedText>
-              <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
-                <ThemedText variant="display" style={{ fontVariant: ["tabular-nums"] }}>{formatRupees(variant.pricePaise)}</ThemedText>
-                {variant.compareAtPricePaise !== null && savePercent ? <ThemedText variant="body" style={{ color: theme.colors.colorTextSecondary, textDecorationLine: "line-through" }}>{formatRupees(variant.compareAtPricePaise)}</ThemedText> : null}
-                {savePercent ? (
-                  <View style={{ paddingHorizontal: theme.spacing.sm, paddingVertical: 2, borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorHighlightTint }}>
-                    <ThemedText variant="caption" weight="bold" style={{ color: theme.colors.colorHighlightText }}>{t("productDetails.savePercent", { percent: savePercent })}</ThemedText>
+            {/* Name, size and price, with the quantity beside the price when buying once. */}
+            <View style={{ gap: theme.spacing.md, padding: theme.spacing.md, borderRadius: theme.radii.xl, backgroundColor: theme.colors.colorSurface, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, ...theme.elevation.sm }}>
+              <View style={{ gap: theme.spacing.xs }}>
+                <ThemedText variant="h1">{productName}</ThemedText>
+                <View style={{ alignSelf: "flex-start", paddingHorizontal: theme.spacing.sm, paddingVertical: 2, borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorPrimaryTint }}>
+                  <ThemedText variant="caption" weight="bold" style={{ color: theme.colors.colorPrimary }}>{variant.name}</ThemedText>
+                </View>
+              </View>
+              <View style={{ height: theme.borderWidths.hairline, backgroundColor: theme.colors.colorBorder }} />
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md }}>
+                <View style={{ flexShrink: 1, gap: 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: theme.spacing.sm }}>
+                    <ThemedText variant="display" style={{ fontVariant: ["tabular-nums"] }}>{formatRupees(variant.pricePaise)}</ThemedText>
+                    {variant.compareAtPricePaise !== null && savePercent ? <ThemedText variant="body" style={{ color: theme.colors.colorTextSecondary, textDecorationLine: "line-through" }}>{formatRupees(variant.compareAtPricePaise)}</ThemedText> : null}
+                    {savePercent ? (
+                      <View style={{ paddingHorizontal: theme.spacing.sm, paddingVertical: 2, borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorHighlightTint }}>
+                        <ThemedText variant="caption" weight="bold" style={{ color: theme.colors.colorHighlightText }}>{t("productDetails.savePercent", { percent: savePercent })}</ThemedText>
+                      </View>
+                    ) : null}
+                  </View>
+                  <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.perUnitTaxes", { unit: variant.name })}</ThemedText>
+                </View>
+                {!repeating && !isInCart ? (
+                  <View style={{ alignItems: "center", gap: 4 }}>
+                    <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.quantity")}</ThemedText>
+                    <QuantityStepper value={quantity} onDecrement={() => setQuantity((current) => Math.max(1, current - 1))} onIncrement={() => setQuantity((current) => current + 1)} />
                   </View>
                 ) : null}
               </View>
