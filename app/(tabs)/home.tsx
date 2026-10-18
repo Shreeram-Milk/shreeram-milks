@@ -8,6 +8,7 @@ import { AppIcon } from "../../src/components/atoms/AppIcon";
 import { PressableScale } from "../../src/components/atoms/PressableScale";
 import { RiseIn } from "../../src/components/atoms/RiseIn";
 import { ThemedText } from "../../src/components/atoms/ThemedText";
+import { ThemedView } from "../../src/components/atoms/ThemedView";
 import { CategoryChips } from "../../src/components/molecules/CategoryChips";
 import { CreditBanner } from "../../src/components/molecules/CreditBanner";
 import { ProductGridSkeleton } from "../../src/components/molecules/LoadingSkeletons";
@@ -20,7 +21,7 @@ import { StateMessage } from "../../src/components/organisms/StateMessage";
 import { pickDefaultAddress, useAddresses } from "../../src/hooks/useAddresses";
 import { useCatalogCategories, useCatalogProducts } from "../../src/hooks/useCatalog";
 import { useCatalogCart } from "../../src/hooks/useCatalogCart";
-import { useAppConfig, useBanners, useFeatureFlags } from "../../src/hooks/useContent";
+import { useBanners, useFeatureFlags } from "../../src/hooks/useContent";
 import { LocationIcon, SearchIcon } from "../../src/icons/appIcons";
 import { localized } from "../../src/lib/contentLocalization";
 import { isSpacer, padToColumns, type GridSpacer } from "../../src/lib/gridList";
@@ -47,8 +48,6 @@ export default function HomeScreen() {
       ? t("home.deliveringToPin", { pin: deliveryPin })
       : t("home.setLocation");
   const { showSeasonalBanner } = useFeatureFlags();
-  const { data: appConfig } = useAppConfig();
-  const promise = appConfig ? localized(appConfig.deliveryPromiseEn, appConfig.deliveryPromiseGu, language) : "";
   const { data: banners, isLoading: bannersLoading, isRefetching: bannersRefetching, refetch: refetchBanners } = useBanners();
   const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
@@ -65,27 +64,29 @@ export default function HomeScreen() {
     );
 
   const listHeader = (
-    <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.md }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.sm }}>
-        <View style={{ flex: 1, gap: 2 }}>
-          <ThemedText variant="h1" numberOfLines={1}>{firstName ? t("home.greeting", { name: firstName }) : t("home.greetingNoName")}</ThemedText>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}>
-            <AppIcon icon={LocationIcon} accessibilityLabel={t("home.deliveryLocation")} size="sm" tone="accent" />
-            <ThemedText variant="caption" numberOfLines={1} style={{ flexShrink: 1, color: theme.colors.colorTextSecondary }}>{locationText}</ThemedText>
+    <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.md }}>
+      <ThemedView style={{ marginHorizontal: -theme.layout.screenHorizontalPadding, paddingHorizontal: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.lg, gap: theme.spacing.md, backgroundColor: theme.colors.colorPrimaryTint, borderBottomLeftRadius: theme.radii.xl, borderBottomRightRadius: theme.radii.xl, borderBottomWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md }}>
+          <View style={{ flex: 1, gap: theme.spacing.xs }}>
+            {firstName ? <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("home.greetingNoName")}</ThemedText> : null}
+            <ThemedText variant="h1" numberOfLines={1}>{firstName || t("home.greetingNoName")}</ThemedText>
           </View>
-          {promise ? <ThemedText variant="caption" weight="semibold" numberOfLines={2} style={{ color: theme.colors.colorAccent }}>{promise}</ThemedText> : null}
+          <NotificationBell />
         </View>
-        <NotificationBell />
-      </View>
-      <PressableScale
-        accessibilityRole="search"
-        accessibilityLabel={t("search.placeholder")}
-        onPress={() => router.push("/search")}
-        style={{ minHeight: theme.sizes.inputHeight, flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted }}
-      >
-        <AppIcon icon={SearchIcon} accessibilityLabel="" size="sm" tone="secondary" />
-        <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }} numberOfLines={1}>{t("search.placeholder")}</ThemedText>
-      </PressableScale>
+        <View accessible accessibilityLabel={`${t("home.deliveryLocation")}: ${locationText}`} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
+          <AppIcon icon={LocationIcon} accessibilityLabel="" size="sm" tone="accent" />
+          <ThemedText variant="bodySmall" weight="medium" numberOfLines={1} style={{ flex: 1, color: theme.colors.colorTextSecondary }}>{locationText}</ThemedText>
+        </View>
+        <PressableScale
+          accessibilityRole="search"
+          accessibilityLabel={t("search.placeholder")}
+          onPress={() => router.push("/search")}
+          style={{ minHeight: theme.sizes.inputHeight, flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurface, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder }}
+        >
+          <AppIcon icon={SearchIcon} accessibilityLabel="" size="sm" tone="secondary" />
+          <ThemedText variant="bodySmall" style={{ flex: 1, color: theme.colors.colorTextSecondary }} numberOfLines={1}>{t("search.placeholder")}</ThemedText>
+        </PressableScale>
+      </ThemedView>
       <CreditBanner />
       <NextDeliveryCard />
       {showSeasonalBanner ? <HomeBanners banners={banners} isLoading={bannersLoading} language={language} /> : null}
@@ -109,9 +110,10 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorPrimaryTint }}>
       <StatusBar barStyle="dark-content" />
       <FlatList
+        style={{ backgroundColor: theme.colors.colorBackground }}
         data={isLoading || isError ? [] : padToColumns(products)}
         renderItem={renderProduct}
         keyExtractor={(item) => item.id}

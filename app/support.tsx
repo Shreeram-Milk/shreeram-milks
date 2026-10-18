@@ -12,7 +12,7 @@ import { ListCard, ListRow } from "../src/components/molecules/ListRow";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useAppConfig } from "../src/hooks/useContent";
-import { ChatIcon, ClockIcon, FlagIcon, HelpIcon, InvoiceIcon, MailIcon, PhoneIcon, SupportIcon, WhatsAppIcon } from "../src/icons/appIcons";
+import { ClockIcon, FlagIcon, HelpIcon, InvoiceIcon, MailIcon, PhoneIcon, SupportIcon, WhatsAppIcon } from "../src/icons/appIcons";
 import { localized } from "../src/lib/contentLocalization";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
@@ -35,7 +35,6 @@ export default function SupportScreen() {
     config?.callEnabled && config.supportPhone ? { key: "call", icon: PhoneIcon, title: t("support.call"), subtitle: config.supportPhone, onPress: () => open(`tel:${config.supportPhone}`) } : null,
     whatsappDigits ? { key: "whatsapp", icon: WhatsAppIcon, title: t("support.whatsapp"), subtitle: t("support.whatsappDetail"), onPress: () => open(`https://wa.me/${whatsappDigits.length === 10 ? `91${whatsappDigits}` : whatsappDigits}`) } : null,
     config?.supportEmail ? { key: "email", icon: MailIcon, title: t("support.email"), subtitle: config.supportEmail, onPress: () => open(`mailto:${config.supportEmail}`) } : null,
-    config?.chatEnabled ? { key: "chat", icon: ChatIcon, title: t("support.chat"), subtitle: t("support.chatDetail"), badge: t("support.soon") } : null,
   ].filter((channel): channel is NonNullable<typeof channel> => channel !== null);
   const hours = config ? localized(config.supportHoursEn, config.supportHoursGu, language) : "";
   const afterHours = config ? localized(config.afterHoursMessageEn, config.afterHoursMessageGu, language) : "";
@@ -73,10 +72,8 @@ export default function SupportScreen() {
                       icon={channel.icon}
                       title={channel.title}
                       subtitle={channel.subtitle}
-                      badge={"badge" in channel ? channel.badge : undefined}
-                      disabled={!("onPress" in channel)}
                       isLast={position === channels.length - 1}
-                      onPress={"onPress" in channel ? channel.onPress : undefined}
+                      onPress={channel.onPress}
                     />
                   ))}
                 </ListCard>

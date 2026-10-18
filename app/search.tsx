@@ -115,12 +115,6 @@ export default function SearchScreen() {
               <ThemedText variant="bodySmall" weight="semibold">
                 {t("search.offerings")}
               </ThemedText>
-              <ThemedText
-                variant="caption"
-                style={{ color: theme.colors.colorTextSecondary }}
-              >
-                {t("search.deliveryNote")}
-              </ThemedText>
             </View>
           </View>
         }

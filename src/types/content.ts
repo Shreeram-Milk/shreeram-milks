@@ -92,7 +92,6 @@ export interface AppConfig {
   supportEmail: string;
   supportWhatsApp: string;
   callEnabled: boolean;
-  chatEnabled: boolean;
   whatsappEnabled: boolean;
   supportHoursEn: string;
   supportHoursGu: string;

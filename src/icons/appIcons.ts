@@ -35,7 +35,6 @@ export {
   UserIcon as ProfileIcon,
   Wallet01Icon as WalletIcon,
   AlertCircleIcon as AlertCircleIcon,
-  Chat01Icon as ChatIcon,
   CheckmarkCircle02Icon as SuccessIcon,
   CreditCardIcon as CreditCardIcon,
   CustomerSupportIcon as SupportIcon,

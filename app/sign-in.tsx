@@ -14,6 +14,7 @@ import { useRequestCode } from '../src/hooks/useCustomerAuth';
 import { isEmail } from '../src/lib/phone';
 import { describeError } from '../src/services/errorMapper';
 import { useTheme } from '../src/theme';
+import type { PolicyType } from '../src/types/content';
 import { BackIcon } from '../src/icons/appIcons';
 
 export default function SignInScreen() {
@@ -25,6 +26,7 @@ export default function SignInScreen() {
   const canContinue = isEmail(email);
   const showInvalid = email.includes('@') && email.includes('.') && !canContinue;
   const send = () => requestCode.mutate(email.trim().toLowerCase(), { onSuccess: () => router.push({ pathname: '/verify', params: { email: email.trim().toLowerCase() } }) });
+  const openPolicy = (type: PolicyType) => router.push({ pathname: '/policy-details', params: { type } });
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
     <StatusBar barStyle="dark-content" />
     <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg }}>
@@ -37,6 +39,13 @@ export default function SignInScreen() {
       <View style={{ flex: 1, paddingTop: theme.spacing.xl, gap: theme.spacing.xl }}>
         <View style={{ gap: theme.spacing.sm }}><ThemedText variant="caption" style={{ color: theme.colors.colorPrimary }}>{t('signIn.eyebrow')}</ThemedText><ThemedText variant="h1">{t('signIn.title')}</ThemedText><ThemedText variant="body" style={{ color: theme.colors.colorTextSecondary }}>{t('signIn.description')}</ThemedText></View>
         <View style={{ gap: theme.spacing.sm }}><ThemedText variant="bodySmall">{t('signIn.email')}</ThemedText><View style={{ flexDirection: 'row', alignItems: 'center', ...fieldChrome(theme, { focused: emailFocused, error: Boolean(requestCode.error) || showInvalid }) }}><AppInput bare onFocus={() => setEmailFocused(true)} onBlur={() => setEmailFocused(false)} accessibilityLabel={t('signIn.email')} autoCapitalize="none" autoComplete="email" autoCorrect={false} keyboardType="email-address" maxLength={200} onChangeText={(value) => { setEmail(value); if (requestCode.isError) requestCode.reset(); }} placeholder={t('signIn.emailPlaceholder')} style={{ flex: 1, paddingHorizontal: theme.spacing.md }} textContentType="emailAddress" value={email} /></View>{showInvalid ? <ThemedText variant="caption" style={{ color: theme.colors.colorDanger }}>{t('signIn.invalidEmail')}</ThemedText> : null}{requestCode.error ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(requestCode.error)}</ThemedText> : null}</View>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>
+          {t('signIn.agreeBefore')}
+          <ThemedText variant="caption" accessibilityRole="link" style={{ color: theme.colors.colorPrimary }} onPress={() => openPolicy('terms')}>{t('signIn.agreeTerms')}</ThemedText>
+          {t('signIn.agreeAnd')}
+          <ThemedText variant="caption" accessibilityRole="link" style={{ color: theme.colors.colorPrimary }} onPress={() => openPolicy('privacy')}>{t('signIn.agreePrivacy')}</ThemedText>
+          {t('signIn.agreeAfter')}
+        </ThemedText>
       </View>
       </KeyboardAwareScrollView>
       <KeyboardAwareBottomDrawer openedOffset={theme.spacing.md} style={{ position: 'absolute', right: theme.spacing.lg, bottom: theme.spacing.md, left: theme.spacing.lg, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.sm, backgroundColor: theme.colors.colorBackground }}><Button disabled={!canContinue} loading={requestCode.isPending} onPress={send}>{t('signIn.continue')}</Button></KeyboardAwareBottomDrawer>

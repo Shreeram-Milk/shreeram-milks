@@ -1,23 +1,20 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StatusBar, View } from "react-native";
+import { Linking, Pressable, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "../src/components/atoms/Avatar";
 import { AppIcon } from "../src/components/atoms/AppIcon";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { AccountMenuRow } from "../src/components/molecules/AccountMenuRow";
-import { SettingsToggleRow } from "../src/components/molecules/SettingsToggleRow";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import {
   AlertCircleIcon,
   AlertsIcon,
   LogoutIcon,
-  CalendarIcon,
   EditIcon,
   LanguageIcon,
-  LockIcon,
   ShieldIcon,
 } from "../src/icons/appIcons";
 import { APP_VERSION } from "../src/lib/appVersion";
@@ -61,17 +58,13 @@ function SettingsGroup({
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const customer = useSessionStore((state) => state.customer);
   const signOut = useSessionStore((state) => state.signOut);
   const deleteAccount = useDeleteAccount();
   const [confirming, setConfirming] = useState<"signOut" | "delete" | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const profile = { fullName: customer?.name || t("account.guest"), contact: customer?.email ?? "" };
-  const [dispatchAlerts, setDispatchAlerts] = useState(true);
-  const [photoProof, setPhotoProof] = useState(true);
-  const [seasonalUpdates, setSeasonalUpdates] = useState(false);
-  const [biometricLock, setBiometricLock] = useState(false);
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}
@@ -122,49 +115,21 @@ export default function SettingsScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel={t("profile.editProfile")} hitSlop={theme.spacing.sm} onPress={() => router.push("/edit-profile")} style={{ width: theme.layout.touchTargetMin, height: theme.layout.touchTargetMin, alignItems: "center", justifyContent: "center" }}><AppIcon icon={EditIcon} accessibilityLabel="" tone="secondary" size="sm" /></Pressable>
         </View>
         <SettingsGroup title={t("settings.alertsSection")}>
-          <SettingsToggleRow
-            enabled={dispatchAlerts}
-            icon={AlertsIcon}
-            onChange={setDispatchAlerts}
-            subtitle={t("settings.dispatchAlertSubtitle")}
-            title={t("settings.dispatchAlert")}
-          />
-          <SettingsToggleRow
-            enabled={photoProof}
-            icon={CalendarIcon}
-            onChange={setPhotoProof}
-            subtitle={t("settings.photoProofSubtitle")}
-            title={t("settings.photoProof")}
-          />
-          <SettingsToggleRow
-            enabled={seasonalUpdates}
+          {/* Delivery and offer alerts are Android notification channels, so the phone's own settings are where they are switched. */}
+          <AccountMenuRow
             icon={AlertsIcon}
             isLast
-            onChange={setSeasonalUpdates}
-            subtitle={t("settings.seasonalSubtitle")}
-            title={t("settings.seasonal")}
+            subtitle={t("settings.notificationsSubtitle")}
+            title={t("settings.notifications")}
+            onPress={() => void Linking.openSettings()}
           />
         </SettingsGroup>
         <SettingsGroup title={t("settings.deliverySection")}>
-          <SettingsToggleRow
-            enabled={biometricLock}
-            icon={LockIcon}
-            onChange={setBiometricLock}
-            subtitle={t("settings.biometricSubtitle")}
-            title={t("settings.biometric")}
-          />
           <AccountMenuRow
             icon={ShieldIcon}
-            subtitle={t("settings.doorbellSubtitle")}
-            title={t("settings.doorbell")}
-            trailing={t("settings.custom")}
-            onPress={() => router.push("/doorstep-instructions")}
-          />
-          <AccountMenuRow
-            icon={CalendarIcon}
             isLast
-            subtitle={t("settings.dropInstructionSubtitle")}
-            title={t("settings.dropInstruction")}
+            subtitle={t("settings.doorstepSubtitle")}
+            title={t("settings.doorstep")}
             onPress={() => router.push("/doorstep-instructions")}
           />
         </SettingsGroup>
@@ -173,7 +138,7 @@ export default function SettingsScreen() {
             icon={LanguageIcon}
             subtitle={t("settings.languageSubtitle")}
             title={t("settings.language")}
-            trailing={t("settings.english")}
+            trailing={i18n.language === "gu" ? "ગુજરાતી" : "English"}
             isLast
             onPress={() => router.push("/language")}
           />

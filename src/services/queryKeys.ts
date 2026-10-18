@@ -1,5 +1,4 @@
 export const queryKeys = {
-  products: ["products"] as const,
   catalogCategories: ["catalog-categories"] as const,
   catalogProducts: (categoryId: string | null, search: string) => ["catalog-products", categoryId, search] as const,
   catalogProduct: (id: string) => ["catalog-product", id] as const,

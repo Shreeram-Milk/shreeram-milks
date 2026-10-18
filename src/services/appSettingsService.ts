@@ -26,7 +26,6 @@ export function parseAppConfig(raw: unknown): AppConfig {
     supportEmail: text(item.supportEmail, defaults.supportEmail),
     supportWhatsApp: text(item.supportWhatsApp, defaults.supportWhatsApp),
     callEnabled: flag(item.callEnabled, defaults.callEnabled),
-    chatEnabled: flag(item.chatEnabled, defaults.chatEnabled),
     whatsappEnabled: flag(item.whatsappEnabled, defaults.whatsappEnabled),
     supportHoursEn: text(item.supportHoursEn, defaults.supportHoursEn),
     supportHoursGu: text(item.supportHoursGu, defaults.supportHoursGu),

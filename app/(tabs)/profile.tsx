@@ -14,6 +14,7 @@ import { ThemedText } from "../../src/components/atoms/ThemedText";
 import { useFeatureFlags } from "../../src/hooks/useContent";
 import { AccountMenuRow } from "../../src/components/molecules/AccountMenuRow";
 import { CalendarIcon, EditIcon, FlagIcon, HelpIcon, InvoiceIcon, LocationIcon, RepeatIcon, SettingsIcon, ShieldIcon, SupportIcon, WalletIcon } from "../../src/icons/appIcons";
+import { FSSAI_NUMBER } from "../../src/lib/business";
 import { APP_VERSION } from "../../src/lib/appVersion";
 import { useSessionStore } from "../../src/store/useSessionStore";
 import { useTheme } from "../../src/theme";
@@ -89,6 +90,7 @@ export default function ProfileScreen() {
         </RiseIn>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextDisabled, textAlign: "center" }}>{t("profile.version", { version: APP_VERSION })}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextDisabled, textAlign: "center" }}>{t("credits.geonames")}</ThemedText>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextDisabled, textAlign: "center" }}>{t("profile.fssai", { number: FSSAI_NUMBER })}</ThemedText>
       </ScrollView>
     </SafeAreaView>
   );
