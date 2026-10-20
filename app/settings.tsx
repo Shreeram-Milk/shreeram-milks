@@ -17,7 +17,7 @@ import {
   LanguageIcon,
   ShieldIcon,
 } from "../src/icons/appIcons";
-import { APP_VERSION } from "../src/lib/appVersion";
+import { APP_UPDATE_LABEL, APP_VERSION } from "../src/lib/appVersion";
 import { useTheme } from "../src/theme";
 import { Button } from "../src/components/atoms/Button";
 import { ConfirmSheet } from "../src/components/organisms/ConfirmSheet";
@@ -159,6 +159,7 @@ export default function SettingsScreen() {
           }}
         >
           {t("settings.version", { version: APP_VERSION })}
+          {APP_UPDATE_LABEL ? `\n${t("settings.update", { update: APP_UPDATE_LABEL })}` : ""}
         </ThemedText>
       </ScrollView>
       <ConfirmSheet

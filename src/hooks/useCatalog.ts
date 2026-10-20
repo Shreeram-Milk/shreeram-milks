@@ -10,7 +10,7 @@ const PRODUCT_STALE_MS = 60 * 1000;
 
 /** The shelves (categories) the admin has switched on. */
 export function useCatalogCategories() {
-  return useQuery({ queryKey: queryKeys.catalogCategories, queryFn: getCategories, staleTime: 5 * 60 * 1000 });
+  return useQuery({ queryKey: queryKeys.catalogCategories, queryFn: getCategories, staleTime: 60 * 1000 });
 }
 
 /**
@@ -19,6 +19,15 @@ export function useCatalogCategories() {
  */
 export function useCatalogProducts(categoryId: string | null, search = "") {
   return useQuery({ queryKey: queryKeys.catalogProducts(categoryId, search), queryFn: () => getCatalogProducts({ categoryId, search }), staleTime: PRODUCT_STALE_MS, placeholderData: keepPreviousData });
+}
+
+/**
+ * Each product's picture by product id, from the whole-shop list Home and Products already load (no extra request when it is
+ * in memory). Orders do not carry pictures, so My Orders looks them up here; a product no longer sold simply has none.
+ */
+export function useProductImages(): ReadonlyMap<string, string> {
+  const { data } = useCatalogProducts(null);
+  return useMemo(() => new Map((data ?? []).filter((product) => product.imageUrl).map((product) => [product.id, product.imageUrl as string])), [data]);
 }
 
 export function useCatalogProduct(id: string | undefined) {

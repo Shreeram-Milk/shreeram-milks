@@ -30,6 +30,7 @@ import { describeError } from "../src/services/errorMapper";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
 import type { DayLine, Subscription } from "../src/types/subscriptions";
+import { remoteImage } from "../src/lib/remoteImage";
 
 const CANCEL_REASONS = ["notNeeded", "quality", "price", "moving", "other"] as const;
 const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -111,7 +112,7 @@ export default function ManageSubscriptionScreen() {
         <Card style={{ gap: theme.spacing.md }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4 }}>
             <View style={{ width: 64, height: 64, overflow: "hidden", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted }}>
-              <Image source={imageUrl ? { uri: imageUrl } : require("../assets/onboarding-milk-hero.png")} contentFit="cover" style={{ width: "100%", height: "100%" }} />
+              <Image source={imageUrl ? remoteImage(imageUrl) : require("../assets/onboarding-milk-hero.png")} contentFit="cover" style={{ width: "100%", height: "100%" }} />
             </View>
             <View style={{ flex: 1, gap: theme.spacing.xs }}>
               <StatusPill status={subscription.status} />

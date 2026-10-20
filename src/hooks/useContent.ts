@@ -8,9 +8,9 @@ import { getOnboardingSlides } from "../services/onboardingContentService";
 import { getPolicies } from "../services/policyService";
 import { queryKeys } from "../services/queryKeys";
 
-/** Admin-editable content. It changes rarely, so it is cached for a few minutes. */
+/** Admin-editable content. Never reused for more than a minute, so an admin change shows up within a minute. */
 const BANNER_STALE_MS = 30 * 1000;
-const CONTENT_STALE_MS = 5 * 60 * 1000;
+const CONTENT_STALE_MS = 60 * 1000;
 
 /** Settings can switch the app off for maintenance, so they are re-checked sooner than other content, and when the app is reopened. */
 export const useAppConfig = () => useQuery({ queryKey: queryKeys.appConfig, queryFn: getAppConfig, staleTime: BANNER_STALE_MS * 2, refetchOnWindowFocus: true });

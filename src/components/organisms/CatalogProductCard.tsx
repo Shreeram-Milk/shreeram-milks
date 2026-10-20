@@ -17,6 +17,7 @@ import { motion } from "../../theme/motion";
 import { useTheme } from "../../theme";
 import type { CatalogProduct } from "../../types/catalog";
 import type { AppLanguage } from "../../types/models";
+import { remoteImage } from "../../lib/remoteImage";
 
 interface CatalogProductCardProps {
   isAdded?: boolean;
@@ -71,7 +72,7 @@ export const CatalogProductCard = memo(function CatalogProductCard({ isAdded = f
       <PressableScale accessibilityRole="button" accessibilityLabel={productName} onPress={() => onPress(product.id)} onPressIn={() => prefetch(product.id)}>
         {/* The photo runs edge to edge across the top of the card; the card's own rounded corners clip it. */}
         <View style={{ backgroundColor: theme.colors.colorSurfaceMuted }}>
-          <Image source={{ uri: product.imageUrl ?? undefined }} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: "100%", aspectRatio: 1 }} />
+          <Image source={remoteImage(product.imageUrl)} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: "100%", aspectRatio: 1 }} />
           {badge ? (
             <View style={{ position: "absolute", top: theme.spacing.sm, left: theme.spacing.sm, borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.sm, paddingVertical: 3, backgroundColor: theme.colors.colorAccent }}>
               <ThemedText variant="caption" weight="bold" numberOfLines={1} style={{ color: theme.colors.colorTextInverse }}>{badge}</ThemedText>

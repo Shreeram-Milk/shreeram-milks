@@ -15,7 +15,7 @@ export function NotificationBell() {
   const { data: unread = 0 } = useUnreadCount();
   return (
     <View>
-      <IconButton icon={NotificationIcon} label={unread > 0 ? t("inbox.bellUnread", { count: unread }) : t("home.notifications")} filled onPress={() => router.push("/notifications")} />
+      <IconButton icon={NotificationIcon} label={unread > 0 ? t("inbox.bellUnread", { count: unread }) : t("home.notifications")} white onPress={() => router.push("/notifications")} />
       {unread > 0 ? (
         <View pointerEvents="none" style={{ position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, paddingHorizontal: 4, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorPrimary }}>
           <ThemedText variant="caption" weight="bold" style={{ color: theme.colors.colorTextInverse, fontSize: 10, lineHeight: 13 }}>{unread > 9 ? "9+" : unread}</ThemedText>

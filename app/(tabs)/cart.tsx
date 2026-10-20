@@ -18,6 +18,7 @@ import { getLocalizedProductName } from "../../src/lib/productLocalization";
 import { useAppStore, type CartItem } from "../../src/store/useAppStore";
 import { motion } from "../../src/theme/motion";
 import { useTheme } from "../../src/theme";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 // Fast + / − taps settle first, then the server is asked once whether everything can be delivered.
 const QUOTE_PAUSE_MS = 400;
@@ -52,7 +53,7 @@ export default function CartScreen() {
   const renderItem = ({ item }: { item: CartItem }) => (
     <Animated.View exiting={rowExit} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4, paddingVertical: theme.spacing.md - 4, borderBottomWidth: theme.borderWidths.hairline, borderBottomColor: theme.colors.colorBorder }}>
       <View style={{ width: 60, height: 60, overflow: "hidden", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted }}>
-        {item.product.imageUrl ? <Image source={{ uri: item.product.imageUrl }} contentFit="cover" style={{ width: "100%", height: "100%" }} /> : null}
+        {item.product.imageUrl ? <Image source={remoteImage(item.product.imageUrl)} contentFit="cover" style={{ width: "100%", height: "100%" }} /> : null}
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <ThemedText variant="bodySmall" weight="bold" numberOfLines={2}>{getLocalizedProductName(item.product, i18n.resolvedLanguage ?? i18n.language)}</ThemedText>

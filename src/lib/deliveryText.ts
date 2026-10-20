@@ -28,13 +28,14 @@ export function addDaysTo(date: string, days: number): string {
   return new Date(Date.UTC(year, month - 1, day) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
-/** One short word for the day: "Today", "Tomorrow", or "Fri, 16 Oct" for later days, never all three at once. */
+/** One short word for the day: "Today", "Tomorrow", "Yesterday", or "Fri, 16 Oct" for other days. */
 export function formatShortDay(date: string, language: AppLanguage, t: TFunction): string {
   const now = Date.now();
   // The words are written lower-case for use inside sentences; on their own they start with a capital.
   const standalone = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
   if (date === indiaDate(new Date(now))) return standalone(t("delivery.today"));
   if (date === indiaDate(new Date(now + DAY_MS))) return standalone(t("delivery.tomorrow"));
+  if (date === indiaDate(new Date(now - DAY_MS))) return standalone(t("delivery.yesterday"));
   return formatDeliveryDate(date, language);
 }
 

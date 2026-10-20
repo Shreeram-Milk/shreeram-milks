@@ -8,11 +8,13 @@ interface IconButtonProps extends Omit<PressableProps, "style"> {
   icon: IconSvgElement;
   label: string;
   tone?: "primary" | "secondary";
-  /** A soft grey circle behind the icon, for buttons that sit on top of content (back over a photo, bell on Home). */
+  /** A soft grey circle behind the icon, for buttons that sit on top of content (back over a photo, search, settings). */
   filled?: boolean;
+  /** A white circle instead, for buttons on a tinted background (the bell on Home's header). */
+  white?: boolean;
 }
 
-export function IconButton({ filled = false, icon, label, tone = "primary", ...props }: IconButtonProps) {
+export function IconButton({ filled = false, white = false, icon, label, tone = "primary", ...props }: IconButtonProps) {
   const theme = useTheme();
   return (
     <PressableScale
@@ -27,7 +29,7 @@ export function IconButton({ filled = false, icon, label, tone = "primary", ...p
         alignItems: "center",
         justifyContent: "center",
         borderRadius: theme.radii.pill,
-        backgroundColor: filled ? theme.colors.colorSurfaceMuted : theme.colors.colorTransparent,
+        backgroundColor: white ? theme.colors.colorSurface : filled ? theme.colors.colorSurfaceMuted : theme.colors.colorTransparent,
       }}
     >
       <AppIcon icon={icon} accessibilityLabel="" tone={tone} />

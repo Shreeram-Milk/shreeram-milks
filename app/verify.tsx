@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StatusBar, TextInput, View } from 'react-native';
+import { Platform, Pressable, StatusBar, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../src/components/atoms/Button';
@@ -80,7 +80,7 @@ export default function VerifyScreen() {
           <View>
             <OtpBoxes value={otp} length={CODE_LENGTH} invalid={Boolean(error)} focused={focused} />
             {/* The real input lies invisibly over the boxes, so a tap or a long-press (paste) lands on it directly and always opens the keyboard. */}
-            <TextInput ref={inputRef} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} accessibilityLabel={t('verify.code')} autoComplete="sms-otp" autoFocus caretHidden contextMenuHidden={false} keyboardType="number-pad" maxLength={CODE_LENGTH} onChangeText={(value) => { setOtp(value.replace(/\D/g, '')); if (verify.isError) verify.reset(); }} showSoftInputOnFocus style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0.02, color: 'transparent' }} textContentType="oneTimeCode" value={otp} />
+            <TextInput ref={inputRef} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} accessibilityLabel={t('verify.code')} autoComplete={Platform.OS === 'android' ? 'email-otp' : 'one-time-code'} importantForAutofill="yes" autoFocus caretHidden contextMenuHidden={false} keyboardType="number-pad" maxLength={CODE_LENGTH} onChangeText={(value) => { setOtp(value.replace(/\D/g, '')); if (verify.isError) verify.reset(); }} showSoftInputOnFocus style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0.02, color: 'transparent' }} value={otp} />
           </View>
           {error ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(error)}</ThemedText> : resent ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorPrimary }}>{t('verify.codeSent')}</ThemedText> : null}
         </View>

@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { View } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { useTheme } from "../../theme";
+import { remoteImage } from "../../lib/remoteImage";
 type AvatarSize = "sm" | "md" | "lg";
 
 interface AvatarProps {
@@ -33,7 +34,7 @@ export function Avatar({ imageUrl, initials, size = "md" }: AvatarProps) {
         <Image
           accessibilityLabel={initials}
           contentFit="cover"
-          source={{ uri: imageUrl }}
+          source={remoteImage(imageUrl)}
           style={{ width: "100%", height: "100%" }}
         />
       ) : (

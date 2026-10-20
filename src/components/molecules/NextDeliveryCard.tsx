@@ -35,8 +35,18 @@ function dateParts(date: string, language: "en" | "gu") {
 const ACTIVE_STATES: readonly CalendarDelivery["state"][] = ["upcoming", "placed", "out_for_delivery"];
 
 /**
+ * Opens this delivery itself, not the whole calendar: its order once there is one (tracking), else the subscription it belongs to
+ * (a coming subscription day has no order yet). The calendar is only the fallback.
+ */
+function openDelivery(delivery: CalendarDelivery) {
+  if (delivery.orderId) router.push({ pathname: "/order-tracking", params: { orderId: delivery.orderId } });
+  else if (delivery.subscriptionId) router.push({ pathname: "/subscription-manage", params: { id: delivery.subscriptionId } });
+  else router.push("/delivery-calendar");
+}
+
+/**
  * Home: the customer's next delivery, as the screen's one light mint highlight card: a white date tile, what is coming and
- * when, a countdown chip, and a tap to open the calendar. Shows nothing when signed out or when nothing is coming.
+ * when, a countdown chip, and a tap to open that delivery. Shows nothing when signed out or when nothing is coming.
  */
 export function NextDeliveryCard() {
   const theme = useTheme();
@@ -64,7 +74,7 @@ export function NextDeliveryCard() {
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`${t("subs.nextDelivery")}: ${formatShortDay(next.date, language, t)}, ${when}. ${items}`}
-      onPress={() => router.push("/delivery-calendar")}
+      onPress={() => openDelivery(next)}
       style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4, padding: theme.spacing.md - 4, borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorAccentBorder, backgroundColor: theme.colors.colorAccentTint }}
     >
       <View style={{ width: DATE_TILE_WIDTH, alignItems: "center", paddingVertical: theme.spacing.sm - 2, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurface, ...theme.elevation.sm }}>

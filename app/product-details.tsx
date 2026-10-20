@@ -31,6 +31,7 @@ import { tapFeedback } from "../src/lib/haptics";
 import { useToast } from "../src/providers/ToastProvider";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
+import { remoteImage } from "../src/lib/remoteImage";
 
 type PurchasePlan = "single" | "trial" | "subscription";
 const PLAN_OF_METHOD = { buy_once: "single", trial: "trial", subscription: "subscription" } as const;
@@ -87,7 +88,7 @@ export default function ProductDetailsScreen() {
         <StatusBar barStyle="dark-content" />
         <View accessibilityLabel={t("productDetails.loading")} style={{ flex: 1 }}>
           <View style={{ width, height: width, backgroundColor: theme.colors.colorSurfaceMuted }}>
-            {preview?.imageUrl ? <Image source={{ uri: preview.imageUrl }} contentFit="cover" style={{ width, height: width }} /> : null}
+            {preview?.imageUrl ? <Image source={remoteImage(preview.imageUrl)} contentFit="cover" style={{ width, height: width }} /> : null}
             <PhotoButtons />
           </View>
           <View style={{ gap: theme.spacing.lg, padding: theme.layout.screenHorizontalPadding }}>

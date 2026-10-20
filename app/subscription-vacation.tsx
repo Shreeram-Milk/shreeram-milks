@@ -23,6 +23,7 @@ import { useAppStore } from "../src/store/useAppStore";
 import { useSessionStore } from "../src/store/useSessionStore";
 import { useTheme } from "../src/theme";
 import type { Subscription } from "../src/types/subscriptions";
+import { remoteImage } from "../src/lib/remoteImage";
 
 type Step = "products" | "dates" | "success";
 type DateField = "pause" | "resume";
@@ -215,7 +216,7 @@ function ChoiceRow({ subscription, selected, onToggle }: { subscription: Subscri
   const name = localized(subscription.productName, subscription.productNameGu, lang);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.sm, borderRadius: theme.radii.lg, backgroundColor: theme.colors.colorSurface }}>
-      <Image source={product?.imageUrl ? { uri: product.imageUrl } : require("../assets/onboarding-milk-hero.png")} contentFit="cover" style={{ width: theme.sizes.avatarLg, height: theme.sizes.avatarLg, borderRadius: theme.radii.md }} />
+      <Image source={product?.imageUrl ? remoteImage(product.imageUrl) : require("../assets/onboarding-milk-hero.png")} contentFit="cover" style={{ width: theme.sizes.avatarLg, height: theme.sizes.avatarLg, borderRadius: theme.radii.md }} />
       <View style={{ flex: 1 }}>
         <ThemedText variant="bodySmall" weight="semibold">{name}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{subscription.variantName} · {subscription.lines.map((line) => `${line.slotName} × ${line.quantity}`).join(", ")}</ThemedText>

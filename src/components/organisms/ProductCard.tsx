@@ -10,6 +10,7 @@ import { getLocalizedProductName } from "../../lib/productLocalization";
 import { useTheme } from "../../theme";
 import type { Product } from "../../types/models";
 import { ThemedText } from "../atoms/ThemedText";
+import { remoteImage } from "../../lib/remoteImage";
 
 interface ProductCardProps {
   isAdded?: boolean;
@@ -73,7 +74,7 @@ export const ProductCard = memo(function ProductCard({
           onPressOut={() => animate(cardScale, 1)}
         >
           <Image
-            source={{ uri: product.imageUrl ?? undefined }}
+            source={remoteImage(product.imageUrl)}
             contentFit="cover"
             transition={theme.motion.duration.fast}
             style={{

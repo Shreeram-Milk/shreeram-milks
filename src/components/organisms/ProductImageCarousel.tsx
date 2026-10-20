@@ -3,6 +3,7 @@ import { useState } from "react";
 import { FlatList, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 
 import { useTheme } from "../../theme";
+import { remoteImage } from "../../lib/remoteImage";
 
 interface ProductImageCarouselProps {
   /** The main picture first, then the gallery. May be empty. */
@@ -29,7 +30,7 @@ export function ProductImageCarousel({ imageUrls, accessibilityLabel }: ProductI
         onMomentumScrollEnd={onScrollEnd}
         getItemLayout={(_data, position) => ({ length: width, offset: width * position, index: position })}
         renderItem={({ item }) => (
-          <Image accessibilityLabel={accessibilityLabel} source={{ uri: item ?? undefined }} contentFit="cover" transition={theme.motion.duration.fast} style={{ width, height: width }} />
+          <Image accessibilityLabel={accessibilityLabel} source={remoteImage(item)} contentFit="cover" transition={theme.motion.duration.fast} style={{ width, height: width }} />
         )}
       />
       {slides.length > 1 ? (

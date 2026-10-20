@@ -7,6 +7,14 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/58da0360-da28-4ac7-819c-7a2331f67e0b",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -53,7 +61,15 @@
         }
       ],
       "./plugins/withPhonePe",
-      "./plugins/withReleaseSigning"
-    ]
+      "./plugins/withReleaseSigning",
+      "./plugins/withLongPathCmake"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "58da0360-da28-4ac7-819c-7a2331f67e0b"
+      }
+    },
+    "owner": "shreeram4244s-team"
   }
 }

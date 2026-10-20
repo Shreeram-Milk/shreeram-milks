@@ -11,6 +11,7 @@ import type { BannerContent, BannerType } from "../../types/content";
 import type { AppLanguage } from "../../types/models";
 import { ThemedText } from "../atoms/ThemedText";
 import { PageDots } from "../molecules/PageDots";
+import { remoteImage } from "../../lib/remoteImage";
 
 /** The slideshow is taller than before, with tighter corners. */
 const BANNER_HEIGHT = 196;
@@ -77,7 +78,7 @@ export function HomeBanners({ banners, isLoading, language }: Props) {
               ...noticeStyle(notice.type),
             }}
           >
-            {notice.imageUrl ? <Image source={{ uri: notice.imageUrl }} contentFit="contain" accessibilityLabel="" style={{ width: 28, height: 28 }} /> : null}
+            {notice.imageUrl ? <Image source={remoteImage(notice.imageUrl)} contentFit="contain" accessibilityLabel="" style={{ width: 28, height: 28 }} /> : null}
             <View style={{ flex: 1, gap: theme.spacing.xs }}>
               <ThemedText variant="bodySmall" weight="semibold" style={{ color: theme.colors.colorTextPrimary }}>
                 {localized(notice.titleEn, notice.titleGu, language)}
@@ -123,7 +124,7 @@ export function HomeBanners({ banners, isLoading, language }: Props) {
                     style={{ width, height: BANNER_HEIGHT, overflow: "hidden", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorPrimary }}
                   >
                     <Image
-                      source={item.imageUrl ? { uri: item.imageUrl } : require("../../../assets/onboarding-milk-hero.png")}
+                      source={item.imageUrl ? remoteImage(item.imageUrl) : require("../../../assets/onboarding-milk-hero.png")}
                       contentFit="cover"
                       transition={theme.motion.duration.normal}
                       style={{ width: "100%", height: "100%" }}

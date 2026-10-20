@@ -28,6 +28,7 @@ import { describeError } from "../../src/services/errorMapper";
 import { useAppStore } from "../../src/store/useAppStore";
 import { useTheme } from "../../src/theme";
 import type { Subscription } from "../../src/types/subscriptions";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 type Tab = "active" | "paused" | "ended";
 const TABS: Tab[] = ["active", "paused", "ended"];
@@ -97,7 +98,7 @@ const SubscriptionCard = memo(function SubscriptionCard({ subscription }: { subs
       <PressableScale accessibilityRole="button" accessibilityLabel={t("subscriptionsManage.manage", { product: name })} onPress={openManage} pressScale={theme.motion.pressScale.card} style={{ gap: theme.spacing.md, padding: theme.spacing.md }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4 }}>
           <View style={{ width: PHOTO_SIZE, height: PHOTO_SIZE, overflow: "hidden", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted }}>
-            <Image source={imageUrl ? { uri: imageUrl } : require("../../assets/onboarding-milk-hero.png")} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: PHOTO_SIZE, height: PHOTO_SIZE }} />
+            <Image source={imageUrl ? remoteImage(imageUrl) : require("../../assets/onboarding-milk-hero.png")} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: PHOTO_SIZE, height: PHOTO_SIZE }} />
           </View>
           <View style={{ flex: 1, gap: theme.spacing.xs }}>
             <ThemedText variant="body" weight="bold" numberOfLines={2}>{name}</ThemedText>

@@ -52,7 +52,7 @@ export type AddressDraft = Omit<DeliveryAddress, 'id'>;
 const toBody = (draft: AddressDraft) => ({
   label: draft.addressType,
   recipientName: draft.fullName.trim(),
-  recipientPhone: `+91${draft.phone.replace(/\D/g, '')}`,
+  recipientPhone: draft.phone.trim() ? `+91${draft.phone.replace(/\D/g, '')}` : '',
   line1: draft.line1.trim(),
   line2: draft.line2.trim(),
   landmark: draft.landmark.trim(),
