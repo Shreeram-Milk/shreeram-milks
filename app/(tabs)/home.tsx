@@ -21,6 +21,7 @@ import { StateMessage } from "../../src/components/organisms/StateMessage";
 import { pickDefaultAddress, useAddresses } from "../../src/hooks/useAddresses";
 import { useCatalogCategories, useCatalogProducts } from "../../src/hooks/useCatalog";
 import { useCatalogCart } from "../../src/hooks/useCatalogCart";
+import { useGreetingPart } from "../../src/hooks/useGreeting";
 import { useBanners, useFeatureFlags } from "../../src/hooks/useContent";
 import { LocationIcon, SearchIcon } from "../../src/icons/appIcons";
 import { localized } from "../../src/lib/contentLocalization";
@@ -33,6 +34,7 @@ import type { CatalogProduct } from "../../src/types/catalog";
 export default function HomeScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const greeting = t(`home.greetings.${useGreetingPart()}`);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const { data: products = [], isError, isLoading, isPlaceholderData, isRefetching: productsRefetching, refetch } = useCatalogProducts(activeCategoryId);
   const { data: categories = [] } = useCatalogCategories();
@@ -68,8 +70,8 @@ export default function HomeScreen() {
       <ThemedView style={{ marginHorizontal: -theme.layout.screenHorizontalPadding, paddingHorizontal: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.lg, gap: theme.spacing.md, backgroundColor: theme.colors.colorPrimaryTint, borderBottomLeftRadius: theme.radii.xl, borderBottomRightRadius: theme.radii.xl, borderBottomWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md }}>
           <View style={{ flex: 1, gap: theme.spacing.xs }}>
-            {firstName ? <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("home.greetingNoName")}</ThemedText> : null}
-            <ThemedText variant="h1" numberOfLines={1}>{firstName || t("home.greetingNoName")}</ThemedText>
+            {firstName ? <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{greeting}</ThemedText> : null}
+            <ThemedText variant="h1" numberOfLines={1}>{firstName || greeting}</ThemedText>
           </View>
           <NotificationBell />
         </View>

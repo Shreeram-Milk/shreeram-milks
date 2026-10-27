@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../lib/i18n';
 import { APP_VERSION } from '../lib/appVersion';
+import { useAppStore } from '../store/useAppStore';
 import { useSessionStore } from '../store/useSessionStore';
 import { ThemeProvider } from '../theme';
 import { ToastProvider } from './ToastProvider';
@@ -36,9 +37,12 @@ const shouldSave = (query: Query) => query.state.status === 'success' && SAVED_Q
 
 const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: 'shreeram-saved-data', throttleTime: 2000 });
 
-// A signed-out phone must not keep the previous customer's orders or addresses.
+// A signed-out phone must not keep the previous customer's orders, addresses or cart.
 useSessionStore.subscribe((state, previous) => {
-  if (previous.status === 'signedIn' && state.status === 'signedOut') queryClient.clear();
+  if (previous.status === 'signedIn' && state.status === 'signedOut') {
+    queryClient.clear();
+    useAppStore.getState().resetCheckout();
+  }
 });
 
 export function AppProviders({ children }: PropsWithChildren) {

@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -56,6 +56,15 @@ export default function CheckoutReviewScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const idempotencyKey = useMemo(() => newKey(), [requestKey, attempt]);
 
+  // The delivery date or order-by time moved while the customer was reading (a window closed): they are told before ordering.
+  const [dateChangedFor, setDateChangedFor] = useState<string | null>(null);
+  const dateChanged = dateChangedFor === requestKey;
+  // A message about an earlier attempt is dropped as soon as the customer changes anything.
+  useEffect(() => {
+    if (!place.isPending && !pay.isPending && !check.isPending) { place.reset(); pay.reset(); check.reset(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestKey]);
+
   if (cart.length === 0 && !place.isSuccess && !pay.isSuccess) {
     return (
       <SafeAreaView style={{ flex: 1, padding: theme.layout.screenHorizontalPadding, backgroundColor: theme.colors.colorBackground }}>
@@ -86,7 +95,8 @@ export default function CheckoutReviewScreen() {
   const finish = (orders: Order[]) => {
     router.replace({ pathname: "/order-success", params: { ids: orders.map((order) => order.id).join(","), numbers: orders.map((order) => order.orderNumber).join(",") } });
     // Only what was ordered leaves the cart: items that could not be delivered here stay for another address.
-    for (const order of orders) for (const item of order.items) removeFromCart(item.variantId);
+    // A free gift is not a cart line: it must not remove a paid cart item of the same size.
+    for (const order of orders) for (const item of order.items) if (!item.isGift) removeFromCart(item.variantId);
   };
   const onPayment = (payment: OnlinePayment) => {
     if (payment.status === "paid" && payment.fulfilment === "fulfilled" && payment.orders.length > 0) { finish(payment.orders); return; }
@@ -99,9 +109,14 @@ export default function CheckoutReviewScreen() {
     if (code === "PRICE_CHANGED") void quote.refetch();
     if (code === "PAYMENT_ALREADY_STARTED" || code === "PAYMENT_PROVIDER_UNAVAILABLE") setAttempt((count) => count + 1);
   };
-  const submit = () => {
+  const submit = async () => {
     if (!request || blocked) return;
     setOutcome(null);
+    // Ask once more right before ordering: the server decides the delivery date from the clock, so it may have moved.
+    const shown = JSON.stringify(data?.orders.map((order) => [order.key, order.selectedSlotId, order.deliveryDate, order.orderBy]));
+    const latest = await quote.refetch();
+    if (latest.data && JSON.stringify(latest.data.orders.map((order) => [order.key, order.selectedSlotId, order.deliveryDate, order.orderBy])) !== shown) { setDateChangedFor(requestKey); return; }
+    setDateChangedFor(null);
     const body = { ...request, idempotencyKey, expectedTotalPaise: data?.totalPaise ?? 0 };
     if (payOnlinePaise > 0) pay.mutate(body, { onSuccess: onPayment, onError: onFailure });
     else place.mutate(body, { onSuccess: finish, onError: onFailure });
@@ -256,6 +271,7 @@ export default function CheckoutReviewScreen() {
             {outcome.status === "pending" ? <PaymentPoller merchantOrderId={outcome.merchantOrderId} onResult={onPayment} /> : null}
           </View>
         ) : null}
+        {dateChanged ? <ThemedText accessibilityRole="alert" accessibilityLiveRegion="polite" variant="caption" weight="semibold" style={{ color: theme.colors.colorDanger }}>{t("shop.dateChanged")}</ThemedText> : null}
         {failure && !outcome ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(failure)}</ThemedText> : null}
         {data && problemCodes.includes("SLOT_REQUIRED") ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("shop.chooseWindowHint")}</ThemedText> : null}
       </ScrollView>
@@ -264,7 +280,7 @@ export default function CheckoutReviewScreen() {
         disabled={blocked || outcome?.status === "pending"}
         loading={busy}
         label={payOnlinePaise > 0 ? t("shop.payment.payButton", { amount: formatRupees(payOnlinePaise) }) : t("shop.place")}
-        onPress={submit}
+        onPress={() => void submit()}
       />
     </SafeAreaView>
   );

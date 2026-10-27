@@ -14,6 +14,7 @@ import { useAddresses, pickDefaultAddress } from "../../src/hooks/useAddresses";
 import { useDebouncedValue } from "../../src/hooks/useDebouncedValue";
 import { useQuote } from "../../src/hooks/useOrders";
 import { CartIcon, LocationIcon } from "../../src/icons/appIcons";
+import { formatRupees } from "../../src/lib/catalogCart";
 import { getLocalizedProductName } from "../../src/lib/productLocalization";
 import { useAppStore, type CartItem } from "../../src/store/useAppStore";
 import { motion } from "../../src/theme/motion";
@@ -48,6 +49,12 @@ export default function CartScreen() {
   const settledCart = useDebouncedValue(cart, QUOTE_PAUSE_MS);
   const delivery = useQuote(address && settledCart.length > 0 ? { addressId: address.id, lines: settledCart.map((item) => ({ variantId: item.product.id, quantity: item.quantity, ...(item.slotId ? { slotId: item.slotId } : {}) })), slots: {} } : null);
   const blockedIds = new Set(delivery.data?.unavailable.map((item) => item.variantId) ?? []);
+  // The server's price wins over the price saved on the phone when the item was added, so the total never shows an old price.
+  const everyItemBlocked = cart.length > 0 && blockedIds.size >= cart.length;
+  const quotedTotal = delivery.data && !delivery.isFetching && delivery.data.orders.length > 0 ? formatRupees(delivery.data.totalPaise) : null;
+  // What the server charges for each size right now; the price saved when the item was added is only the fallback.
+  const quotedPaise = new Map<string, number>();
+  if (!delivery.isFetching) for (const order of delivery.data?.orders ?? []) for (const line of order.items) if (!line.isGift) quotedPaise.set(line.variantId, line.unitPricePaise);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const renderItem = ({ item }: { item: CartItem }) => (
@@ -57,13 +64,13 @@ export default function CartScreen() {
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <ThemedText variant="bodySmall" weight="bold" numberOfLines={2}>{getLocalizedProductName(item.product, i18n.resolvedLanguage ?? i18n.language)}</ThemedText>
-        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{item.product.unit} · ₹{item.product.price}</ThemedText>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{item.product.unit} · {quotedPaise.has(item.product.id) ? formatRupees(quotedPaise.get(item.product.id) ?? 0) : `₹${item.product.price}`}</ThemedText>
         {blockedIds.has(item.product.id) ? (
           <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorDanger }}>{t("shop.cartNotDelivered", { pin: address?.pincode ?? "" })}</ThemedText>
         ) : null}
       </View>
       <View style={{ alignItems: "flex-end", gap: theme.spacing.sm - 2 }}>
-        <ThemedText variant="bodySmall" weight="extrabold" style={{ fontVariant: ["tabular-nums"] }}>₹{item.product.price * item.quantity}</ThemedText>
+        <ThemedText variant="bodySmall" weight="extrabold" style={{ fontVariant: ["tabular-nums"] }}>{quotedPaise.has(item.product.id) ? formatRupees((quotedPaise.get(item.product.id) ?? 0) * item.quantity) : `₹${item.product.price * item.quantity}`}</ThemedText>
         <QuantityStepper value={item.quantity} onDecrement={() => updateQuantity(item.product.id, item.quantity - 1)} onIncrement={() => updateQuantity(item.product.id, item.quantity + 1)} />
       </View>
     </Animated.View>
@@ -97,7 +104,7 @@ export default function CartScreen() {
       <BillRow label={t("cart.subtotal")} value={`₹${total}`} />
       <BillRow label={t("cart.delivery")} value={t("cart.free")} valueColor={theme.colors.colorAccent} />
       <View style={{ height: 0, borderTopWidth: 1.5, borderStyle: "dashed", borderColor: theme.colors.colorBorder, marginVertical: theme.spacing.xs }} />
-      <BillRow label={t("cart.total")} value={`₹${total}`} strong />
+      <BillRow label={t("cart.total")} value={quotedTotal ?? `₹${total}`} strong />
     </Card>
   );
 
@@ -133,9 +140,9 @@ export default function CartScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md, paddingHorizontal: theme.layout.screenHorizontalPadding, paddingVertical: theme.spacing.md - 4, backgroundColor: theme.colors.colorSurface, borderTopWidth: theme.borderWidths.hairline, borderTopColor: theme.colors.colorBorder }}>
           <View>
             <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("cart.toPay")}</ThemedText>
-            <ThemedText variant="h2" weight="extrabold" style={{ fontVariant: ["tabular-nums"] }}>₹{total}</ThemedText>
+            <ThemedText variant="h2" weight="extrabold" style={{ fontVariant: ["tabular-nums"] }}>{quotedTotal ?? `₹${total}`}</ThemedText>
           </View>
-          <Button style={{ flex: 1, maxWidth: 200 }} onPress={() => router.push("/checkout-address")}>{t("cart.checkout")}</Button>
+          <Button disabled={everyItemBlocked} style={{ flex: 1, maxWidth: 200 }} onPress={() => router.push("/checkout-address")}>{t("cart.checkout")}</Button>
         </View>
       ) : null}
     </SafeAreaView>

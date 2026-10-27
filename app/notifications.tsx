@@ -17,6 +17,7 @@ import { useTheme } from "../src/theme";
 import type { AppNotification } from "../src/types/notifications";
 
 const ICONS: Record<string, IconSvgElement> = {
+  order_placed: SuccessIcon,
   out_for_delivery: TruckIcon,
   delivered: SuccessIcon,
   day_skipped: CalendarIcon,
