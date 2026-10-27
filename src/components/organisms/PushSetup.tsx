@@ -70,6 +70,10 @@ export function PushSetup() {
       pendingLink.current = safeAppLink(data?.link) ?? "/notifications";
       setTapCount((count) => count + 1);
     };
+    // Firebase can issue this phone a new notification address while the app is open: the server is told at once, so no message is missed.
+    const renewed = Notifications.addPushTokenListener((token) => {
+      if (typeof token.data === "string" && token.data.length >= 20) void registerPushToken(token.data, language).catch(() => undefined);
+    });
     const received = Notifications.addNotificationReceivedListener(refresh);
     const tapped = Notifications.addNotificationResponseReceivedListener(handleTap);
     // The app was closed and a message was tapped to open it; it is cleared so a later start does not open it again.
@@ -78,8 +82,8 @@ export function PushSetup() {
       handleTap(response);
       void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
     });
-    return () => { received.remove(); tapped.remove(); };
-  }, [client, customerId]);
+    return () => { renewed.remove(); received.remove(); tapped.remove(); };
+  }, [client, customerId, language]);
 
   // Opens the tapped message's screen only once the app's screens exist, so a tap that started the app is not lost.
   useEffect(() => {

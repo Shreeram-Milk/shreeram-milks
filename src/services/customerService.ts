@@ -30,6 +30,15 @@ export async function verifySignInCode(email: string, code: string, deviceLabel:
   return { token, customer: parseCustomer(body.customer), isNewCustomer: body.isNewCustomer === true };
 }
 
+/** "Continue with Google": the server checks the ID token Google gave the phone and opens a session, like a correct emailed code. */
+export async function signInWithGoogleToken(idToken: string, deviceLabel: string): Promise<SignInResult> {
+  requireApi();
+  const body = record(await apiSend<unknown>('POST', '/customer/auth/google', { idToken, deviceLabel }));
+  const token = text(body?.token);
+  if (!body || !token) throw new ApiRequestError('UNKNOWN_ERROR', 0);
+  return { token, customer: parseCustomer(body.customer), isNewCustomer: body.isNewCustomer === true };
+}
+
 export async function fetchMyProfile(): Promise<CustomerProfile> {
   requireApi();
   return parseCustomer(record(await apiGet<unknown>('/customer/me', { auth: true }))?.customer);

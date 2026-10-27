@@ -9,7 +9,7 @@ import { ThemedText } from "../src/components/atoms/ThemedText";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useMarkNotificationsRead, useMyNotifications } from "../src/hooks/useNotifications";
-import { AlertsIcon, CalendarIcon, SuccessIcon, TruckIcon, WalletIcon } from "../src/icons/appIcons";
+import { AlertCircleIcon, AlertsIcon, CalendarIcon, SuccessIcon, TruckIcon, WalletIcon } from "../src/icons/appIcons";
 import { timeAgoLabel } from "../src/lib/timeAgo";
 import { describeError } from "../src/services/errorMapper";
 import { useAppStore } from "../src/store/useAppStore";
@@ -18,6 +18,7 @@ import type { AppNotification } from "../src/types/notifications";
 
 const ICONS: Record<string, IconSvgElement> = {
   order_placed: SuccessIcon,
+  order_cancelled: AlertCircleIcon,
   out_for_delivery: TruckIcon,
   delivered: SuccessIcon,
   day_skipped: CalendarIcon,

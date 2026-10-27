@@ -6,4 +6,7 @@ if (!__DEV__ && !apiUrl.startsWith('https://')) {
   throw new Error('EXPO_PUBLIC_API_URL must be an https:// address in a release build.');
 }
 
-export const appConfig = { apiUrl } as const;
+/** The Google web client id of the app (a public identifier, not a secret). Without it, "Continue with Google" is not offered. */
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+
+export const appConfig = { apiUrl, googleWebClientId } as const;

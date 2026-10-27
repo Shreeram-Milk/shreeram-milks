@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 import { ActivityIndicator, View, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 
 import { AppIcon, type IconSvgElement } from "./AppIcon";
@@ -12,12 +12,14 @@ interface ButtonProps extends Omit<PressableProps, "style"> {
   /** compact: a smaller button for use inside cards, next to other buttons. */
   compact?: boolean;
   icon?: IconSvgElement;
+  /** Something already in colour (a brand logo) shown before the label instead of an icon. */
+  leading?: ReactNode;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   variant?: ButtonVariant;
 }
 
-export function Button({ children, compact = false, disabled = false, icon, loading = false, style, variant = "primary", ...props }: PropsWithChildren<ButtonProps>) {
+export function Button({ children, compact = false, disabled = false, icon, leading, loading = false, style, variant = "primary", ...props }: PropsWithChildren<ButtonProps>) {
   const theme = useTheme();
   const colors = theme.colors;
   const isDisabled = disabled || loading;
@@ -56,6 +58,8 @@ export function Button({ children, compact = false, disabled = false, icon, load
     >
       {loading ? (
         <ActivityIndicator color={palette.text} />
+      ) : leading ? (
+        <View>{leading}</View>
       ) : icon ? (
         <View>
           <AppIcon icon={icon} accessibilityLabel="" tone={onFill ? "onPrimary" : variant === "tonal" ? "brand" : "primary"} size="sm" />

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { clearSession, loadSession, saveSession } from '../lib/sessionVault';
 import { ApiRequestError, configureAuth } from '../services/apiClient';
 import { fetchMyProfile, signOutOnServer } from '../services/customerService';
+import { forgetGoogleAccount } from '../services/googleSignIn';
 import { forgetPushToken } from '../services/notificationService';
 import type { CustomerProfile } from '../types/customer';
 
@@ -53,6 +54,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   signOut: async () => {
     // This phone stops getting the customer's notifications before the session ends (best effort, never blocks signing out).
     await forgetPushToken();
+    // So the next sign-in shows Google's account chooser again instead of silently reusing this account.
+    await forgetGoogleAccount();
     try {
       await signOutOnServer();
     } catch {

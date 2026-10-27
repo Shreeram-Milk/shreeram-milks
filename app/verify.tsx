@@ -1,5 +1,4 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, StatusBar, TextInput, View } from 'react-native';
@@ -10,13 +9,10 @@ import { IconButton } from '../src/components/atoms/IconButton';
 import { ThemedText } from '../src/components/atoms/ThemedText';
 import { OtpBoxes } from '../src/components/molecules/OtpBoxes';
 import { KeyboardAwareBottomDrawer } from '../src/components/organisms/KeyboardAwareBottomDrawer';
-import { pickDefaultAddress } from '../src/hooks/useAddresses';
+import { useAfterSignIn } from '../src/hooks/useAfterSignIn';
 import { useRequestCode, useVerifyCode } from '../src/hooks/useCustomerAuth';
 import { isEmail } from '../src/lib/phone';
-import { fetchAddresses } from '../src/services/addressService';
 import { describeError } from '../src/services/errorMapper';
-import { queryKeys } from '../src/services/queryKeys';
-import { useAppStore } from '../src/store/useAppStore';
 import { useTheme } from '../src/theme';
 import { BackIcon } from '../src/icons/appIcons';
 
@@ -33,8 +29,7 @@ export default function VerifyScreen() {
   const [focused, setFocused] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [resent, setResent] = useState(false);
-  const client = useQueryClient();
-  const [routing, setRouting] = useState(false);
+  const { routing, continueAfterSignIn } = useAfterSignIn();
   const verify = useVerifyCode();
   const resend = useRequestCode();
   const canContinue = otp.length === CODE_LENGTH;
@@ -50,22 +45,7 @@ export default function VerifyScreen() {
     if (!isEmail(email)) router.replace('/sign-in');
   }, [email]);
 
-  // A customer who has already set up a delivery address does not repeat the location step: their default address becomes the delivery PIN and they go to Home.
-  const continueAfterSignIn = async (customerId: string) => {
-    setRouting(true);
-    try {
-      const address = pickDefaultAddress(await client.fetchQuery({ queryKey: queryKeys.addresses(customerId), queryFn: fetchAddresses, staleTime: 15_000 }));
-      if (address) {
-        useAppStore.getState().setDeliveryPin(address.pincode);
-        router.replace('/home');
-        return;
-      }
-    } catch {
-      // The address list could not be loaded; the location step still works, so carry on there.
-    }
-    router.replace('/location');
-  };
-  const submit = () => verify.mutate({ email, code: otp }, { onSuccess: ({ customer }) => { if (customer.needsProfile) router.replace({ pathname: '/edit-profile', params: { first: '1' } }); else void continueAfterSignIn(customer.id); } });
+  const submit = () => verify.mutate({ email, code: otp }, { onSuccess: ({ customer }) => { void continueAfterSignIn(customer); } });
   const sendAgain = () => resend.mutate(email, { onSuccess: () => { setSecondsLeft(RESEND_SECONDS); setResent(true); setOtp(''); verify.reset(); } });
   const error = verify.error ?? resend.error;
 
