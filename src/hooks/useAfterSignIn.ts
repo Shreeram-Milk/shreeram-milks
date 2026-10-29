@@ -17,6 +17,8 @@ export function useAfterSignIn() {
   const [routing, setRouting] = useState(false);
 
   const continueAfterSignIn = async (customer: CustomerProfile) => {
+    // The signed-in screens only exist once the app has redrawn with the new session; wait one tick so they are there.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     if (customer.needsProfile) {
       router.replace({ pathname: '/edit-profile', params: { first: '1' } });
       return;

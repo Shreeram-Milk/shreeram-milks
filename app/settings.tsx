@@ -180,7 +180,8 @@ export default function SettingsScreen() {
         onCancel={() => setConfirming(null)}
         onConfirm={() => {
           setSigningOut(true);
-          void signOut().then(() => { setSigningOut(false); setConfirming(null); router.replace("/onboarding"); });
+          // Signing out removes the signed-in screens; the app then goes back to the start by itself.
+          void signOut();
         }}
       />
       <ConfirmSheet
@@ -195,7 +196,7 @@ export default function SettingsScreen() {
         loading={deleteAccount.isPending}
         errorText={deleteAccount.error ? describeError(deleteAccount.error) : undefined}
         onCancel={() => setConfirming(null)}
-        onConfirm={() => deleteAccount.mutate(undefined, { onSuccess: () => { setConfirming(null); router.replace("/onboarding"); } })}
+        onConfirm={() => deleteAccount.mutate(undefined, { onSuccess: () => setConfirming(null) })}
       />
     </SafeAreaView>
   );

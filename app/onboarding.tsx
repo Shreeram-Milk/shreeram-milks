@@ -55,8 +55,8 @@ export default function OnboardingScreen() {
         <View style={{ flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}><Image source={require('../assets/icon.png')} contentFit="contain" accessibilityLabel={t('onboarding.logo')} style={{ width: theme.sizes.avatarSm, height: theme.sizes.avatarSm }} /><ThemedText variant="bodySmall" weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>{t('common.appName')}</ThemedText></View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
           <LanguageChip />
-          {/* A quiet text action, not a button: it is the way out while slides are left, and disappears on the last slide where "Get Started" takes over. */}
-          {isLast ? null : <Pressable accessibilityRole="button" onPress={() => router.replace('/home')} hitSlop={theme.spacing.sm} style={{ minHeight: theme.layout.touchTargetMin, justifyContent: 'center', paddingHorizontal: theme.spacing.xs }}>
+          {/* A quiet text action, not a button: it skips the remaining slides to sign-in, and disappears on the last slide where "Get Started" takes over. */}
+          {isLast ? null : <Pressable accessibilityRole="button" onPress={() => router.push('/sign-in')} hitSlop={theme.spacing.sm} style={{ minHeight: theme.layout.touchTargetMin, justifyContent: 'center', paddingHorizontal: theme.spacing.xs }}>
             <ThemedText variant="bodySmall" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t('onboarding.skip')}</ThemedText>
           </Pressable>}
         </View>
