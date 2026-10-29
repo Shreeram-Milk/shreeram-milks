@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../src/components/atoms/Button';
 import { ThemedText } from '../src/components/atoms/ThemedText';
+import { LanguageChip } from '../src/components/molecules/LanguageChip';
 import { PageDots } from '../src/components/molecules/PageDots';
 import { useOnboardingSlides } from '../src/hooks/useContent';
 import { localized } from '../src/lib/contentLocalization';
@@ -51,11 +52,14 @@ export default function OnboardingScreen() {
     <StatusBar barStyle="dark-content" />
     <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg }}>
       <View style={{ minHeight: theme.sizes.buttonHeight + theme.spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}><Image source={require('../assets/icon.png')} contentFit="contain" accessibilityLabel={t('onboarding.logo')} style={{ width: theme.sizes.avatarSm, height: theme.sizes.avatarSm }} /><ThemedText variant="bodySmall" weight="semibold">{t('common.appName')}</ThemedText></View>
-        {/* A quiet text action, not a button: it is the way out while slides are left, and disappears on the last slide where "Get Started" takes over. */}
-        {isLast ? null : <Pressable accessibilityRole="button" onPress={() => router.replace('/home')} hitSlop={theme.spacing.sm} style={{ minHeight: theme.layout.touchTargetMin, justifyContent: 'center', paddingHorizontal: theme.spacing.xs }}>
-          <ThemedText variant="bodySmall" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t('onboarding.skip')}</ThemedText>
-        </Pressable>}
+        <View style={{ flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}><Image source={require('../assets/icon.png')} contentFit="contain" accessibilityLabel={t('onboarding.logo')} style={{ width: theme.sizes.avatarSm, height: theme.sizes.avatarSm }} /><ThemedText variant="bodySmall" weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>{t('common.appName')}</ThemedText></View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+          <LanguageChip />
+          {/* A quiet text action, not a button: it is the way out while slides are left, and disappears on the last slide where "Get Started" takes over. */}
+          {isLast ? null : <Pressable accessibilityRole="button" onPress={() => router.replace('/home')} hitSlop={theme.spacing.sm} style={{ minHeight: theme.layout.touchTargetMin, justifyContent: 'center', paddingHorizontal: theme.spacing.xs }}>
+            <ThemedText variant="bodySmall" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t('onboarding.skip')}</ThemedText>
+          </Pressable>}
+        </View>
       </View>
       <View style={{ flex: 1 }} onLayout={onLayout}>
         {width > 0 ? <Animated.FlatList

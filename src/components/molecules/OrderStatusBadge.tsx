@@ -1,16 +1,17 @@
 import type { PropsWithChildren } from "react";
 
 import { Badge } from "../atoms/Badge";
-import type { OrderStatus } from "../../types/orders";
+import type { ShownStatus } from "../../lib/orderGroups";
 
-const variantByStatus: Record<OrderStatus, "info" | "success" | "warning" | "danger" | "default"> = {
+const variantByStatus: Record<ShownStatus, "info" | "success" | "warning" | "danger" | "default"> = {
   placed: "info",
   out_for_delivery: "warning",
+  overdue: "warning",
   delivered: "success",
   missed: "danger",
   cancelled: "default",
 };
 
-export function OrderStatusBadge({ children, status }: PropsWithChildren<{ status: OrderStatus }>) {
+export function OrderStatusBadge({ children, status }: PropsWithChildren<{ status: ShownStatus }>) {
   return <Badge variant={variantByStatus[status]}>{children}</Badge>;
 }

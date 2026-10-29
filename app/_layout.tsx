@@ -56,6 +56,7 @@ export default function RootLayout() {
         {/* Detail screens slide in from the right with no dark shade over the page behind; entry, tab and finish screens fade; pickers rise from the bottom. */}
         <Stack screenOptions={{ headerShown: false, animation: "slide_from_right", contentStyle: { backgroundColor: theme.colors.colorBackground } }}>
           <Stack.Screen name="index" options={{ animation: "fade" }} />
+          <Stack.Screen name="choose-language" options={{ animation: "fade", gestureEnabled: false }} />
           <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
           <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
           <Stack.Screen name="order-success" options={{ animation: "fade", gestureEnabled: false }} />

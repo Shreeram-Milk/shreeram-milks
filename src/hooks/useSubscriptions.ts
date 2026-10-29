@@ -15,9 +15,22 @@ export function useMySubscriptions() {
   return useQuery({ queryKey: queryKeys.subscriptions(customerId), queryFn: getMySubscriptions, enabled: customerId !== "", staleTime: 15_000 });
 }
 
+/**
+ * One subscription or trial. The list answer is the same full view, so a page opened from the list starts from it (with the
+ * list's age, so it is refetched when old) instead of a loading screen.
+ */
 export function useMySubscription(id?: string) {
   const customerId = useCustomerId();
-  return useQuery({ queryKey: [...queryKeys.subscriptions(customerId), id], queryFn: () => getMySubscription(id ?? ""), enabled: customerId !== "" && Boolean(id), staleTime: 10_000 });
+  const client = useQueryClient();
+  const listKey = queryKeys.subscriptions(customerId);
+  return useQuery({
+    queryKey: [...listKey, id],
+    queryFn: () => getMySubscription(id ?? ""),
+    enabled: customerId !== "" && Boolean(id),
+    staleTime: 10_000,
+    initialData: () => client.getQueryData<Subscription[]>(listKey)?.find((subscription) => subscription.id === id),
+    initialDataUpdatedAt: () => client.getQueryState(listKey)?.dataUpdatedAt,
+  });
 }
 
 /** The server's price and dates for a draft. Dates depend on the clock, so an old answer is never reused. */

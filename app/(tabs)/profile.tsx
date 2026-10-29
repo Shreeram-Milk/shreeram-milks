@@ -1,19 +1,17 @@
 import { router } from "expo-router";
-import type { Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AppIcon, type IconSvgElement, type IconTone } from "../../src/components/atoms/AppIcon";
 import { Avatar } from "../../src/components/atoms/Avatar";
 import { Card } from "../../src/components/atoms/Card";
 import { IconButton } from "../../src/components/atoms/IconButton";
-import { PressableScale } from "../../src/components/atoms/PressableScale";
 import { RiseIn } from "../../src/components/atoms/RiseIn";
 import { ThemedText } from "../../src/components/atoms/ThemedText";
 import { useFeatureFlags } from "../../src/hooks/useContent";
 import { AccountMenuRow } from "../../src/components/molecules/AccountMenuRow";
-import { CalendarIcon, EditIcon, FlagIcon, HelpIcon, InvoiceIcon, LocationIcon, RepeatIcon, SettingsIcon, ShieldIcon, SupportIcon, WalletIcon } from "../../src/icons/appIcons";
+import { LanguageToggle } from "../../src/components/molecules/LanguageToggle";
+import { CalendarIcon, EditIcon, HelpIcon, InvoiceIcon, LocationIcon, RepeatIcon, SettingsIcon, WalletIcon } from "../../src/icons/appIcons";
 import { FSSAI_NUMBER } from "../../src/lib/business";
 import { APP_VERSION } from "../../src/lib/appVersion";
 import { useSessionStore } from "../../src/store/useSessionStore";
@@ -29,19 +27,10 @@ function ProfileSection({ children, title }: { children: React.ReactNode; title:
   );
 }
 
-/** The three places customers open most, one tap away. */
-function QuickTile({ href, icon, label, tone, tint }: { href: Href; icon: IconSvgElement; label: string; tone: IconTone; tint: string }) {
-  const theme = useTheme();
-  return (
-    <PressableScale accessibilityRole="button" accessibilityLabel={label} onPress={() => router.push(href)} containerStyle={{ flex: 1 }} style={{ alignItems: "center", gap: theme.spacing.sm, paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.xs, borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface, ...theme.elevation.card }}>
-      <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.md, backgroundColor: tint }}>
-        <AppIcon icon={icon} accessibilityLabel="" tone={tone} size="sm" />
-      </View>
-      <ThemedText variant="caption" weight="bold" numberOfLines={2} style={{ textAlign: "center" }}>{label}</ThemedText>
-    </PressableScale>
-  );
-}
-
+/**
+ * Profile: who is signed in, the language (one tap away), everything about orders and delivery as full-width rows, and one
+ * way into help. Notifications, doorstep instructions, policies, sign out and account deletion are in Settings (the gear).
+ */
 export default function ProfileScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -57,7 +46,7 @@ export default function ProfileScreen() {
           <ThemedText variant="h1">{t("profile.title")}</ThemedText>
           <IconButton icon={SettingsIcon} label={t("profile.openSettings")} filled onPress={() => router.push("/settings")} />
         </View>
-        <RiseIn index={0}>
+        <RiseIn index={0} style={{ gap: theme.spacing.sm + 2 }}>
           <Card style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4 }}>
             <Avatar initials={profile.fullName.slice(0, 2).toUpperCase()} size="lg" />
             <View style={{ flex: 1, gap: 2 }}>
@@ -66,28 +55,23 @@ export default function ProfileScreen() {
             </View>
             <IconButton icon={EditIcon} label={t("profile.editProfile")} onPress={() => router.push("/edit-profile")} />
           </Card>
+          <LanguageToggle />
         </RiseIn>
-        <RiseIn index={1} style={{ flexDirection: "row", gap: theme.spacing.sm + 2 }}>
-          <QuickTile href="/orders" icon={InvoiceIcon} label={t("profile.orderHistory")} tone="brand" tint={theme.colors.colorPrimaryTint} />
-          <QuickTile href="/delivery-calendar" icon={CalendarIcon} label={t("profile.deliveryCalendar")} tone="accent" tint={theme.colors.colorAccentTint} />
-          <QuickTile href="/delivery-addresses" icon={LocationIcon} label={t("profile.addresses")} tone="highlight" tint={theme.colors.colorHighlightTint} />
+        <RiseIn index={1}>
+          <ProfileSection title={t("profile.orderSection")}>
+            <AccountMenuRow icon={InvoiceIcon} tone="brand" onPress={() => router.push("/orders")} subtitle={t("profile.orderHistorySubtitle")} title={t("profile.orderHistory")} />
+            <AccountMenuRow icon={CalendarIcon} tone="accent" onPress={() => router.push("/delivery-calendar")} subtitle={t("profile.calendarSubtitle")} title={t("profile.deliveryCalendar")} />
+            <AccountMenuRow icon={LocationIcon} tone="highlight" onPress={() => router.push("/delivery-addresses")} subtitle={t("profile.addressSubtitle")} title={t("profile.addresses")} />
+            <AccountMenuRow icon={RepeatIcon} tone="accent" onPress={() => router.navigate("/subscriptions")} subtitle={t("profile.subscriptionsSubtitle")} title={t("profile.subscriptions")} isLast={!flags.showOffers} />
+            {flags.showOffers ? <AccountMenuRow icon={WalletIcon} tone="highlight" onPress={() => router.push("/offers")} subtitle={t("offers.entryDetail")} title={t("offers.entry")} isLast /> : null}
+          </ProfileSection>
         </RiseIn>
         <RiseIn index={2}>
-          <ProfileSection title={t("profile.deliverySection")}>
-            <AccountMenuRow icon={RepeatIcon} tone="accent" onPress={() => router.navigate("/subscriptions")} subtitle={t("profile.subscriptionsSubtitle")} title={t("profile.subscriptions")} />
-            {flags.showOffers ? <AccountMenuRow icon={WalletIcon} tone="highlight" onPress={() => router.push("/offers")} subtitle={t("offers.entryDetail")} title={t("offers.entry")} /> : null}
-            <AccountMenuRow icon={ShieldIcon} onPress={() => router.push("/doorstep-instructions")} isLast subtitle={t("profile.instructionsSubtitle")} title={t("profile.instructions")} />
+          <ProfileSection title={t("profile.helpSection")}>
+            <AccountMenuRow icon={HelpIcon} onPress={() => router.push("/support")} isLast subtitle={t("profile.helpSupportSubtitle")} title={t("profile.helpSupport")} />
           </ProfileSection>
         </RiseIn>
-        <RiseIn index={3}>
-          <ProfileSection title={t("profile.supportSection")}>
-            <AccountMenuRow icon={SettingsIcon} onPress={() => router.push("/settings")} subtitle={t("profile.settingsSubtitle")} title={t("profile.settings")} />
-            <AccountMenuRow icon={HelpIcon} onPress={() => router.push("/help")} subtitle={t("profile.helpSubtitle")} title={t("profile.help")} />
-            <AccountMenuRow icon={FlagIcon} onPress={() => router.push("/report-issue")} subtitle={t("profile.reportSubtitle")} title={t("profile.report")} />
-            <AccountMenuRow icon={InvoiceIcon} onPress={() => router.push("/policies")} subtitle={t("profile.legalSubtitle")} title={t("profile.legal")} />
-            <AccountMenuRow icon={SupportIcon} onPress={() => router.push("/support")} isLast subtitle={t("profile.supportSubtitle")} title={t("profile.support")} />
-          </ProfileSection>
-        </RiseIn>
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textAlign: "center" }}>{t("profile.moreInSettings")}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextDisabled, textAlign: "center" }}>{t("profile.version", { version: APP_VERSION })}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextDisabled, textAlign: "center" }}>{t("credits.geonames")}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextDisabled, textAlign: "center" }}>{t("profile.fssai", { number: FSSAI_NUMBER })}</ThemedText>

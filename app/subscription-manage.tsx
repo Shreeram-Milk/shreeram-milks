@@ -20,7 +20,8 @@ import { SubscriptionBottomSheet } from "../src/components/organisms/Subscriptio
 import { useCatalogProductImage } from "../src/hooks/useCatalog";
 import { useCountdownLabel } from "../src/hooks/useCountdownLabel";
 import { useChangeSubscription, useMySubscription } from "../src/hooks/useSubscriptions";
-import { CalendarIcon, ForwardIcon, RepeatIcon } from "../src/icons/appIcons";
+import { CalendarIcon, CloseIcon, ForwardIcon, RepeatIcon, SuccessIcon } from "../src/icons/appIcons";
+import { cancelEffect, type CancelDay } from "../src/lib/cancelEffect";
 import { formatRupees } from "../src/lib/catalogCart";
 import { localized } from "../src/lib/contentLocalization";
 import { formatDeliveryDate, formatShortDay, formatWindow, indiaToday } from "../src/lib/deliveryText";
@@ -37,6 +38,30 @@ const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 /** A skip (or undo) waiting for the customer to confirm it. */
 type PendingSkip = { date: string; line: DayLine };
+
+/** How many days the cancel sheet names before it says "+ 3 more". */
+const CANCEL_DAYS_SHOWN = 4;
+
+/** The days cancelling stops (a red cross) or that still come (a green tick), as "Today · Evening". */
+function CancelDayList({ days, title, tone, more }: { days: CancelDay[]; title: string; tone: "stops" | "comes"; more?: string }) {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const language = useAppStore((state) => state.language);
+  const hidden = days.length - CANCEL_DAYS_SHOWN;
+  return (
+    <View style={{ gap: theme.spacing.xs }}>
+      <ThemedText variant="bodySmall" weight="bold">{title}</ThemedText>
+      {days.slice(0, CANCEL_DAYS_SHOWN).map((day) => (
+        <View key={`${day.date}|${day.slotName}`} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
+          <AppIcon icon={tone === "stops" ? CloseIcon : SuccessIcon} accessibilityLabel="" size="sm" tone={tone === "stops" ? "danger" : "success"} />
+          <ThemedText variant="bodySmall">{formatShortDay(day.date, language, t)} · {day.slotName}</ThemedText>
+        </View>
+      ))}
+      {hidden > 0 ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.cancelMore", { count: hidden })}</ThemedText> : null}
+      {more ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{more}</ThemedText> : null}
+    </View>
+  );
+}
 
 /** One subscription or trial: the plan at a glance, quick Skip / Going away / Resume, the details, the coming days, and a quiet Cancel. */
 export default function ManageSubscriptionScreen() {
@@ -82,6 +107,8 @@ export default function ManageSubscriptionScreen() {
     ? t("subs.pausedFrom", { date: formatDeliveryDate(subscription.openPause.fromDate, language) })
     : vacations.length > 0 ? t("subs.vacationsSet", { list: vacations.map((pause) => `${formatShortDay(pause.fromDate, language, t)} – ${formatShortDay(pause.untilDate ?? pause.fromDate, language, t)}`).join(", ") }) : null;
   const nextChangeable = subscription.days.flatMap((day) => day.lines.filter((line) => line.canChange && line.state !== "skipped").map((line) => ({ date: day.date, line })))[0] ?? null;
+  const trial = subscription.kind === "trial";
+  const effect = cancelEffect(subscription.days, indiaToday(), subscription.endDate);
   const openVacation = (mode?: "resume") => router.push({ pathname: "/subscription-vacation", params: mode ? { id: subscription.id, mode } : { id: subscription.id } });
 
   const confirmSkip = () => {
@@ -191,8 +218,14 @@ export default function ManageSubscriptionScreen() {
       <SubscriptionBottomSheet visible={cancelOpen} onClose={() => (change.isPending ? undefined : setCancelOpen(false))}>
         <View style={{ gap: theme.spacing.md }}>
           <View style={{ gap: theme.spacing.xs }}>
-            <ThemedText variant="h2">{t("subs.cancelTitle")}</ThemedText>
+            <ThemedText variant="h2">{t(trial ? "subs.cancelTrialTitle" : "subs.cancelTitle")}</ThemedText>
             <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t(subscription.paymentMethod === "online" ? "subs.cancelOnline" : "subs.cancelCredit")}</ThemedText>
+          </View>
+          <View style={{ gap: theme.spacing.sm, padding: theme.spacing.md - 4, borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder }}>
+            {effect.stops.length > 0
+              ? <CancelDayList title={t("subs.cancelStopsTitle")} days={effect.stops} tone="stops" more={effect.complete ? undefined : t("subs.cancelAndLater")} />
+              : <ThemedText variant="bodySmall">{t("subs.cancelNothingToStop")}</ThemedText>}
+            {effect.stillComes.length > 0 ? <CancelDayList title={t("subs.cancelStillComesTitle")} days={effect.stillComes} tone="comes" /> : null}
           </View>
           <View style={{ gap: theme.spacing.sm }}>
             <ThemedText variant="label" weight="bold">{t("subscriptionManage.selectReason")}</ThemedText>
@@ -207,8 +240,10 @@ export default function ManageSubscriptionScreen() {
               <ThemedText variant="label" weight="bold" style={{ color: theme.colors.colorPrimary }}>{t("subscriptionManage.pauseInstead")}</ThemedText>
             </PressableScale>
           ) : null}
-          <Button disabled={change.isPending} onPress={() => setCancelOpen(false)}>{t("subscriptionManage.keep")}</Button>
-          <Button variant="danger" loading={change.isPending} onPress={cancel}>{t("subscriptionManage.cancelAnyway")}</Button>
+          <Button disabled={change.isPending} onPress={() => setCancelOpen(false)}>{t(trial ? "subs.keepTrial" : "subscriptionManage.keep")}</Button>
+          <Button variant="danger" loading={change.isPending} onPress={cancel}>
+            {effect.stops.length > 0 && effect.complete ? t("subs.cancelDeliveries", { count: effect.stops.length }) : t(trial ? "subs.cancelTrialConfirm" : "subs.cancelConfirm")}
+          </Button>
         </View>
       </SubscriptionBottomSheet>
     </SafeAreaView>

@@ -22,6 +22,8 @@ interface CheckoutSelection {
 
 interface AppState {
   language: AppLanguage;
+  /** Has this phone ever picked a language (now or on an earlier visit)? A fresh install has not, so it asks first. */
+  languageChosen: boolean;
   setLanguage: (language: AppLanguage) => void;
   /** The language the app is fading over to, while the "Changing language…" cover is up; null otherwise. */
   languageSwitchTarget: AppLanguage | null;
@@ -45,8 +47,9 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   setLanguage: (language) => {
     void i18n.changeLanguage(language);
     void AsyncStorage.setItem('appLanguage', language).catch(() => undefined);
-    set({ language });
+    set({ language, languageChosen: true });
   },
+  languageChosen: false,
   languageSwitchTarget: null,
   setLanguageSwitchTarget: (languageSwitchTarget) => set({ languageSwitchTarget }),
   cart: [],

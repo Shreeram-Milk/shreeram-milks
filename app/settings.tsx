@@ -14,6 +14,7 @@ import {
   AlertsIcon,
   LogoutIcon,
   EditIcon,
+  InvoiceIcon,
   LanguageIcon,
   ShieldIcon,
 } from "../src/icons/appIcons";
@@ -139,8 +140,14 @@ export default function SettingsScreen() {
             subtitle={t("settings.languageSubtitle")}
             title={t("settings.language")}
             trailing={i18n.language === "gu" ? "ગુજરાતી" : "English"}
-            isLast
             onPress={() => router.push("/language")}
+          />
+          <AccountMenuRow
+            icon={InvoiceIcon}
+            isLast
+            subtitle={t("settings.legalSubtitle")}
+            title={t("settings.legal")}
+            onPress={() => router.push("/policies")}
           />
         </SettingsGroup>
         <View style={{ gap: theme.spacing.sm }}>

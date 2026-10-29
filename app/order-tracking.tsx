@@ -22,6 +22,7 @@ import { describeError } from "../src/services/errorMapper";
 import { useToast } from "../src/providers/ToastProvider";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
+import { shownStatus } from "../src/lib/orderGroups";
 import type { OrderStatus } from "../src/types/orders";
 
 const STEPS: readonly OrderStatus[] = ["placed", "out_for_delivery", "delivered"];
@@ -56,6 +57,7 @@ export default function OrderTrackingScreen() {
   }
 
   const stopped = order.status === "cancelled" || order.status === "missed";
+  const overdue = shownStatus(order, new Date()) === "overdue";
   const reached = STEPS.indexOf(order.status);
   const when = order.deliveryMethod === "local_delivery" && order.slot
     ? `${formatShortDay(order.deliveryDate, language, t)} · ${order.slot.name} ${formatWindow(order.slot.startTime, order.slot.endTime)}${countdown ? ` · ${t("subs.arrivesIn", { when: countdown })}` : ""}`
@@ -76,9 +78,9 @@ export default function OrderTrackingScreen() {
           <TrackingHero
             status={order.status}
             icon={HERO_ICONS[order.status]}
-            headline={t(`shop.tracking.headline.${order.status}`)}
+            headline={overdue ? t("shop.status.overdue") : t(`shop.tracking.headline.${order.status}`)}
             when={when}
-            note={stopped ? stoppedNote : undefined}
+            note={stopped ? stoppedNote : overdue ? t("shop.tracking.overdueNote") : undefined}
             progress={stopped ? undefined : order.status === "delivered" ? 1 : (reached + 0.5) / STEPS.length}
           />
         </RiseIn>
@@ -99,12 +101,6 @@ export default function OrderTrackingScreen() {
               <ThemedText variant="bodySmall" weight="medium">{item.isGift ? t("offers.free") : formatRupees(item.lineTotalPaise)}</ThemedText>
             </View>
           ))}
-          {order.discountPaise > 0 ? (
-            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
-              <ThemedText variant="bodySmall" style={{ flex: 1, color: theme.colors.colorAccent }}>{t("offers.discount")}{order.offerTitle ? ` · ${localized(order.offerTitle, order.offerTitleGu, language)}` : ""}</ThemedText>
-              <ThemedText variant="bodySmall" weight="medium" style={{ color: theme.colors.colorAccent }}>−{formatRupees(order.discountPaise)}</ThemedText>
-            </View>
-          ) : order.offerTitle ? <ThemedText variant="caption" style={{ color: theme.colors.colorAccent }}>{t("offers.offerUsed")} · {localized(order.offerTitle, order.offerTitleGu, language)}</ThemedText> : null}
           {order.discountPaise > 0 ? (
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
               <ThemedText variant="bodySmall" style={{ flex: 1, color: theme.colors.colorAccent }}>{t("offers.discount")}{order.offerTitle ? ` · ${localized(order.offerTitle, order.offerTitleGu, language)}` : ""}</ThemedText>
@@ -132,6 +128,7 @@ export default function OrderTrackingScreen() {
           </RiseIn>
         ) : null}
 
+        {overdue ? <RiseIn index={5}><Button variant="secondary" onPress={() => router.push("/report-issue")}>{t("shop.tracking.overdueReport")}</Button></RiseIn> : null}
         {order.canCancel ? <RiseIn index={5}><Button variant="secondary" onPress={() => setConfirming(true)}>{t("shop.tracking.cancelOrder")}</Button></RiseIn> : null}
       </ScrollView>
       <ConfirmSheet

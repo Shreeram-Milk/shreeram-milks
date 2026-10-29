@@ -10,6 +10,7 @@ import { Button } from '../src/components/atoms/Button';
 import { GoogleLogo } from '../src/components/atoms/GoogleLogo';
 import { IconButton } from '../src/components/atoms/IconButton';
 import { ThemedText } from '../src/components/atoms/ThemedText';
+import { LanguageChip } from '../src/components/molecules/LanguageChip';
 import { KeyboardAwareBottomDrawer } from '../src/components/organisms/KeyboardAwareBottomDrawer';
 import { useAfterSignIn } from '../src/hooks/useAfterSignIn';
 import { useGoogleSignIn, useRequestCode } from '../src/hooks/useCustomerAuth';
@@ -63,7 +64,10 @@ export default function SignInScreen() {
     <StatusBar barStyle="dark-content" />
     <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg }}>
       <KeyboardAwareScrollView contentContainerStyle={{ paddingTop: theme.spacing.lg, paddingBottom: 88 }} keyboardShouldPersistTaps="handled" mode="layout">
-        <IconButton icon={BackIcon} label={t('commonActions.back')} onPress={goBack} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <IconButton icon={BackIcon} label={t('commonActions.back')} onPress={goBack} />
+          <LanguageChip />
+        </View>
         <View style={{ flex: 1, paddingTop: theme.spacing.xl, gap: theme.spacing.xl }}>
           <View style={{ gap: theme.spacing.sm }}>
             <ThemedText variant="caption" style={{ color: theme.colors.colorPrimary }}>{t('signIn.eyebrow')}</ThemedText>

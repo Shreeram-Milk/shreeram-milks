@@ -8,7 +8,7 @@ import { ThemedText } from "../atoms/ThemedText";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { formatRupees } from "../../lib/catalogCart";
 import { localized } from "../../lib/contentLocalization";
-import { kindOf } from "../../lib/orderGroups";
+import { kindOf, shownStatus } from "../../lib/orderGroups";
 import { remoteImage } from "../../lib/remoteImage";
 import { useTheme } from "../../theme";
 import type { AppLanguage } from "../../types/models";
@@ -33,12 +33,13 @@ export function OrderSummaryCard({ imageUrl, language, onPress, order }: OrderSu
   const { t } = useTranslation();
   const first = order.items[0];
   const more = order.items.length - 1;
+  const status = shownStatus(order, new Date());
   const product = first ? localized(first.productName, first.productNameGu, language) : "";
   const slot = order.deliveryMethod === "local_delivery" ? order.slot?.name ?? "" : t("shop.courier");
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${t("orders.orderLabel", { number: order.orderNumber })}: ${product}, ${slot}, ${formatRupees(order.totalPaise)}, ${t(`shop.status.${order.status}`)}`}
+      accessibilityLabel={`${t("orders.orderLabel", { number: order.orderNumber })}: ${product}, ${slot}, ${formatRupees(order.totalPaise)}, ${t(`shop.status.${status}`)}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: "row",
@@ -61,7 +62,7 @@ export function OrderSummaryCard({ imageUrl, language, onPress, order }: OrderSu
       <View style={{ flex: 1, gap: 2 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.sm }}>
           <ThemedText variant="caption" weight="bold" numberOfLines={1} style={{ flexShrink: 1, color: theme.colors.colorTextSecondary }}>{t(`orders.kind_${kindOf(order)}`)}</ThemedText>
-          <OrderStatusBadge status={order.status}>{t(`shop.status.${order.status}`)}</OrderStatusBadge>
+          <OrderStatusBadge status={status}>{t(`shop.status.${status}`)}</OrderStatusBadge>
         </View>
         <ThemedText variant="body" weight="semibold" numberOfLines={1}>
           {product}{more > 0 ? ` ${t("shop.andMore", { count: more })}` : ""}

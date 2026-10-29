@@ -13,7 +13,7 @@ import { SegmentedTabs } from "../src/components/molecules/SegmentedTabs";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useProductImages } from "../src/hooks/useCatalog";
 import { useMyOrders } from "../src/hooks/useOrders";
-import { formatShortDay } from "../src/lib/deliveryText";
+import { formatShortDay, indiaToday } from "../src/lib/deliveryText";
 import { groupByDay, kindOf, type OrderKind } from "../src/lib/orderGroups";
 import { describeError } from "../src/services/errorMapper";
 import { useAppStore } from "../src/store/useAppStore";
@@ -37,10 +37,11 @@ export default function OrdersScreen() {
   const [filter, setFilter] = useState<OrderFilter>("all");
   // Direct purchase, subscription or trial; null shows every type.
   const [kind, setKind] = useState<OrderKind | null>(null);
+  const today = indiaToday();
   const sections = useMemo(
-    () => groupByDay(orders.filter((order) => kind === null || kindOf(order) === kind).filter((order) => filter === "all" || (filter === "active" ? order.status === "placed" || order.status === "out_for_delivery" : order.status === "delivered" || order.status === "missed" || order.status === "cancelled")))
-      .map((day) => ({ key: day.date, date: day.date, data: day.orders })),
-    [filter, kind, orders],
+    () => groupByDay(orders.filter((order) => kind === null || kindOf(order) === kind).filter((order) => filter === "all" || (filter === "active" ? order.status === "placed" || order.status === "out_for_delivery" : order.status === "delivered" || order.status === "missed" || order.status === "cancelled")), today)
+      .map((day, index, days) => ({ key: day.date, date: day.date, data: day.orders, firstEarlier: day.earlier && !days[index - 1]?.earlier })),
+    [filter, kind, orders, today],
   );
 
   const listEmpty = isLoading ? (
@@ -60,9 +61,14 @@ export default function OrdersScreen() {
         stickySectionHeadersEnabled={false}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} colors={[theme.colors.colorPrimary]} tintColor={theme.colors.colorPrimary} />}
         renderSectionHeader={({ section }) => (
-          <ThemedText accessibilityRole="header" variant="overline" style={{ color: theme.colors.colorTextSecondary, textTransform: "uppercase", letterSpacing: 0.6, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.sm }}>
-            {formatShortDay(section.date, language, t)}
-          </ThemedText>
+          <View>
+            {section.firstEarlier ? (
+              <ThemedText accessibilityRole="header" variant="body" weight="bold" style={{ paddingTop: theme.spacing.lg }}>{t("orders.earlier")}</ThemedText>
+            ) : null}
+            <ThemedText accessibilityRole="header" variant="overline" style={{ color: theme.colors.colorTextSecondary, textTransform: "uppercase", letterSpacing: 0.6, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.sm }}>
+              {formatShortDay(section.date, language, t)}
+            </ThemedText>
+          </View>
         )}
         renderItem={({ item }) => (
           <View style={{ paddingBottom: theme.spacing.sm }}>

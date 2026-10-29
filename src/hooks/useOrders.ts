@@ -4,7 +4,7 @@ import { cancelMyOrder, confirmPayment, getMyCredit, getMyOrder, getMyOrders, pa
 import { openPhonePeCheckout } from "../services/phonePeCheckout";
 import { queryKeys } from "../services/queryKeys";
 import { useSessionStore } from "../store/useSessionStore";
-import type { OnlinePayment, PaymentStart } from "../types/orders";
+import type { OnlinePayment, Order, PaymentStart } from "../types/orders";
 
 const useCustomerId = () => useSessionStore((state) => state.customer?.id ?? "");
 
@@ -35,9 +35,21 @@ export function useMyOrders() {
   return useQuery({ queryKey: queryKeys.orders(customerId), queryFn: getMyOrders, enabled: customerId !== "", staleTime: 15_000 });
 }
 
+/**
+ * One order. Opened from My Orders, the page shows that list's copy at once while the full order loads, instead of a loading
+ * screen. The list copy never allows cancelling (canCancel is only on a single order read), so Cancel appears only once the
+ * server has said it is allowed.
+ */
 export function useMyOrder(orderId?: string) {
   const customerId = useCustomerId();
-  return useQuery({ queryKey: [...queryKeys.orders(customerId), orderId], queryFn: () => getMyOrder(orderId ?? ""), enabled: customerId !== "" && Boolean(orderId), staleTime: 10_000 });
+  const client = useQueryClient();
+  return useQuery({
+    queryKey: [...queryKeys.orders(customerId), orderId],
+    queryFn: () => getMyOrder(orderId ?? ""),
+    enabled: customerId !== "" && Boolean(orderId),
+    staleTime: 10_000,
+    placeholderData: () => client.getQueryData<Order[]>(queryKeys.orders(customerId))?.find((order) => order.id === orderId),
+  });
 }
 
 /** The server's price and plan for a cart: what it becomes, the windows to choose from, and anything that stops it being placed. */
