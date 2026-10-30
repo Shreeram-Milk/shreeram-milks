@@ -13,7 +13,7 @@ import { Skeleton } from "../atoms/Skeleton";
 import { ThemedText } from "../atoms/ThemedText";
 
 interface ProductDeliveryCardProps {
-  /** The customer's PIN code, or empty when they have not entered one yet. */
+  /** The PIN code of the customer's saved delivery address, or empty when they have none yet. It is shown, never typed here. */
   pin: string;
   delivery: ProductDelivery | undefined;
   isLoading: boolean;
@@ -21,7 +21,8 @@ interface ProductDeliveryCardProps {
   language: AppLanguage;
   selectedSlotId: string | null;
   onSelectSlot: (slotId: string) => void;
-  onChangePin: () => void;
+  /** Opens the customer's saved addresses, where the delivery address (and so the PIN code) is changed. */
+  onManageAddresses: () => void;
   onRetry: () => void;
   /** False for a subscription or trial, which picks its windows (with a quantity each) elsewhere. */
   showSlots?: boolean;
@@ -49,21 +50,21 @@ function DeliveryLine({ action, detail, onAction, title, tone = "default" }: { a
 }
 
 /** Where and when this product can be delivered to the customer's PIN code. The server decides; this only shows the answer. */
-export function ProductDeliveryCard({ pin, delivery, isLoading, isError, language, selectedSlotId, onSelectSlot, onChangePin, onRetry, showSlots = true }: ProductDeliveryCardProps) {
+export function ProductDeliveryCard({ pin, delivery, isLoading, isError, language, selectedSlotId, onSelectSlot, onManageAddresses, onRetry, showSlots = true }: ProductDeliveryCardProps) {
   const theme = useTheme();
   const { t } = useTranslation();
 
-  if (!pin) return <Card padded={false}><DeliveryLine title={t("productDetails.addPinAction")} detail={t("productDetails.addPin")} action={t("productDetails.add")} onAction={onChangePin} /></Card>;
+  if (!pin) return <Card padded={false}><DeliveryLine title={t("productDetails.addAddressAction")} detail={t("productDetails.addAddress")} action={t("productDetails.add")} onAction={onManageAddresses} /></Card>;
   if (isLoading) return <Skeleton height={64} radius={theme.radii.lg} />;
   if (isError || !delivery) return <Card padded={false}><DeliveryLine tone="warning" title={t("productDetails.deliveryError")} action={t("common.retry")} onAction={onRetry} /></Card>;
-  if (!delivery.served) return <Card padded={false}><DeliveryLine tone="warning" title={t("productDetails.notDeliverableTitle", { pin })} detail={t("productDetails.notDeliverableDetail")} action={t("productDetails.change")} onAction={onChangePin} /></Card>;
+  if (!delivery.served) return <Card padded={false}><DeliveryLine tone="warning" title={t("productDetails.notDeliverableTitle", { pin })} detail={t("productDetails.notDeliverableDetail")} action={t("productDetails.changeAddress")} onAction={onManageAddresses} /></Card>;
 
   const place = delivery.locality ? `${delivery.locality} · ${pin}` : pin;
   const showSlotPicker = showSlots && delivery.deliveryMethod === "local_delivery" && delivery.slots.length > 0;
 
   return (
     <Card padded={false}>
-      <DeliveryLine title={place} detail={t("productDetails.deliveringTo")} action={t("productDetails.change")} onAction={onChangePin} />
+      <DeliveryLine title={place} detail={t("productDetails.deliveringToSaved")} />
       {delivery.deliveryMethod === "shipping" ? (
         <View style={{ flexDirection: "row", gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md - 2, paddingBottom: theme.spacing.md - 2 }}>
           <AppIcon icon={TruckIcon} size="sm" tone="secondary" accessibilityLabel="" />

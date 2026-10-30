@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StatusBar, View } from "react-native";
@@ -29,6 +29,7 @@ const newKey = (): string => `${Date.now().toString(36)}${Math.random().toString
 
 export default function CheckoutReviewScreen() {
   const theme = useTheme();
+  const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const language = (i18n.resolvedLanguage ?? i18n.language).startsWith("gu") ? "gu" : "en";
   const cart = useAppStore((state) => state.cart);
@@ -93,7 +94,10 @@ export default function CheckoutReviewScreen() {
   const payOnlinePaise = data?.orders.filter((order) => order.payment === "online").reduce((sum, order) => sum + order.totalPaise, 0) ?? 0;
 
   const finish = (orders: Order[]) => {
-    router.replace({ pathname: "/order-success", params: { ids: orders.map((order) => order.id).join(","), numbers: orders.map((order) => order.orderNumber).join(",") } });
+    // The checkout steps leave the history, so Back from the success page returns to where the customer started (the product page).
+    const params = { ids: orders.map((order) => order.id).join(","), numbers: orders.map((order) => order.orderNumber).join(",") };
+    const kept = navigation.getState()?.routes.filter((route) => route.name !== "checkout-address" && route.name !== "checkout-review") ?? [];
+    navigation.dispatch({ type: "RESET", payload: { index: kept.length, routes: [...kept, { name: "order-success", params }] } });
     // Only what was ordered leaves the cart: items that could not be delivered here stay for another address.
     // A free gift is not a cart line: it must not remove a paid cart item of the same size.
     for (const order of orders) for (const item of order.items) if (!item.isGift) removeFromCart(item.variantId);

@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { BlurTargetView } from "expo-blur";
 import { Image } from "expo-image";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StatusBar, View, useWindowDimensions } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,7 +16,6 @@ import { ProductDeliveryCard } from "../src/components/molecules/ProductDelivery
 import { QuantityStepper } from "../src/components/molecules/QuantityStepper";
 import { SegmentedTabs } from "../src/components/molecules/SegmentedTabs";
 import { ExistingPlanCard } from "../src/components/organisms/ExistingPlanCard";
-import { PinCodeSheet } from "../src/components/organisms/PinCodeSheet";
 import { ProductImageCarousel } from "../src/components/organisms/ProductImageCarousel";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { SubscribeSetup, emptyChoice, resolveChoice, type SubscribeChoice } from "../src/components/organisms/SubscribeSetup";
@@ -73,11 +71,8 @@ export default function ProductDetailsScreen() {
   const [plan, setPlan] = useState<PurchasePlan>("single");
   const [quantity, setQuantity] = useState(1);
   const [slotId, setSlotId] = useState<string | null>(null);
-  const [pinSheetOpen, setPinSheetOpen] = useState(false);
   const [choice, setChoice] = useState<SubscribeChoice>(emptyChoice);
   const [expanded, setExpanded] = useState(false);
-  // The PIN pop-up frosts the page behind it (on iPhone), which needs the page wrapped as a blur target.
-  const blurTargetRef = useRef<View>(null);
   const addToCart = useAppStore((state) => state.addToCart);
   const cart = useAppStore((state) => state.cart);
   const { showToast } = useToast();
@@ -180,7 +175,7 @@ export default function ProductDetailsScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
-      <BlurTargetView ref={blurTargetRef} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
         <ScrollView contentContainerStyle={{ paddingBottom: theme.spacing.xl }} showsVerticalScrollIndicator={false}>
           <View>
             <ProductImageCarousel imageUrls={imageUrls} accessibilityLabel={productName} />
@@ -245,7 +240,7 @@ export default function ProductDetailsScreen() {
               language={language}
               selectedSlotId={activeSlotId}
               onSelectSlot={setSlotId}
-              onChangePin={() => setPinSheetOpen(true)}
+              onManageAddresses={() => router.push("/delivery-addresses")}
               onRetry={() => void delivery.refetch()}
             />
 
@@ -272,11 +267,10 @@ export default function ProductDetailsScreen() {
             {nutrition ? <NutritionAccordion title={t("productDetails.nutritionTitle")} content={nutrition} /> : null}
           </View>
         </ScrollView>
-      </BlurTargetView>
+      </View>
       <View accessibilityLiveRegion="polite" style={{ paddingHorizontal: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.md - 4, paddingBottom: Math.max(insets.bottom, theme.spacing.md - 4), backgroundColor: theme.colors.colorSurface, borderTopWidth: theme.borderWidths.hairline, borderTopColor: theme.colors.colorBorder }}>
         {bottomBar}
       </View>
-      {pinSheetOpen ? <PinCodeSheet blurTarget={blurTargetRef} onClose={() => setPinSheetOpen(false)} /> : null}
     </SafeAreaView>
   );
 }
