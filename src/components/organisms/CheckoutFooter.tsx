@@ -9,6 +9,8 @@ import { useTheme } from "../../theme";
 interface CheckoutFooterProps {
   /** Amount in paise, shown as a preview; the server decides the real total. */
   amountPaise: number;
+  /** The price before an offer, shown struck through beside the amount when it is higher. */
+  originalPaise?: number;
   disabled?: boolean;
   label: string;
   loading?: boolean;
@@ -16,7 +18,7 @@ interface CheckoutFooterProps {
 }
 
 /** The floating white bar at the bottom of each checkout step: what the customer pays and the next action. */
-export function CheckoutFooter({ amountPaise, disabled, label, loading, onPress }: CheckoutFooterProps) {
+export function CheckoutFooter({ amountPaise, originalPaise, disabled, label, loading, onPress }: CheckoutFooterProps) {
   const theme = useTheme();
   const { t } = useTranslation();
   return (
@@ -35,7 +37,10 @@ export function CheckoutFooter({ amountPaise, disabled, label, loading, onPress 
       }}
     >
       <View style={{ flex: 1 }}>
-        <ThemedText variant="h2" weight="bold" numberOfLines={1}>{formatRupees(amountPaise)}</ThemedText>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: theme.spacing.sm }}>
+          <ThemedText variant="h2" weight="bold" numberOfLines={1}>{formatRupees(amountPaise)}</ThemedText>
+          {originalPaise !== undefined && originalPaise > amountPaise ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textDecorationLine: "line-through" }}>{formatRupees(originalPaise)}</ThemedText> : null}
+        </View>
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("checkout.footer.inclusive")}</ThemedText>
       </View>
       <Button style={{ flex: 1.6 }} disabled={disabled} loading={loading} onPress={onPress}>

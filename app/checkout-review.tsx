@@ -93,6 +93,10 @@ export default function CheckoutReviewScreen() {
   // Anything paid online goes through PhonePe first; the orders are written only once PhonePe confirms the payment.
   const payOnlinePaise = data?.orders.filter((order) => order.payment === "online").reduce((sum, order) => sum + order.totalPaise, 0) ?? 0;
 
+  // The bill: what the items cost, what the offer takes off, and what is paid. All three come from the server's answer.
+  const itemsPaise = data?.orders.reduce((sum, order) => sum + order.items.reduce((inner, item) => inner + item.lineTotalPaise, 0), 0) ?? 0;
+  const savedPaise = data?.offer?.discountPaise ?? 0;
+
   const finish = (orders: Order[]) => {
     // The checkout steps leave the history, so Back from the success page returns to where the customer started (the product page).
     const params = { ids: orders.map((order) => order.id).join(","), numbers: orders.map((order) => order.orderNumber).join(",") };
@@ -245,6 +249,28 @@ export default function CheckoutReviewScreen() {
           />
         ) : null}
 
+        {data && data.orders.length > 0 ? (
+          <CheckoutSection title={t("checkout.review.billTitle")}>
+            <View style={{ gap: theme.spacing.sm, padding: theme.spacing.md }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
+                <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("checkout.review.itemTotal")}</ThemedText>
+                <ThemedText variant="bodySmall" weight="medium">{formatRupees(itemsPaise)}</ThemedText>
+              </View>
+              {savedPaise > 0 ? (
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
+                  <ThemedText variant="bodySmall" style={{ color: theme.colors.colorAccent }}>{t("offers.discount")}</ThemedText>
+                  <ThemedText variant="bodySmall" weight="medium" style={{ color: theme.colors.colorAccent }}>−{formatRupees(savedPaise)}</ThemedText>
+                </View>
+              ) : null}
+              <View style={{ height: theme.borderWidths.hairline, backgroundColor: theme.colors.colorBorder }} />
+              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md }}>
+                <ThemedText variant="body" weight="bold">{t("checkout.review.totalPayable")}</ThemedText>
+                <ThemedText variant="body" weight="bold">{formatRupees(data.totalPaise)}</ThemedText>
+              </View>
+            </View>
+          </CheckoutSection>
+        ) : null}
+
         {data?.credit && data.credit.neededPaise > 0 ? (
           <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>
             {t("shop.creditSummary", { needed: formatRupees(data.credit.neededPaise), owed: formatRupees(data.credit.owedPaise), limit: formatRupees(data.credit.limitPaise) })}
@@ -281,6 +307,7 @@ export default function CheckoutReviewScreen() {
       </ScrollView>
       <CheckoutFooter
         amountPaise={data?.totalPaise ?? 0}
+        originalPaise={itemsPaise}
         disabled={blocked || outcome?.status === "pending"}
         loading={busy}
         label={payOnlinePaise > 0 ? t("shop.payment.payButton", { amount: formatRupees(payOnlinePaise) }) : t("shop.place")}
