@@ -33,6 +33,10 @@ interface AppState {
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
+  /** One product bought straight from its page with "Buy now". Checkout then shows only this, and the cart is left as it was. Not kept between visits. */
+  buyNow: CartItem | null;
+  setBuyNow: (item: CartItem) => void;
+  clearBuyNow: () => void;
   /** Forgets everything about the current checkout: the cart and the chosen address. Used when the customer signs out. */
   resetCheckout: () => void;
   /** The PIN code the customer is ordering to. Empty until they enter one on the Location screen. */
@@ -62,7 +66,10 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   updateCartQuantity: (productId, quantity) => set((state) => ({ cart: quantity <= 0 ? state.cart.filter((item) => item.product.id !== productId) : state.cart.map((item) => item.product.id === productId ? { ...item, quantity: capped(quantity) } : item) })),
   removeFromCart: (productId) => set((state) => ({ cart: state.cart.filter((item) => item.product.id !== productId) })),
   clearCart: () => set({ cart: [] }),
-  resetCheckout: () => set({ cart: [], checkoutSelection: { addressId: null } }),
+  buyNow: null,
+  setBuyNow: (buyNow) => set({ buyNow }),
+  clearBuyNow: () => set({ buyNow: null }),
+  resetCheckout: () => set({ cart: [], buyNow: null, checkoutSelection: { addressId: null } }),
   deliveryPin: '',
   setDeliveryPin: (deliveryPin) => {
     // Remembered on the phone so the customer is not asked for their PIN code on every visit.

@@ -142,7 +142,7 @@ export default function CartScreen() {
             <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("cart.toPay")}</ThemedText>
             <ThemedText variant="h2" weight="extrabold" style={{ fontVariant: ["tabular-nums"] }}>{quotedTotal ?? `₹${total}`}</ThemedText>
           </View>
-          <Button disabled={everyItemBlocked} style={{ flex: 1, maxWidth: 200 }} onPress={() => router.push("/checkout-address")}>{t("cart.checkout")}</Button>
+          <Button disabled={everyItemBlocked} style={{ flex: 1, maxWidth: 200 }} onPress={() => { useAppStore.getState().clearBuyNow(); router.push("/checkout-address"); }}>{t("cart.checkout")}</Button>
         </View>
       ) : null}
     </SafeAreaView>

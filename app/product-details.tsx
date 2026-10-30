@@ -74,6 +74,7 @@ export default function ProductDetailsScreen() {
   const [choice, setChoice] = useState<SubscribeChoice>(emptyChoice);
   const [expanded, setExpanded] = useState(false);
   const addToCart = useAppStore((state) => state.addToCart);
+  const setBuyNow = useAppStore((state) => state.setBuyNow);
   const cart = useAppStore((state) => state.cart);
   const { showToast } = useToast();
 
@@ -141,12 +142,10 @@ export default function ProductDetailsScreen() {
     for (let index = 0; index < quantity; index += 1) addToCart(cartProduct, activeSlotId);
     showToast(t("productCard.addedToast", { product: productName }));
   };
-  // Buy now puts the chosen quantity in the cart (unless it is already there) and goes straight to checkout.
+  // Buy now checks out only this product in the chosen quantity. The cart is not touched and does not appear in that checkout.
   const buyNow = () => {
-    if (!isInCart) {
-      tapFeedback();
-      for (let index = 0; index < quantity; index += 1) addToCart(cartProduct, activeSlotId);
-    }
+    tapFeedback();
+    setBuyNow({ product: cartProduct, quantity, slotId: activeSlotId });
     router.push("/checkout-address");
   };
 
@@ -204,7 +203,7 @@ export default function ProductDetailsScreen() {
                   </View>
                   <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.perUnitTaxes", { unit: variant.name })}</ThemedText>
                 </View>
-                {!repeating && !isInCart ? (
+                {!repeating ? (
                   <View style={{ alignItems: "center", gap: 4 }}>
                     <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("productDetails.quantity")}</ThemedText>
                     <QuantityStepper value={quantity} onDecrement={() => setQuantity((current) => Math.max(1, current - 1))} onIncrement={() => setQuantity((current) => current + 1)} />

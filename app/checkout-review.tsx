@@ -15,6 +15,7 @@ import { PaymentPoller } from "../src/components/molecules/PaymentPoller";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
 import { useAddresses } from "../src/hooks/useAddresses";
+import { useCheckoutLines } from "../src/hooks/useCheckoutLines";
 import { useCheckPayment, usePayForOrder, usePlaceOrder, useQuote } from "../src/hooks/useOrders";
 import { formatRupees } from "../src/lib/catalogCart";
 import { localized } from "../src/lib/contentLocalization";
@@ -32,8 +33,9 @@ export default function CheckoutReviewScreen() {
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const language = (i18n.resolvedLanguage ?? i18n.language).startsWith("gu") ? "gu" : "en";
-  const cart = useAppStore((state) => state.cart);
+  const cart = useCheckoutLines();
   const removeFromCart = useAppStore((state) => state.removeFromCart);
+  const clearBuyNow = useAppStore((state) => state.clearBuyNow);
   const selection = useAppStore((state) => state.checkoutSelection);
   const { data: addresses = [] } = useAddresses();
   const address = addresses.find((item) => item.id === selection.addressId);
@@ -102,6 +104,8 @@ export default function CheckoutReviewScreen() {
     const params = { ids: orders.map((order) => order.id).join(","), numbers: orders.map((order) => order.orderNumber).join(",") };
     const kept = navigation.getState()?.routes.filter((route) => route.name !== "checkout-address" && route.name !== "checkout-review") ?? [];
     navigation.dispatch({ type: "RESET", payload: { index: kept.length, routes: [...kept, { name: "order-success", params }] } });
+    // A product bought with "Buy now" never touched the cart, so the cart stays exactly as it was.
+    if (useAppStore.getState().buyNow) { clearBuyNow(); return; }
     // Only what was ordered leaves the cart: items that could not be delivered here stay for another address.
     // A free gift is not a cart line: it must not remove a paid cart item of the same size.
     for (const order of orders) for (const item of order.items) if (!item.isGift) removeFromCart(item.variantId);

@@ -13,6 +13,7 @@ import { ChoiceTile } from "../src/components/molecules/ChoiceTile";
 import { CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
 import { AddIcon, AlertsIcon, HomeIcon, ShieldIcon, TruckIcon } from "../src/icons/appIcons";
 import { pickDefaultAddress, useAddresses, useDoorstepInstructions, useSaveDoorstepInstructions } from "../src/hooks/useAddresses";
+import { useCheckoutLines } from "../src/hooks/useCheckoutLines";
 import { parseInstructions } from "../src/services/addressService";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
@@ -21,7 +22,7 @@ import type { DoorstepInstructions } from "../src/types/models";
 export default function CheckoutAddressScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const cart = useAppStore((state) => state.cart);
+  const cart = useCheckoutLines();
   const { data: addresses = [] } = useAddresses();
   const checkoutSelection = useAppStore((state) => state.checkoutSelection);
   const setCheckoutAddress = useAppStore((state) => state.setCheckoutAddress);
