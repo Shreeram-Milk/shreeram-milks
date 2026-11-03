@@ -1,4 +1,4 @@
-import { router, type Href } from "expo-router";
+import { router, usePathname, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, RefreshControl, StatusBar, View } from "react-native";
@@ -32,6 +32,7 @@ export default function NotificationsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const language = useAppStore((state) => state.language);
+  const pathname = usePathname();
   const { data, isLoading, isError, error, refetch, isRefetching } = useMyNotifications();
   const { one, all } = useMarkNotificationsRead();
   // The "5 min ago" labels keep up with the clock while the screen stays open.
@@ -44,7 +45,9 @@ export default function NotificationsScreen() {
 
   const open = (item: AppNotification) => {
     if (!item.readAt) one.mutate(item.id);
-    if (item.link) router.push(item.link as Href);
+    // A staff message has no screen of its own: its link points back at this inbox. Tapping it only marks it read, because opening
+    // the inbox from the inbox would stack the same screen on top of itself again and again.
+    if (item.link && item.link.split("?")[0] !== pathname) router.push(item.link as Href);
   };
 
   if (isLoading || isError) {

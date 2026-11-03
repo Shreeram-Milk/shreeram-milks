@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { router, useRootNavigationState, type Href } from "expo-router";
+import { router, usePathname, useRootNavigationState, type Href } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 // Types only: nothing of the module is loaded here, so an older build without it still starts.
@@ -31,6 +31,10 @@ export function PushSetup() {
   const navigationReady = Boolean(useRootNavigationState()?.key);
   // The screen a tapped message wants, kept until the app is ready to open it; the counter wakes the effect that opens it.
   const pendingLink = useRef<string | null>(null);
+  // Read at the moment a tap is handled, so the check always sees the screen the customer is on now.
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
   const [tapCount, setTapCount] = useState(0);
   const deliveriesName = t("inbox.channelDeliveries");
   const offersName = t("inbox.channelOffers");
@@ -90,6 +94,8 @@ export function PushSetup() {
     const link = pendingLink.current;
     if (!link || !navigationReady || !customerId) return;
     pendingLink.current = null;
+    // Already on that screen (for example the inbox is open and its message is tapped): nothing to open.
+    if (link.split("?")[0] === pathnameRef.current) return;
     router.push(link as Href);
   }, [customerId, navigationReady, tapCount]);
 
