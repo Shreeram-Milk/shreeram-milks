@@ -10,14 +10,14 @@ const order = (id: string, deliveryDate: string, status: OrderStatus, slot: [str
 });
 const at = (indiaTime: string) => new Date(`${indiaTime}+05:30`);
 
-test('days read yesterday, today, tomorrow when yesterday is still open, whatever order the server sends', () => {
+test('today comes before overdue history and tomorrow, whatever order the server sends', () => {
   const days = groupByDay([order('y', '2026-10-28', 'placed'), order('t2', '2026-10-30', 'cancelled'), order('t', '2026-10-29', 'cancelled')], '2026-10-29');
-  assert.deepEqual(days.map((day) => [day.date, day.earlier]), [['2026-10-28', false], ['2026-10-29', false], ['2026-10-30', false]]);
+  assert.deepEqual(days.map((day) => [day.date, day.earlier]), [['2026-10-29', false], ['2026-10-28', true], ['2026-10-30', false]]);
 });
 
-test('finished past days come after the current ones, newest first', () => {
+test('past days follow today newest first, with future deliveries last', () => {
   const days = groupByDay([order('a', '2026-10-20', 'delivered'), order('b', '2026-10-30', 'placed'), order('c', '2026-10-26', 'delivered'), order('d', '2026-10-29', 'delivered')], '2026-10-29');
-  assert.deepEqual(days.map((day) => [day.date, day.earlier]), [['2026-10-29', false], ['2026-10-30', false], ['2026-10-26', true], ['2026-10-20', true]]);
+  assert.deepEqual(days.map((day) => [day.date, day.earlier]), [['2026-10-29', false], ['2026-10-26', true], ['2026-10-20', true], ['2026-10-30', false]]);
 });
 
 test('orders inside a day run by window, orders without a window last', () => {
@@ -38,4 +38,12 @@ test('finished orders, courier parcels and orders without a window before midnig
   assert.equal(shownStatus(order('s', '2026-10-28', 'placed', null, 'shipping'), at('2026-11-05T09:00:00')), 'placed');
   assert.equal(shownStatus(order('n', '2026-10-28', 'placed', null), at('2026-10-28T23:59:00')), 'placed');
   assert.equal(shownStatus(order('n', '2026-10-28', 'placed', null), at('2026-10-29T00:00:00')), 'overdue');
+});
+
+
+test('without today, history stays newest first and future dates stay at the bottom', () => {
+  const input = [order('future2', '2026-11-02', 'placed'), order('old', '2026-10-20', 'placed'), order('tomorrow', '2026-10-30', 'placed'), order('yesterday', '2026-10-28', 'delivered')];
+  assert.deepEqual(groupByDay(input, '2026-10-29').map(day => day.date), ['2026-10-28', '2026-10-20', '2026-10-30', '2026-11-02']);
+  assert.deepEqual(input.map(item => item.id), ['future2', 'old', 'tomorrow', 'yesterday']);
+  assert.deepEqual(groupByDay([], '2026-10-29'), []);
 });

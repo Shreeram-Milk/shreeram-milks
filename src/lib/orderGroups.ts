@@ -37,16 +37,13 @@ export function shownStatus(order: Order, now: Date): ShownStatus {
 /** Within one day: the earlier window first; orders without a window last. */
 const bySlot = (a: Order, b: Order) => (a.slot?.startTime ?? "99:99").localeCompare(b.slot?.startTime ?? "99:99");
 
-/**
- * Groups the list by delivery day in calendar order. From today on (and any earlier day with an order still open, such as an
- * overdue one) the oldest day comes first, so it reads Yesterday, Today, Tomorrow. The finished days before that follow as
- * "earlier", newest first. `today` is the India calendar date.
- */
+/** Groups delivery days as today, history newest first, then future days nearest first. `today` is the India date. */
 export function groupByDay(orders: Order[], today: string): OrderDay[] {
   const byDate = new Map<string, Order[]>();
   for (const order of orders) byDate.set(order.deliveryDate, [...(byDate.get(order.deliveryDate) ?? []), order]);
-  const days = [...byDate].map(([date, list]) => ({ date, orders: list.sort(bySlot), earlier: date < today && !list.some(isOpen) }));
-  const current = days.filter((day) => !day.earlier).sort((a, b) => a.date.localeCompare(b.date));
+  const days = [...byDate].map(([date, list]) => ({ date, orders: list.sort(bySlot), earlier: date < today }));
+  const current = days.filter((day) => day.date === today);
   const earlier = days.filter((day) => day.earlier).sort((a, b) => b.date.localeCompare(a.date));
-  return [...current, ...earlier];
+  const future = days.filter((day) => day.date > today).sort((a, b) => a.date.localeCompare(b.date));
+  return [...current, ...earlier, ...future];
 }

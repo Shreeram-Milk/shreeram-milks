@@ -23,11 +23,7 @@ type OrderFilter = "all" | "active" | "past";
 const FILTERS: OrderFilter[] = ["all", "active", "past"];
 const KINDS: OrderKind[] = ["direct", "subscription", "trial"];
 
-/**
- * The customer's orders under one heading per delivery day (Today, Tomorrow, Yesterday, then dates): what is still to come
- * first, nearest delivery on top. Each card is short and opens the order's own page. Pull down to refresh: staff change an
- * order's status in the admin.
- */
+/** Orders grouped as today, past days newest first, then upcoming deliveries. */
 export default function OrdersScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
