@@ -79,7 +79,7 @@ export default function RewardsScreen() {
 
   const open = (card: RewardCard, view: View | null) => {
     if (card.status === "new") { setScratching(card); return; }
-    openFromCard(view, `card:${card.id}`, theme.radii.lg, () => router.push({ pathname: "/offer", params: { cardId: card.id } }));
+    openFromCard(view, `card:${card.id}`, theme.radii.lg, card.offer.imageUrl, () => router.push({ pathname: "/offer", params: { cardId: card.id } }));
   };
 
   return (

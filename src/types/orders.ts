@@ -48,6 +48,8 @@ export interface Order {
   cancelReason: string;
   /** Only on a single order read: whether the customer can still cancel it. */
   canCancel: boolean;
+  /** Only on a single order read: when it reached each status, oldest first ("placed", "out_for_delivery", ...). */
+  timeline: { status: OrderStatus; at: string }[];
   items: OrderLine[];
 }
 

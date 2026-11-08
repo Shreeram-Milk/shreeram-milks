@@ -1,3 +1,4 @@
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { appConfig } from '../config/appConfig';
@@ -15,6 +16,8 @@ let configured = false;
  */
 function loadGoogle(): GoogleSigninModule | null {
   if (cached !== undefined) return cached;
+  // Expo Go (used only for testing) has no Google sign-in; email sign-in works there.
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) { cached = null; return cached; }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     cached = require('@react-native-google-signin/google-signin') as GoogleSigninModule;

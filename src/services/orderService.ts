@@ -64,6 +64,11 @@ export function parseOrder(raw: unknown): Order | null {
     subscriptionId: text(item.subscriptionId) || null,
     cancelReason: text(item.cancelReason),
     canCancel: item.canCancel === true,
+    timeline: (Array.isArray(item.timeline) ? item.timeline : []).flatMap((entry) => {
+      const step = record(entry);
+      const status = STATUSES.find((candidate) => candidate === step?.status);
+      return status && text(step?.at) ? [{ status, at: text(step?.at) }] : [];
+    }),
     items: lines(item.items),
   };
 }

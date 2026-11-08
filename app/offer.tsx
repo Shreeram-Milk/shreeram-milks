@@ -22,6 +22,8 @@ import type { Offer } from "../src/types/offers";
 import type { RewardCard } from "../src/types/rewards";
 
 const CURVE = 28;
+/** The offer picture's height: nearly square, never more than about half the screen. Shared with the opening animation. */
+const offerHeroHeight = (width: number, height: number) => Math.round(Math.min(Math.max(width * 0.92, 320), height * 0.48));
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
 type Shown = { offer: Pick<Offer, "title" | "titleGu" | "description" | "descriptionGu" | "kind" | "percent" | "flatPaise" | "maxDiscountPaise" | "minOrderPaise" | "endsOn" | "code" | "imageUrl" | "showText" | "points"> & Partial<Pick<Offer, "appliesOneTime" | "appliesTrial" | "appliesSubscription" | "minPlanDays">>; card: RewardCard | null };
@@ -35,7 +37,7 @@ function OfferBody({ shown }: { shown: Shown }) {
   const { offer, card } = shown;
   const title = localized(offer.title, offer.titleGu, language);
   const description = localized(offer.description, offer.descriptionGu, language);
-  const heroHeight = Math.round(Math.min(Math.max(width * 0.92, 320), height * 0.48));
+  const heroHeight = offerHeroHeight(width, height);
   const facts = [
     offer.minOrderPaise > 0 ? t("offers.orderAbove", { amount: formatRupees(offer.minOrderPaise) }) : null,
     offer.appliesOneTime !== undefined ? `${t("offers.worksFor")}: ${offerWorksForText({ appliesOneTime: offer.appliesOneTime, appliesTrial: offer.appliesTrial ?? false, appliesSubscription: offer.appliesSubscription ?? false, minPlanDays: offer.minPlanDays ?? null }, t)}` : t("rewards.oneTimeOnly"),
@@ -96,6 +98,7 @@ function OfferBody({ shown }: { shown: Shown }) {
 /** Offer details: picture on top, the code (tap to reveal, then copy), and the offer's points. Opened from an offer, a banner, a notification or a scratched card. */
 export default function OfferScreen() {
   const theme = useTheme();
+  const { width, height } = useWindowDimensions();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ offerId?: string; cardId?: string }>();
   const offerId = one(params.offerId);
@@ -108,7 +111,7 @@ export default function OfferScreen() {
   const failed = cardId ? rewards.isError : offerQuery.isError;
 
   return (
-    <MorphPage morphKey={cardId ? `card:${cardId}` : `offer:${offerId}`}>
+    <MorphPage morphKey={cardId ? `card:${cardId}` : `offer:${offerId}`} heroTop={0} heroHeight={offerHeroHeight(width, height)}>
       {shown ? <OfferBody shown={shown} /> : (
         <View style={{ flex: 1, justifyContent: "center", padding: theme.spacing.lg, backgroundColor: theme.colors.colorBackground }}>
           {loading ? <StateMessage type="loading" title={t("home.loading")} />

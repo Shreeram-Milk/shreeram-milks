@@ -28,6 +28,19 @@ const banners = [
   { id: "b-2", type: "promotion", titleEn: "Ghee week: 20% off", titleGu: "", messageEn: "Use code GHEE20.", messageGu: "", labelEn: "OFFER", labelGu: "", imageUrl: picture("ghee-week"), showText: true, ctaType: "offers", ctaTarget: "", sortOrder: 2 },
   { id: "b-3", type: "warning", titleEn: "Rain may delay some deliveries today", titleGu: "", messageEn: "", messageGu: "", labelEn: "", labelGu: "", imageUrl: null, showText: true, ctaType: "none", ctaTarget: "", sortOrder: 3 },
 ];
+const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+const order = {
+  id: "ord-1", orderNumber: "SRM-1042", status: "out_for_delivery", deliveryMethod: "local_delivery", deliveryDate: tomorrow,
+  slot: { id: "s-1", name: "Morning", startTime: "06:00", endTime: "08:00" }, recipientName: "Test Customer", addressLine1: "B-12, Sunrise Society", addressLine2: "Sector 21", landmark: "", city: "Gandhinagar", pinCode: "382010",
+  courierName: "", trackingUrl: "", totalPaise: 96000, discountPaise: 9000, offerTitle: "20% off your first ghee", offerTitleGu: "", paymentMethod: "online", paymentStatus: "paid",
+  placedAt: new Date(Date.now() - 3 * 36e5).toISOString(), subscriptionId: null, cancelReason: "", canCancel: false,
+  items: [
+    { id: "l-1", productId: "p-2", variantId: "v-2", productName: "A2 Ghee", productNameGu: "", variantName: "250 g", unitPricePaise: 45000, quantity: 2, lineTotalPaise: 90000 },
+    { id: "l-2", productId: "p-1", variantId: "v-1", productName: "Cow Milk", productNameGu: "", variantName: "500 ml", unitPricePaise: 3500, quantity: 2, lineTotalPaise: 7000 },
+    { id: "l-3", productId: "p-3", variantId: "v-4", productName: "Fresh Paneer", productNameGu: "", variantName: "200 g", unitPricePaise: 9000, quantity: 1, lineTotalPaise: 0, isGift: true },
+  ],
+  timeline: [{ status: "placed", at: new Date(Date.now() - 3 * 36e5).toISOString() }, { status: "out_for_delivery", at: new Date(Date.now() - 20 * 6e4).toISOString() }],
+};
 const address = { id: "a-1", label: "home", recipientName: "Test Customer", recipientPhone: "9824612345", line1: "B-12, Sunrise Society", line2: "Sector 21", landmark: "", city: "Gandhinagar", pinCode: "382010", isDefault: true };
 
 const routes = [
@@ -49,7 +62,8 @@ const routes = [
   ["GET", /^\/customer\/addresses$/, () => ({ addresses: [address] })],
   ["GET", /^\/customer\/notifications\/unread-count$/, () => ({ unread: 2 })],
   ["GET", /^\/customer\/notifications/, () => ({ notifications: [], total: 0, unread: 0 })],
-  ["GET", /^\/customer\/orders/, () => ({ orders: [], total: 0 })],
+  ["GET", /^\/customer\/orders\/ord-1$/, () => ({ order })],
+  ["GET", /^\/customer\/orders/, () => ({ orders: [order], total: 1 })],
   ["GET", /^\/customer\/subscriptions/, () => ({ subscriptions: [] })],
   ["GET", /^\/customer\/deliveries/, () => ({ days: [] })],
   ["GET", /^\/customer\/credit$/, () => ({ credit: null })],

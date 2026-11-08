@@ -36,5 +36,5 @@ export function Skeleton({ height, radius, style, width = "100%" }: SkeletonProp
   }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[{ width, height, borderRadius: radius ?? theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted }, animatedStyle, style]} />;
+  return <Animated.View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[{ width, height, borderRadius: radius ?? theme.radii.md, backgroundColor: theme.colors.colorBorder }, animatedStyle, style]} />;
 }

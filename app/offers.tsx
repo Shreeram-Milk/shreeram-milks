@@ -24,7 +24,7 @@ function OfferCard({ offer, language }: { offer: Offer; language: "en" | "gu" })
   const { t } = useTranslation();
   const description = localized(offer.description, offer.descriptionGu, language);
   const box = useRef<View>(null);
-  const open = () => openFromCard(box.current, `offer:${offer.id}`, theme.radii.lg, () => router.push({ pathname: "/offer", params: { offerId: offer.id } }));
+  const open = () => openFromCard(box.current, `offer:${offer.id}`, theme.radii.lg, offer.imageUrl, () => router.push({ pathname: "/offer", params: { offerId: offer.id } }));
   return (
     <PressableScale accessibilityRole="button" accessibilityLabel={localized(offer.title, offer.titleGu, language)} onPress={open}>
       <View ref={box} collapsable={false} style={{ overflow: "hidden", borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface, ...theme.elevation.card }}>

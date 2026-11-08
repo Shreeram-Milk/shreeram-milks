@@ -1278,5 +1278,61 @@
     "oneTimeOnly": "આના માટે: એક-વારના ઓર્ડર",
     "oncePerCard": "કાર્ડ દીઠ એક વાર, ફક્ત તમારા માટે",
     "offerEnded": "આ ઑફર પૂરી થઈ ગઈ છે"
+  },
+  "receipt": {
+    "title": "ઓર્ડર રસીદ",
+    "orderNumber": "ઓર્ડર નંબર",
+    "placedOn": "ઓર્ડર તારીખ",
+    "delivery": "ડિલિવરી",
+    "payment": "ચુકવણી",
+    "paidOnline": "ઓનલાઇન ચૂકવ્યું",
+    "onCredit": "ક્રેડિટ ખાતામાં",
+    "each": "દરેક",
+    "itemTotal": "વસ્તુઓની કુલ રકમ",
+    "deliveryFee": "ડિલિવરી ચાર્જ",
+    "total": "કુલ",
+    "totalPaid": "કુલ ચૂકવેલ",
+    "deliverTo": "ડિલિવરી સરનામું",
+    "thanks": "શ્રીરામ મિલ્ક્સ પસંદ કરવા બદલ આભાર"
+  },
+  "track": {
+    "title": "ઓર્ડરની વિગતો",
+    "titleNumber": "ઓર્ડર {{number}}",
+    "arriving": "પહોંચશે",
+    "progress": "ઓર્ડરની સ્થિતિ",
+    "deliveryDetails": "ડિલિવરીની વિગતો",
+    "deliveryWindow": "ડિલિવરીનો સમય",
+    "deliverTo": "ડિલિવરી સરનામું",
+    "courier": "કુરિયરથી",
+    "bill": "બિલની વિગતો",
+    "orderInfo": "ઓર્ડરની માહિતી",
+    "help": "આ ઓર્ડર માટે મદદ જોઈએ છે?",
+    "pending": "બાકી",
+    "expected": "અપેક્ષિત {{day}}, {{window}}",
+    "deliveredAt": "{{when}} એ ડિલિવર થયું",
+    "state": {
+      "done": "પૂર્ણ",
+      "current": "ચાલુ",
+      "todo": "બાકી",
+      "stopped": "બંધ"
+    },
+    "now": {
+      "placed": "અમે તમારો ઓર્ડર તૈયાર કરી રહ્યા છીએ",
+      "out_for_delivery": "અમારા રાઇડર રસ્તામાં છે"
+    },
+    "headline": {
+      "placed": "તમારો ઓર્ડર કન્ફર્મ થયો",
+      "out_for_delivery": "તમારો ઓર્ડર રસ્તામાં છે",
+      "delivered": "તમારો ઓર્ડર ડિલિવર થયો",
+      "missed": "આ ઓર્ડર ડિલિવર થઈ શક્યો નહીં",
+      "cancelled": "આ ઓર્ડર રદ થયો",
+      "overdue": "તમારી ડિલિવરીમાં મોડું થયું છે"
+    },
+    "payment": {
+      "paidOnline": "ઓનલાઇન ચૂકવ્યું",
+      "onCredit": "તમારા ક્રેડિટ ખાતામાં ઉમેર્યું",
+      "refunded": "રિફંડ થયું",
+      "partlyRefunded": "આંશિક રિફંડ"
+    }
   }
 }

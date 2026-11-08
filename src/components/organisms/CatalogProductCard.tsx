@@ -71,7 +71,7 @@ export const CatalogProductCard = memo(function CatalogProductCard({ isAdded = f
 
   return (
     <View style={{ flex: 1, overflow: "hidden", borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface, ...theme.elevation.card }}>
-      <PressableScale accessibilityRole="button" accessibilityLabel={productName} onPress={() => openFromCard(photo.current, `product:${product.id}`, theme.radii.lg, () => onPress(product.id))} onPressIn={() => prefetch(product.id)}>
+      <PressableScale accessibilityRole="button" accessibilityLabel={productName} onPress={() => openFromCard(photo.current, `product:${product.id}`, theme.radii.lg, product.imageUrl, () => onPress(product.id))} onPressIn={() => prefetch(product.id)}>
         {/* The photo runs edge to edge across the top of the card; the card's own rounded corners clip it. */}
         <View ref={photo} collapsable={false} style={{ backgroundColor: theme.colors.colorSurfaceMuted }}>
           <Image source={remoteImage(product.imageUrl)} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: "100%", aspectRatio: 1 }} />

@@ -1,5 +1,4 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { Image } from "expo-image";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StatusBar, View, useWindowDimensions } from "react-native";
@@ -10,6 +9,7 @@ import { Button } from "../src/components/atoms/Button";
 import { IconButton } from "../src/components/atoms/IconButton";
 import { PressableScale } from "../src/components/atoms/PressableScale";
 import { ThemedText } from "../src/components/atoms/ThemedText";
+import { Skeleton } from "../src/components/atoms/Skeleton";
 import { ProductDetailSkeleton } from "../src/components/molecules/LoadingSkeletons";
 import { NutritionAccordion } from "../src/components/molecules/NutritionAccordion";
 import { ProductDeliveryCard } from "../src/components/molecules/ProductDeliveryCard";
@@ -20,7 +20,7 @@ import { MorphPage } from "../src/components/organisms/MorphPage";
 import { ProductImageCarousel } from "../src/components/organisms/ProductImageCarousel";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { SubscribeSetup, emptyChoice, resolveChoice, type SubscribeChoice } from "../src/components/organisms/SubscribeSetup";
-import { useCatalogProduct, useCatalogProductPreview, useProductDelivery } from "../src/hooks/useCatalog";
+import { useCatalogProduct, useProductDelivery } from "../src/hooks/useCatalog";
 import { useFeatureFlags } from "../src/hooks/useContent";
 import { useMySubscriptions } from "../src/hooks/useSubscriptions";
 import { BackIcon, CartIcon, SuccessIcon } from "../src/icons/appIcons";
@@ -30,7 +30,6 @@ import { tapFeedback } from "../src/lib/haptics";
 import { useToast } from "../src/providers/ToastProvider";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
-import { remoteImage } from "../src/lib/remoteImage";
 
 type PurchasePlan = "single" | "trial" | "subscription";
 const PLAN_OF_METHOD = { buy_once: "single", trial: "trial", subscription: "subscription" } as const;
@@ -56,10 +55,12 @@ function SectionTitle({ children }: { children: string }) {
 /** The product page grows out of the product card that was tapped (or slides up when opened from a banner). */
 export default function ProductDetailsScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { productId } = useLocalSearchParams<{ productId?: string }>();
   const id = Array.isArray(productId) ? productId[0] : productId;
+  // The product photo sits just under the status bar and is square, full width.
   return (
-    <MorphPage morphKey={`product:${id ?? ""}`} anchorTop={insets.top}>
+    <MorphPage morphKey={`product:${id ?? ""}`} heroTop={insets.top} heroHeight={width}>
       <ProductDetailsContent />
     </MorphPage>
   );
@@ -73,9 +74,8 @@ function ProductDetailsContent() {
   const language = useAppStore((state) => state.language);
   const { productId } = useLocalSearchParams<{ productId?: string }>();
   const id = Array.isArray(productId) ? productId[0] : productId;
-  const { data: product, isError, isLoading, refetch } = useCatalogProduct(id);
-  // Name, photo and price are already known from the list the customer tapped, so they show while the rest loads.
-  const preview = useCatalogProductPreview(id);
+  // Opened from a card, the page starts from what the card knew (isPlaceholderData) and the rest fills in when it arrives.
+  const { data: product, isError, isLoading, isPlaceholderData, refetch } = useCatalogProduct(id);
   const deliveryPin = useAppStore((state) => state.deliveryPin);
   const delivery = useProductDelivery(deliveryPin, product?.id ?? null);
   const { data: mySubscriptions = [] } = useMySubscriptions();
@@ -91,22 +91,20 @@ function ProductDetailsContent() {
   const cart = useAppStore((state) => state.cart);
   const { showToast } = useToast();
 
+  // Only when nothing at all is known yet (opened from a banner or a notification on a slow connection): soft grey shapes in the
+  // page's own layout. Opened from a card, the page never shows this: it starts from the card's photo, name and prices.
   if (isLoading)
     return (
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
         <StatusBar barStyle="dark-content" />
         <View accessibilityLabel={t("productDetails.loading")} style={{ flex: 1 }}>
-          <View style={{ width, height: width, backgroundColor: theme.colors.colorSurfaceMuted }}>
-            {preview?.imageUrl ? <Image source={remoteImage(preview.imageUrl)} contentFit="cover" style={{ width, height: width }} /> : null}
+          <View style={{ width, height: width }}>
+            <Skeleton height={width} width={width} radius={0} />
             <PhotoButtons />
           </View>
-          <View style={{ gap: theme.spacing.lg, padding: theme.layout.screenHorizontalPadding }}>
-            {preview ? (
-              <View style={{ gap: theme.spacing.xs }}>
-                <ThemedText variant="h1">{localized(preview.name, preview.nameGu, language)}</ThemedText>
-                <ThemedText variant="h1" weight="extrabold">{formatRupees(preview.priceFromPaise)}</ThemedText>
-              </View>
-            ) : null}
+          <View style={{ gap: theme.spacing.md, padding: theme.layout.screenHorizontalPadding }}>
+            <Skeleton height={26} width="70%" />
+            <Skeleton height={30} width="35%" />
             <ProductDetailSkeleton compact />
           </View>
         </View>
@@ -256,9 +254,16 @@ function ProductDetailsContent() {
               onRetry={() => void delivery.refetch()}
             />
 
-            {existing ? <ExistingPlanCard subscription={existing} language={language} /> : repeating ? <SubscribeSetup kind={repeating} product={product} unitPricePaise={variant.pricePaise} slots={slots} language={language} choice={choice} onChange={setChoice} /> : null}
+            {existing ? <ExistingPlanCard subscription={existing} language={language} /> : repeating && isPlaceholderData ? <ProductDetailSkeleton compact /> : repeating ? <SubscribeSetup kind={repeating} product={product} unitPricePaise={variant.pricePaise} slots={slots} language={language} choice={choice} onChange={setChoice} /> : null}
 
-            {description || highlights.length > 0 ? (
+            {isPlaceholderData ? (
+              <View style={{ gap: theme.spacing.sm }}>
+                <SectionTitle>{t("productDetails.about")}</SectionTitle>
+                <Skeleton height={14} width="92%" />
+                <Skeleton height={14} width="80%" />
+                <Skeleton height={14} width="55%" />
+              </View>
+            ) : description || highlights.length > 0 ? (
               <View style={{ gap: theme.spacing.sm }}>
                 <SectionTitle>{t("productDetails.about")}</SectionTitle>
                 {highlights.map((line) => (

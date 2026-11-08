@@ -1278,5 +1278,61 @@
     "oneTimeOnly": "Works for: one-time orders",
     "oncePerCard": "One use per card, only for you",
     "offerEnded": "This offer has ended"
+  },
+  "receipt": {
+    "title": "Order receipt",
+    "orderNumber": "Order number",
+    "placedOn": "Placed on",
+    "delivery": "Delivery",
+    "payment": "Payment",
+    "paidOnline": "Paid online",
+    "onCredit": "On credit account",
+    "each": "each",
+    "itemTotal": "Item total",
+    "deliveryFee": "Delivery fee",
+    "total": "Total",
+    "totalPaid": "Total paid",
+    "deliverTo": "Deliver to",
+    "thanks": "Thank you for choosing ShreeRam Milks"
+  },
+  "track": {
+    "title": "Order details",
+    "titleNumber": "Order {{number}}",
+    "arriving": "Arriving",
+    "progress": "Order progress",
+    "deliveryDetails": "Delivery details",
+    "deliveryWindow": "Delivery window",
+    "deliverTo": "Deliver to",
+    "courier": "By courier",
+    "bill": "Bill details",
+    "orderInfo": "Order information",
+    "help": "Need help with this order?",
+    "pending": "Waiting",
+    "expected": "Expected {{day}}, {{window}}",
+    "deliveredAt": "Delivered on {{when}}",
+    "state": {
+      "done": "done",
+      "current": "in progress",
+      "todo": "to come",
+      "stopped": "stopped"
+    },
+    "now": {
+      "placed": "We are preparing your order",
+      "out_for_delivery": "Our rider is on the way"
+    },
+    "headline": {
+      "placed": "Your order is confirmed",
+      "out_for_delivery": "Your order is on the way",
+      "delivered": "Your order was delivered",
+      "missed": "We could not deliver this order",
+      "cancelled": "This order was cancelled",
+      "overdue": "Your delivery is running late"
+    },
+    "payment": {
+      "paidOnline": "Paid online",
+      "onCredit": "Added to your credit account",
+      "refunded": "Refunded",
+      "partlyRefunded": "Partly refunded"
+    }
   }
 }

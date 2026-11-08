@@ -65,7 +65,7 @@ function ScratchSheet({ card, onClose, title }: { card: RewardCard; onClose: () 
   };
   const openOffer = () => {
     // Measured while the pop-up is still showing, so the offer page grows out of this very card.
-    openFromCard(cardBox.current, `card:${card.id}`, theme.radii.lg, () => { onClose(); router.push({ pathname: "/offer", params: { cardId: card.id } }); });
+    openFromCard(cardBox.current, `card:${card.id}`, theme.radii.lg, card.offer.imageUrl, () => { onClose(); router.push({ pathname: "/offer", params: { cardId: card.id } }); });
   };
 
   return (

@@ -4,9 +4,11 @@ import { useCallback, useMemo } from "react";
 import { getCatalogProduct, getCatalogProducts, getCategories } from "../services/catalogService";
 import { getProductDelivery, PIN_CODE } from "../services/deliveryAvailabilityService";
 import { queryKeys } from "../services/queryKeys";
-import type { CatalogProduct } from "../types/catalog";
+import type { CatalogProduct, CatalogProductDetail } from "../types/catalog";
 
 const PRODUCT_STALE_MS = 60 * 1000;
+/** A product page opened again within this time reuses what it already has, without asking the server again. */
+const PRODUCT_DETAIL_STALE_MS = 5 * 60 * 1000;
 
 /** The shelves (categories) the admin has switched on. */
 export function useCatalogCategories() {
@@ -31,7 +33,21 @@ export function useProductImages(): ReadonlyMap<string, string> {
 }
 
 export function useCatalogProduct(id: string | undefined) {
-  return useQuery({ queryKey: queryKeys.catalogProduct(id ?? ""), queryFn: () => getCatalogProduct(id ?? ""), enabled: Boolean(id), staleTime: PRODUCT_STALE_MS });
+  const preview = useCatalogProductPreview(id);
+  return useQuery({
+    queryKey: queryKeys.catalogProduct(id ?? ""),
+    queryFn: () => getCatalogProduct(id ?? ""),
+    enabled: Boolean(id),
+    staleTime: PRODUCT_DETAIL_STALE_MS,
+    // The page opens at once with what the tapped card already knows (photo, name, sizes, prices); the rest fills in when it
+    // arrives. isPlaceholderData tells the page which parts are still on their way. No extra request is made for this.
+    placeholderData: preview ? () => previewAsDetail(preview) : undefined,
+  });
+}
+
+/** A list entry dressed as a product page: everything the list knows, with the page-only details still empty. */
+function previewAsDetail(product: CatalogProduct): CatalogProductDetail {
+  return { ...product, longDescriptionEn: "", longDescriptionGu: "", nutritionEn: "", nutritionGu: "", highlightsEn: [], highlightsGu: [], galleryUrls: [], deliveryMethod: null, trialPlans: [], subscriptionRules: [] };
 }
 
 /** The list entry for a product, already in memory from Home or Products, so its page can show the photo, name and price at once. */
@@ -66,7 +82,7 @@ export function useCatalogProductImage(productId: string | undefined) {
 export function usePrefetchCatalogProduct() {
   const client = useQueryClient();
   return useCallback(
-    (id: string) => void client.prefetchQuery({ queryKey: queryKeys.catalogProduct(id), queryFn: () => getCatalogProduct(id), staleTime: PRODUCT_STALE_MS }),
+    (id: string) => void client.prefetchQuery({ queryKey: queryKeys.catalogProduct(id), queryFn: () => getCatalogProduct(id), staleTime: PRODUCT_DETAIL_STALE_MS }),
     [client],
   );
 }
