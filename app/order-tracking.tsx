@@ -76,7 +76,7 @@ function StatusSummary({ order, overdue, expected, countdown }: { order: Order; 
   const label = overdue ? t("shop.status.overdue") : t(`shop.status.${order.status}`);
   const headline = overdue ? t("track.headline.overdue") : t(`track.headline.${order.status}`);
   const sub = order.status === "delivered"
-    ? t("track.deliveredAt", { when: formatPlacedAt(order.timeline.find((entry) => entry.status === "delivered")?.at ?? order.placedAt, language) })
+    ? t("track.deliveredAt", { when: formatPlacedAt((order.timeline ?? []).find((entry) => entry.status === "delivered")?.at ?? order.placedAt, language) })
     : order.status === "cancelled" ? (order.cancelReason ? t("shop.tracking.cancelledWithReason", { reason: order.cancelReason }) : t("shop.tracking.cancelledNote"))
       : order.status === "missed" ? t("shop.tracking.missedNote")
         : overdue ? t("shop.tracking.overdueNote")

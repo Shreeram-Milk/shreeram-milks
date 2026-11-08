@@ -19,7 +19,8 @@ export type OrderStep = { key: string; status: OrderStatus; state: StepState; at
  */
 export function orderSteps(order: Pick<Order, "status" | "timeline" | "placedAt">): OrderStep[] {
   // "Placed" always has a time: the order's own, even where the server sent no step times.
-  const timeOf = (status: OrderStatus) => order.timeline.find((entry) => entry.status === status)?.at ?? (status === "placed" && order.placedAt ? order.placedAt : null);
+  // Orders saved on the phone by an older version have no step times; they show without them instead of failing.
+  const timeOf = (status: OrderStatus) => (order.timeline ?? []).find((entry) => entry.status === status)?.at ?? (status === "placed" && order.placedAt ? order.placedAt : null);
   const stopped = order.status === "missed" || order.status === "cancelled";
   if (stopped) {
     const reached = FLOW.filter((status) => status === "placed" || timeOf(status) !== null);

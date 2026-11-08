@@ -15,6 +15,12 @@ import { ThemeProvider } from '../theme';
 import { ToastProvider } from './ToastProvider';
 
 const SAVED_FOR_MS = 24 * 60 * 60 * 1000;
+/**
+ * Raise this when the shape of saved data changes (for example orders gained step times), so data saved by an older version is
+ * dropped once instead of reaching screens that expect the new shape. An over-the-air update keeps the app version, so the version
+ * alone is not enough.
+ */
+const SAVED_DATA_SHAPE = 2;
 
 const queryClient = new QueryClient({
   // Kept in memory as long as it is kept on the phone, so a saved answer is still there to show on the next start.
@@ -50,7 +56,7 @@ export function AppProviders({ children }: PropsWithChildren) {
     <KeyboardProvider>
       <SafeAreaProvider>
         <ThemeProvider>
-          <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: SAVED_FOR_MS, buster: APP_VERSION, dehydrateOptions: { shouldDehydrateQuery: shouldSave } }}>
+          <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: SAVED_FOR_MS, buster: `${APP_VERSION}-${SAVED_DATA_SHAPE}`, dehydrateOptions: { shouldDehydrateQuery: shouldSave } }}>
             <ToastProvider>{children}</ToastProvider>
           </PersistQueryClientProvider>
         </ThemeProvider>
