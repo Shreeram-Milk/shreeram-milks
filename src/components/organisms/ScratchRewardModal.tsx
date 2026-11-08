@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
-import Animated, { ZoomIn, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
+import Animated, { Easing, ReduceMotion, ZoomIn, useAnimatedStyle, useSharedValue, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
 
 import { useScratchReward } from "../../hooks/useRewards";
 import { GiftIcon } from "../../icons/appIcons";
@@ -21,6 +21,8 @@ import { ScratchCard } from "../molecules/ScratchCard";
 
 const CARD_WIDTH = 288;
 const CARD_HEIGHT = 216;
+/** The pop-up opens from just below full size with a plain ease-out: calm, no overshoot or bounce. */
+const OPEN = ZoomIn.duration(240).easing(Easing.out(Easing.cubic)).withInitialValues({ transform: [{ scale: 0.95 }] }).reduceMotion(ReduceMotion.System);
 
 /** What is under the foil: the reward in big letters, then the code once the server has sent it. */
 function RewardFace({ card, code, scale }: { card: RewardCard; code: string | null; scale: SharedValue<number> }) {
@@ -61,7 +63,8 @@ function ScratchSheet({ card, onClose, title }: { card: RewardCard; onClose: () 
   const start = () => scratch.mutate(card.id, { onSuccess: (updated) => setCode(updated.offer.code) });
   const reveal = () => {
     setRevealed(true);
-    face.set(withTiming(1.06, { duration: 140 }, () => { face.value = withSpring(1, { damping: 12, stiffness: 260 }); }));
+    // A small, calm nudge when the reward shows: grows a touch and settles back, with no springy wobble.
+    face.set(withSequence(withTiming(1.012, { duration: 120, easing: Easing.out(Easing.quad) }), withTiming(1, { duration: 180, easing: Easing.inOut(Easing.quad) })));
   };
   const openOffer = () => {
     // Measured while the pop-up is still showing, so the offer page grows out of this very card.
@@ -72,7 +75,7 @@ function ScratchSheet({ card, onClose, title }: { card: RewardCard; onClose: () 
     <Modal visible transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <Pressable accessibilityRole="button" accessibilityLabel={t("commonActions.close")} onPress={onClose} style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(31,28,24,0.62)" }]} />
       <View pointerEvents="box-none" style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: theme.spacing.lg }}>
-        <Animated.View entering={ZoomIn.springify().damping(14).stiffness(220)} style={{ width: CARD_WIDTH + theme.spacing.lg * 2, alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.lg, borderRadius: theme.radii.xl, backgroundColor: theme.colors.colorSurface }}>
+        <Animated.View entering={OPEN} style={{ width: CARD_WIDTH + theme.spacing.lg * 2, alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.lg, borderRadius: theme.radii.xl, backgroundColor: theme.colors.colorSurface }}>
           <View style={{ alignItems: "center", gap: 2 }}>
             <ThemedText variant="h2" weight="extrabold" style={{ textAlign: "center" }}>{revealed ? t("rewards.youWon") : (title ?? t("rewards.wonTitle"))}</ThemedText>
             <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textAlign: "center" }}>{revealed ? t("rewards.useAtCheckout") : t("rewards.wonDetail", { order: card.orderNumber })}</ThemedText>
