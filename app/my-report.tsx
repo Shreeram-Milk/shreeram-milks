@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { StatusBar, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
 
 import { AppInput } from "../src/components/atoms/AppInput";
 import { Badge } from "../src/components/atoms/Badge";
@@ -45,7 +46,7 @@ export default function MyReportScreen() {
           <StateMessage type="error" title={t("myReports.errorTitle")} description={describeError(error)} actionLabel={t("common.retry")} onAction={() => void refetch()} />
         ) : (
           <>
-            <KeyboardAwareScrollView mode="layout" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing.md, paddingVertical: theme.spacing.md }}>
+            <KeyboardAwareScrollView mode="layout" bottomOffset={theme.spacing.md} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing.md, paddingVertical: theme.spacing.md }}>
               <Badge variant={BADGE[thread.ticket.status]}>{t(`myReports.status.${thread.ticket.status}`)}</Badge>
               {thread.messages.map((message) => {
                 const mine = message.author === "customer";
@@ -64,11 +65,11 @@ export default function MyReportScreen() {
             {thread.ticket.status === "closed" ? (
               <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, textAlign: "center", paddingVertical: theme.spacing.md }}>{t("myReports.closedNote")}</ThemedText>
             ) : (
-              <View style={{ gap: theme.spacing.sm, paddingVertical: theme.spacing.md }}>
+              <KeyboardActionBar>
                 {reply.error ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(reply.error)}</ThemedText> : null}
                 <AppInput accessibilityLabel={t("myReports.replyLabel")} maxLength={MAX_LENGTH} multiline onChangeText={setDraft} placeholder={t("myReports.replyPlaceholder")} style={{ minHeight: theme.sizes.inputHeight * 2, paddingTop: theme.spacing.md, textAlignVertical: "top" }} value={draft} />
                 <Button disabled={trimmed.length === 0} loading={reply.isPending} onPress={send}>{t("myReports.send")}</Button>
-              </View>
+              </KeyboardActionBar>
             )}
           </>
         )}

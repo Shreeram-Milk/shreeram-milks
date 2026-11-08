@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { defaultFeatureFlags, getAppConfig } from "../services/appSettingsService";
 import { getBanners } from "../services/bannerService";
 import { getHelpContent, type HelpContent } from "../services/helpService";
-import { getOffers } from "../services/offerService";
+import { getOffer, getOffers } from "../services/offerService";
 import { getOnboardingSlides } from "../services/onboardingContentService";
 import { getPolicies } from "../services/policyService";
 import { queryKeys } from "../services/queryKeys";
@@ -17,6 +17,7 @@ export const useAppConfig = () => useQuery({ queryKey: queryKeys.appConfig, quer
 /** The admin's feature switches. All on until the settings arrive, so a slow connection never hides a feature by mistake. */
 export const useFeatureFlags = () => useAppConfig().data?.flags ?? defaultFeatureFlags;
 export const useOffers = () => useQuery({ queryKey: queryKeys.offers, queryFn: getOffers, staleTime: BANNER_STALE_MS, refetchOnWindowFocus: true });
+export const useOffer = (id: string) => useQuery({ queryKey: queryKeys.offer(id), queryFn: () => getOffer(id), enabled: id !== "", staleTime: BANNER_STALE_MS });
 export const useBanners = () => useQuery({ queryKey: queryKeys.banners, queryFn: getBanners, staleTime: BANNER_STALE_MS, refetchOnWindowFocus: true });
 // Topics and questions arrive in one request; both hooks share it, so opening Help or Report costs one call, not two.
 const selectFaqs = (content: HelpContent) => content.faqs;

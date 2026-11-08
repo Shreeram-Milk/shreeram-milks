@@ -11,6 +11,8 @@ let cached: NotificationsModule | null | undefined;
  */
 export function loadNotifications(): NotificationsModule | null {
   if (cached !== undefined) return cached;
+  // Notifications belong to the phone app; in a web browser (used for testing) there are none.
+  if (Platform.OS === "web") { cached = null; return cached; }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     cached = require("expo-notifications") as NotificationsModule;

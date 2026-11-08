@@ -1,4 +1,4 @@
-import { memo, useEffect } from "react";
+import { memo, useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ import { useTheme } from "../../theme";
 import type { CatalogProduct } from "../../types/catalog";
 import type { AppLanguage } from "../../types/models";
 import { remoteImage } from "../../lib/remoteImage";
+import { openFromCard } from "../../lib/morph";
 
 interface CatalogProductCardProps {
   isAdded?: boolean;
@@ -36,6 +37,7 @@ export const CatalogProductCard = memo(function CatalogProductCard({ isAdded = f
   const { showToast } = useToast();
   const prefetch = usePrefetchCatalogProduct();
   const pop = useSharedValue(1);
+  const photo = useRef<View>(null);
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
 
   useEffect(() => {
@@ -69,9 +71,9 @@ export const CatalogProductCard = memo(function CatalogProductCard({ isAdded = f
 
   return (
     <View style={{ flex: 1, overflow: "hidden", borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface, ...theme.elevation.card }}>
-      <PressableScale accessibilityRole="button" accessibilityLabel={productName} onPress={() => onPress(product.id)} onPressIn={() => prefetch(product.id)}>
+      <PressableScale accessibilityRole="button" accessibilityLabel={productName} onPress={() => openFromCard(photo.current, `product:${product.id}`, theme.radii.lg, () => onPress(product.id))} onPressIn={() => prefetch(product.id)}>
         {/* The photo runs edge to edge across the top of the card; the card's own rounded corners clip it. */}
-        <View style={{ backgroundColor: theme.colors.colorSurfaceMuted }}>
+        <View ref={photo} collapsable={false} style={{ backgroundColor: theme.colors.colorSurfaceMuted }}>
           <Image source={remoteImage(product.imageUrl)} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: "100%", aspectRatio: 1 }} />
           {badge ? (
             <View style={{ position: "absolute", top: theme.spacing.sm, left: theme.spacing.sm, borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.sm, paddingVertical: 3, backgroundColor: theme.colors.colorAccent }}>

@@ -9,6 +9,7 @@
     "labelEn": "SEASONAL OFFER",
     "labelGu": "મોસમી ઑફર",
     "imageUrl": null,
+    "showText": true,
     "ctaType": "category",
     "ctaTarget": "category-milk",
     "sortOrder": 1

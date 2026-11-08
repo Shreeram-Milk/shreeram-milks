@@ -37,7 +37,7 @@ export interface FaqItem {
 }
 
 export type BannerType = "promotion" | "warning" | "maintenance" | "informational";
-export type BannerCtaType = "none" | "product" | "category" | "offers";
+export type BannerCtaType = "none" | "product" | "category" | "offers" | "offer" | "subscriptions" | "trials" | "orders" | "rewards";
 
 export interface BannerContent {
   id: string;
@@ -50,6 +50,8 @@ export interface BannerContent {
   labelEn: string;
   labelGu: string;
   imageUrl: string | null;
+  /** False: the picture shows alone, because it already carries its own words. */
+  showText: boolean;
   ctaType: BannerCtaType;
   ctaTarget: string;
   sortOrder: number;
@@ -99,7 +101,13 @@ export interface AppConfig {
   afterHoursMessageGu: string;
   deliveryPromiseEn: string;
   deliveryPromiseGu: string;
+  /** Emergency only: apps older than this are stopped until updated. */
   minimumAppVersion: string;
+  /** The newest app on the Play Store: older apps show a small "Update available" strip and keep working. */
+  latestAppVersion: string;
+  /** Scratch cards after delivered orders. */
+  rewardsEnabled: boolean;
+  rewardsMinOrderPaise: number;
   maintenanceMode: boolean;
   maintenanceMessageEn: string;
   maintenanceMessageGu: string;

@@ -2,7 +2,7 @@
  * The only screens a notification may open. A message (from the server or from a tampered push) can never send the app anywhere
  * else: anything not on this list is ignored.
  */
-const ALLOWED_LINKS = ["/order-tracking?orderId=", "/subscription-manage?id=", "/orders", "/subscriptions", "/notifications", "/offers"] as const;
+const ALLOWED_LINKS = ["/order-tracking?orderId=", "/subscription-manage?id=", "/orders", "/subscriptions", "/notifications", "/offers", "/offer?offerId=", "/rewards"] as const;
 
 /** The link when it is one of the allowed screens, otherwise null. */
 export function safeAppLink(value: unknown): string | null {

@@ -16,6 +16,7 @@ import { ProductDeliveryCard } from "../src/components/molecules/ProductDelivery
 import { QuantityStepper } from "../src/components/molecules/QuantityStepper";
 import { SegmentedTabs } from "../src/components/molecules/SegmentedTabs";
 import { ExistingPlanCard } from "../src/components/organisms/ExistingPlanCard";
+import { MorphPage } from "../src/components/organisms/MorphPage";
 import { ProductImageCarousel } from "../src/components/organisms/ProductImageCarousel";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { SubscribeSetup, emptyChoice, resolveChoice, type SubscribeChoice } from "../src/components/organisms/SubscribeSetup";
@@ -52,7 +53,19 @@ function SectionTitle({ children }: { children: string }) {
   return <ThemedText variant="body" weight="bold">{children}</ThemedText>;
 }
 
+/** The product page grows out of the product card that was tapped (or slides up when opened from a banner). */
 export default function ProductDetailsScreen() {
+  const insets = useSafeAreaInsets();
+  const { productId } = useLocalSearchParams<{ productId?: string }>();
+  const id = Array.isArray(productId) ? productId[0] : productId;
+  return (
+    <MorphPage morphKey={`product:${id ?? ""}`} anchorTop={insets.top}>
+      <ProductDetailsContent />
+    </MorphPage>
+  );
+}
+
+function ProductDetailsContent() {
   const theme = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();

@@ -21,6 +21,7 @@ export function parseAppConfig(raw: unknown): AppConfig {
     showSeasonalBanner: flag(flagsRaw.showSeasonalBanner, defaults.flags.showSeasonalBanner),
   };
   const version = text(item.minimumAppVersion, defaults.minimumAppVersion);
+  const latest = text(item.latestAppVersion, defaults.latestAppVersion);
   return {
     supportPhone: text(item.supportPhone, defaults.supportPhone),
     supportEmail: text(item.supportEmail, defaults.supportEmail),
@@ -34,6 +35,9 @@ export function parseAppConfig(raw: unknown): AppConfig {
     deliveryPromiseEn: text(item.deliveryPromiseEn, defaults.deliveryPromiseEn),
     deliveryPromiseGu: text(item.deliveryPromiseGu, defaults.deliveryPromiseGu),
     minimumAppVersion: /^\d+\.\d+\.\d+$/.test(version) ? version : defaults.minimumAppVersion,
+    latestAppVersion: /^\d+\.\d+\.\d+$/.test(latest) ? latest : defaults.latestAppVersion,
+    rewardsEnabled: flag(item.rewardsEnabled, false),
+    rewardsMinOrderPaise: typeof item.rewardsMinOrderPaise === "number" && Number.isFinite(item.rewardsMinOrderPaise) ? Math.max(0, Math.trunc(item.rewardsMinOrderPaise)) : 0,
     maintenanceMode: flag(item.maintenanceMode, false),
     maintenanceMessageEn: text(item.maintenanceMessageEn, defaults.maintenanceMessageEn),
     maintenanceMessageGu: text(item.maintenanceMessageGu, defaults.maintenanceMessageGu),

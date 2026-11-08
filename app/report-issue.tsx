@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { StatusBar, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ACTION_BAR_SPACE, KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
 
 import { AppInput } from "../src/components/atoms/AppInput";
 import { Button } from "../src/components/atoms/Button";
@@ -61,7 +62,7 @@ export default function ReportIssueScreen() {
       <StatusBar barStyle="dark-content" />
       <View style={{ flex: 1, paddingHorizontal: theme.layout.screenHorizontalPadding }}>
         <ScreenHeader backLabel={t("commonActions.back")} title={t("reportIssue.title")} />
-        <KeyboardAwareScrollView mode="layout" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing.lg, paddingVertical: theme.spacing.md, paddingBottom: theme.spacing.xxl }}>
+        <KeyboardAwareScrollView mode="layout" bottomOffset={ACTION_BAR_SPACE} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing.lg, paddingVertical: theme.spacing.md }}>
           <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("reportIssue.intro")}</ThemedText>
 
           <View style={{ gap: theme.spacing.sm }}>
@@ -112,7 +113,7 @@ export default function ReportIssueScreen() {
             </View>
           ) : null}
         </KeyboardAwareScrollView>
-        <View style={{ paddingVertical: theme.spacing.md }}>
+        <KeyboardActionBar>
           <Button
             disabled={!canSend}
             loading={report.isPending}
@@ -120,7 +121,7 @@ export default function ReportIssueScreen() {
           >
             {report.isPending ? t("reportIssue.sending") : t("reportIssue.submit")}
           </Button>
-        </View>
+        </KeyboardActionBar>
       </View>
     </SafeAreaView>
   );

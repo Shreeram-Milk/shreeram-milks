@@ -1,11 +1,11 @@
 import type { IconSvgElement } from '@hugeicons/react-native';
 
 /**
- * The artwork for the 41 icons the app uses, copied from the Hugeicons free set
+ * The artwork for the 44 icons the app uses, copied from the Hugeicons free set
  * (MIT License, Copyright (c) 2025 Hugeicons: see HUGEICONS-LICENSE.md in this folder).
  *
  * Why a copy: the package exposes its ~4,000 icons from one index file, and the app's bundler loads every file that index
- * names, even for 41 icons. That made start-up slow and could run out of open-file slots on Windows (error EMFILE).
+ * names, even for 44 icons. That made start-up slow and could run out of open-file slots on Windows (error EMFILE).
  *
  * To add an icon: copy its array from node_modules/@hugeicons/core-free-icons/dist/esm/<Name>.js into this file,
  * then give it a name in appIcons.ts.
@@ -226,4 +226,24 @@ export const RepeatIcon: IconSvgElement = [
 export const WhatsappIcon: IconSvgElement = [
   ["path", { d: "M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.3789 2.27907 14.6926 2.78382 15.8877C3.06278 16.5481 3.20226 16.8784 3.21953 17.128C3.2368 17.3776 3.16334 17.6521 3.01642 18.2012L2 22L5.79877 20.9836C6.34788 20.8367 6.62244 20.7632 6.87202 20.7805C7.12161 20.7977 7.45185 20.9372 8.11235 21.2162C9.30745 21.7209 10.6211 22 12 22Z", stroke: "currentColor", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
   ["path", { d: "M8.58815 12.3773L9.45909 11.2956C9.82616 10.8397 10.2799 10.4153 10.3155 9.80826C10.3244 9.65494 10.2166 8.96657 10.0008 7.58986C9.91601 7.04881 9.41086 7 8.97332 7C8.40314 7 8.11805 7 7.83495 7.12931C7.47714 7.29275 7.10979 7.75231 7.02917 8.13733C6.96539 8.44196 7.01279 8.65187 7.10759 9.07169C7.51023 10.8548 8.45481 12.6158 9.91948 14.0805C11.3842 15.5452 13.1452 16.4898 14.9283 16.8924C15.3481 16.9872 15.558 17.0346 15.8627 16.9708C16.2477 16.8902 16.7072 16.5229 16.8707 16.165C17 15.8819 17 15.5969 17 15.0267C17 14.5891 16.9512 14.084 16.4101 13.9992C15.0334 13.7834 14.3451 13.6756 14.1917 13.6845C13.5847 13.7201 13.1603 14.1738 12.7044 14.5409L11.6227 15.4118", stroke: "currentColor", strokeWidth: "1.5", key: "1" }]
+];
+
+export const Copy01Icon: IconSvgElement = [
+  ["path", { d: "M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }]
+];
+
+export const GiftIcon: IconSvgElement = [
+  ["path", { d: "M4 11V15C4 18.2998 4 19.9497 5.02513 20.9749C6.05025 22 7.70017 22 11 22H13C16.2998 22 17.9497 22 18.9749 20.9749C20 19.9497 20 18.2998 20 15V11", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M3 9C3 8.25231 3 7.87846 3.20096 7.6C3.33261 7.41758 3.52197 7.26609 3.75 7.16077C4.09808 7 4.56538 7 5.5 7H18.5C19.4346 7 19.9019 7 20.25 7.16077C20.478 7.26609 20.6674 7.41758 20.799 7.6C21 7.87846 21 8.25231 21 9C21 9.74769 21 10.1215 20.799 10.4C20.6674 10.5824 20.478 10.7339 20.25 10.8392C19.9019 11 19.4346 11 18.5 11H5.5C4.56538 11 4.09808 11 3.75 10.8392C3.52197 10.7339 3.33261 10.5824 3.20096 10.4C3 10.1215 3 9.74769 3 9Z", stroke: "currentColor", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }],
+  ["path", { d: "M6 3.78571C6 2.79949 6.79949 2 7.78571 2H8.14286C10.2731 2 12 3.7269 12 5.85714V7H9.21429C7.43908 7 6 5.56091 6 3.78571Z", stroke: "currentColor", strokeLinejoin: "round", strokeWidth: "1.5", key: "2" }],
+  ["path", { d: "M18 3.78571C18 2.79949 17.2005 2 16.2143 2H15.8571C13.7269 2 12 3.7269 12 5.85714V7H14.7857C16.5609 7 18 5.56091 18 3.78571Z", stroke: "currentColor", strokeLinejoin: "round", strokeWidth: "1.5", key: "3" }],
+  ["path", { d: "M12 11L12 22", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "4" }]
+];
+
+export const CouponPercentIcon: IconSvgElement = [
+  ["path", { d: "M15.0001 9L9.00006 15", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M9.37506 9.25H9.25006M9.50006 9.25C9.50006 9.38807 9.38813 9.5 9.25006 9.5C9.11199 9.5 9.00006 9.38807 9.00006 9.25C9.00006 9.11193 9.11199 9 9.25006 9C9.38813 9 9.50006 9.11193 9.50006 9.25Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }],
+  ["path", { d: "M14.8751 14.75H14.7501M15.0001 14.75C15.0001 14.8881 14.8881 15 14.7501 15C14.612 15 14.5001 14.8881 14.5001 14.75C14.5001 14.6119 14.612 14.5 14.7501 14.5C14.8881 14.5 15.0001 14.6119 15.0001 14.75Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "2" }],
+  ["path", { d: "M2.00012 14.5C3.38083 14.5 4.50012 13.3807 4.50012 12C4.50012 10.6193 3.38083 9.5 2.00012 9.5C2.00012 7.15442 2.00012 5.98164 2.62006 5.17372C2.77966 4.96572 2.96584 4.77954 3.17384 4.61994C3.98176 4 5.15455 4 7.50012 4H16.5001C18.8457 4 20.0185 4 20.8264 4.61994C21.0344 4.77954 21.2206 4.96572 21.3802 5.17372C22.0001 5.98164 22.0001 7.15442 22.0001 9.5C20.6194 9.5 19.5001 10.6193 19.5001 12C19.5001 13.3807 20.6194 14.5 22.0001 14.5C22.0001 16.8456 22.0001 18.0184 21.3802 18.8263C21.2206 19.0343 21.0344 19.2205 20.8264 19.3801C20.0185 20 18.8457 20 16.5001 20H7.50012C5.15455 20 3.98176 20 3.17384 19.3801C2.96584 19.2205 2.77966 19.0343 2.62006 18.8263C2.00012 18.0184 2.00012 16.8456 2.00012 14.5Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "3" }]
 ];

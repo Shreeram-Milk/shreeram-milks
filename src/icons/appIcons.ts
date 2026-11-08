@@ -43,4 +43,7 @@ export {
   Package01Icon as PackageIcon,
   RepeatIcon as RepeatIcon,
   WhatsappIcon as WhatsAppIcon,
+  Copy01Icon as CopyIcon,
+  GiftIcon as GiftIcon,
+  CouponPercentIcon as CouponIcon,
 } from "./hugeicons";

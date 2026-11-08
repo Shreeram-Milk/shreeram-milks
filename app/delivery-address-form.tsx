@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Animated, Easing, StatusBar, Switch, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ACTION_BAR_SPACE, KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "../src/components/atoms/Button";
@@ -166,11 +167,11 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
         >
           <KeyboardAwareScrollView
             mode="layout"
+            bottomOffset={ACTION_BAR_SPACE}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{
               gap: theme.spacing.md,
               paddingVertical: theme.spacing.md,
-              paddingBottom: theme.spacing.xxl,
             }}
           >
             {step === 1 ? (
@@ -216,9 +217,6 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                     />
                   )}
                 />
-                <Button onPress={nextStep}>
-                  {t("commonActions.continue")}
-                </Button>
               </>
             ) : (
               <>
@@ -352,31 +350,31 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                     }
                   />
                 </View>
-                {serverError ? (
-                  <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>
-                    {serverError}
-                  </ThemedText>
-                ) : null}
-                <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-                  <Button
-                    variant="secondary"
-                    style={{ flex: 1 }}
-                    onPress={() => transitionToStep(1, -1)}
-                  >
-                    {t("commonActions.back")}
-                  </Button>
-                  <Button
-                    style={{ flex: 1 }}
-                    loading={isSubmitting}
-                    onPress={handleSubmit(submit)}
-                  >
-                    {t(isSubmitting ? "addresses.saving" : "addresses.save")}
-                  </Button>
-                </View>
               </>
             )}
           </KeyboardAwareScrollView>
         </Animated.View>
+        <KeyboardActionBar>
+          {step === 1 ? (
+            <Button onPress={nextStep}>{t("commonActions.continue")}</Button>
+          ) : (
+            <>
+              {serverError ? (
+                <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>
+                  {serverError}
+                </ThemedText>
+              ) : null}
+              <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+                <Button variant="secondary" style={{ flex: 1 }} onPress={() => transitionToStep(1, -1)}>
+                  {t("commonActions.back")}
+                </Button>
+                <Button style={{ flex: 1 }} loading={isSubmitting} onPress={handleSubmit(submit)}>
+                  {t(isSubmitting ? "addresses.saving" : "addresses.save")}
+                </Button>
+              </View>
+            </>
+          )}
+        </KeyboardActionBar>
       </View>
     </SafeAreaView>
   );

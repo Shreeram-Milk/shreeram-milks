@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StatusBar, Switch, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ACTION_BAR_SPACE, KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
 import { AppInput } from "../src/components/atoms/AppInput";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
@@ -57,11 +58,11 @@ function InstructionsForm({ savedInstructions }: { savedInstructions: DoorstepIn
         />
         <KeyboardAwareScrollView
           mode="layout"
+          bottomOffset={ACTION_BAR_SPACE}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             gap: theme.spacing.lg,
             paddingVertical: theme.spacing.md,
-            paddingBottom: theme.spacing.xxl,
           }}
         >
           <ThemedText
@@ -121,13 +122,15 @@ function InstructionsForm({ savedInstructions }: { savedInstructions: DoorstepIn
               }
             />
           </View>
+        </KeyboardAwareScrollView>
+        <KeyboardActionBar>
           {saver.error ? (
             <ThemedText accessibilityLiveRegion="polite" variant="bodySmall" style={{ color: theme.colors.colorDanger }}>
               {describeError(saver.error)}
             </ThemedText>
           ) : null}
           <Button loading={saver.isPending} onPress={save}>{t("instructions.save")}</Button>
-        </KeyboardAwareScrollView>
+        </KeyboardActionBar>
       </View>
     </SafeAreaView>
   );

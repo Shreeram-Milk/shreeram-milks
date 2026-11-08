@@ -18,4 +18,12 @@ export interface Offer {
   appliesTrial: boolean;
   appliesSubscription: boolean;
   minPlanDays: number | null;
+  /** The picture at the top of the offer page, or null. */
+  imageUrl: string | null;
+  /** False: the picture shows alone, because it already carries its own words. */
+  showText: boolean;
+  /** Bullet points under the code. */
+  points: OfferPoint[];
 }
+
+export type OfferPoint = { en: string; gu: string };

@@ -3,7 +3,7 @@ import type { BannerContent, BannerCtaType, BannerType } from "../types/content"
 import { apiGet, hasApi } from "./apiClient";
 
 const TYPES: readonly BannerType[] = ["promotion", "warning", "maintenance", "informational"];
-const CTA_TYPES: readonly BannerCtaType[] = ["none", "product", "category", "offers"];
+const CTA_TYPES: readonly BannerCtaType[] = ["none", "product", "category", "offers", "offer", "subscriptions", "trials", "orders", "rewards"];
 
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
 
@@ -27,6 +27,8 @@ export function parseBanner(raw: unknown): BannerContent | null {
     labelEn: text(item.labelEn).trim(),
     labelGu: text(item.labelGu).trim(),
     imageUrl: typeof item.imageUrl === "string" && item.imageUrl.startsWith("https://") ? item.imageUrl : null,
+    // Text can be switched off only when there is a picture to show instead; an old server that does not send it shows text.
+    showText: item.showText === false && typeof item.imageUrl === "string" && item.imageUrl.startsWith("https://") ? false : true,
     ctaType: CTA_TYPES.includes(item.ctaType as BannerCtaType) ? (item.ctaType as BannerCtaType) : "none",
     ctaTarget: text(item.ctaTarget),
     sortOrder: typeof item.sortOrder === "number" ? item.sortOrder : 0,

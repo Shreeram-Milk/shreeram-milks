@@ -11,7 +11,7 @@ import { GoogleLogo } from '../src/components/atoms/GoogleLogo';
 import { IconButton } from '../src/components/atoms/IconButton';
 import { ThemedText } from '../src/components/atoms/ThemedText';
 import { LanguageChip } from '../src/components/molecules/LanguageChip';
-import { KeyboardAwareBottomDrawer } from '../src/components/organisms/KeyboardAwareBottomDrawer';
+import { ACTION_BAR_SPACE, KeyboardActionBar } from '../src/components/organisms/KeyboardActionBar';
 import { useAfterSignIn } from '../src/hooks/useAfterSignIn';
 import { useGoogleSignIn, useRequestCode } from '../src/hooks/useCustomerAuth';
 import { BackIcon, MailIcon } from '../src/icons/appIcons';
@@ -63,7 +63,7 @@ export default function SignInScreen() {
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
     <StatusBar barStyle="dark-content" />
     <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg }}>
-      <KeyboardAwareScrollView contentContainerStyle={{ paddingTop: theme.spacing.lg, paddingBottom: 88 }} keyboardShouldPersistTaps="handled" mode="layout">
+      <KeyboardAwareScrollView bottomOffset={ACTION_BAR_SPACE} contentContainerStyle={{ paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.lg }} keyboardShouldPersistTaps="handled" mode="layout">
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <IconButton icon={BackIcon} label={t('commonActions.back')} onPress={goBack} />
           <LanguageChip />
@@ -98,9 +98,9 @@ export default function SignInScreen() {
         </View>
       </KeyboardAwareScrollView>
       {step === 'email' ? (
-        <KeyboardAwareBottomDrawer openedOffset={theme.spacing.md} style={{ position: 'absolute', right: theme.spacing.lg, bottom: theme.spacing.md, left: theme.spacing.lg, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.sm, backgroundColor: theme.colors.colorBackground }}>
+        <KeyboardActionBar>
           <Button disabled={!canContinue} loading={requestCode.isPending} onPress={send}>{t('signIn.continue')}</Button>
-        </KeyboardAwareBottomDrawer>
+        </KeyboardActionBar>
       ) : null}
     </View>
   </SafeAreaView>;

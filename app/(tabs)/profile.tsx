@@ -8,10 +8,11 @@ import { Card } from "../../src/components/atoms/Card";
 import { IconButton } from "../../src/components/atoms/IconButton";
 import { RiseIn } from "../../src/components/atoms/RiseIn";
 import { ThemedText } from "../../src/components/atoms/ThemedText";
-import { useFeatureFlags } from "../../src/hooks/useContent";
+import { useAppConfig, useFeatureFlags } from "../../src/hooks/useContent";
+import { useMyRewards } from "../../src/hooks/useRewards";
 import { AccountMenuRow } from "../../src/components/molecules/AccountMenuRow";
 import { LanguageToggle } from "../../src/components/molecules/LanguageToggle";
-import { CalendarIcon, EditIcon, HelpIcon, InvoiceIcon, LocationIcon, RepeatIcon, SettingsIcon, WalletIcon } from "../../src/icons/appIcons";
+import { CalendarIcon, EditIcon, GiftIcon, HelpIcon, InvoiceIcon, LocationIcon, RepeatIcon, SettingsIcon, WalletIcon } from "../../src/icons/appIcons";
 import { FSSAI_NUMBER } from "../../src/lib/business";
 import { APP_VERSION } from "../../src/lib/appVersion";
 import { useSessionStore } from "../../src/store/useSessionStore";
@@ -36,6 +37,10 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const customer = useSessionStore((state) => state.customer);
   const flags = useFeatureFlags();
+  const { data: config } = useAppConfig();
+  const { data: rewards } = useMyRewards();
+  // Scratch cards show once rewards are switched on, or when the customer already holds some.
+  const showRewards = Boolean(config?.rewardsEnabled) || (rewards?.length ?? 0) > 0;
   const profile = { fullName: customer?.name || t("account.guest"), contact: customer?.email ?? "" };
 
   return (
@@ -62,8 +67,9 @@ export default function ProfileScreen() {
             <AccountMenuRow icon={InvoiceIcon} tone="brand" onPress={() => router.push("/orders")} subtitle={t("profile.orderHistorySubtitle")} title={t("profile.orderHistory")} />
             <AccountMenuRow icon={CalendarIcon} tone="accent" onPress={() => router.push("/delivery-calendar")} subtitle={t("profile.calendarSubtitle")} title={t("profile.deliveryCalendar")} />
             <AccountMenuRow icon={LocationIcon} tone="highlight" onPress={() => router.push("/delivery-addresses")} subtitle={t("profile.addressSubtitle")} title={t("profile.addresses")} />
-            <AccountMenuRow icon={RepeatIcon} tone="accent" onPress={() => router.navigate("/subscriptions")} subtitle={t("profile.subscriptionsSubtitle")} title={t("profile.subscriptions")} isLast={!flags.showOffers} />
-            {flags.showOffers ? <AccountMenuRow icon={WalletIcon} tone="highlight" onPress={() => router.push("/offers")} subtitle={t("offers.entryDetail")} title={t("offers.entry")} isLast /> : null}
+            <AccountMenuRow icon={RepeatIcon} tone="accent" onPress={() => router.navigate("/subscriptions")} subtitle={t("profile.subscriptionsSubtitle")} title={t("profile.subscriptions")} isLast={!flags.showOffers && !showRewards} />
+            {flags.showOffers ? <AccountMenuRow icon={WalletIcon} tone="highlight" onPress={() => router.push("/offers")} subtitle={t("offers.entryDetail")} title={t("offers.entry")} isLast={!showRewards} /> : null}
+            {showRewards ? <AccountMenuRow icon={GiftIcon} tone="brand" onPress={() => router.push("/rewards")} subtitle={t("rewards.entryDetail")} title={t("rewards.title")} isLast /> : null}
           </ProfileSection>
         </RiseIn>
         <RiseIn index={2}>

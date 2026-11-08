@@ -6,6 +6,9 @@ import { ThemedText } from "../atoms/ThemedText";
 import { formatRupees } from "../../lib/catalogCart";
 import { useTheme } from "../../theme";
 
+/** How far a checkout keeps a focused field (the offer code) above this bar, for `KeyboardAwareScrollView`'s `bottomOffset`. */
+export const CHECKOUT_FOOTER_SPACE = 112;
+
 interface CheckoutFooterProps {
   /** Amount in paise, shown as a preview; the server decides the real total. */
   amountPaise: number;

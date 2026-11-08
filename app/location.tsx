@@ -1,11 +1,8 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, Pressable, StatusBar, View } from "react-native";
-import {
-  KeyboardAwareScrollView,
-  KeyboardStickyView,
-} from "react-native-keyboard-controller";
+import { Pressable, StatusBar, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LocationIcon, MapPinIcon } from "../src/icons/appIcons";
@@ -14,7 +11,7 @@ import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { DeliverySetupHeader } from "../src/components/molecules/DeliverySetupHeader";
 import { PinAvailabilityCard } from "../src/components/molecules/PinAvailabilityCard";
-import { useScrollResponsiveBottomAction } from "../src/components/organisms/ScrollResponsiveBottomAction";
+import { ACTION_BAR_SPACE, KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
 import { usePinAvailability } from "../src/hooks/usePinAvailability";
 import { PIN_CODE } from "../src/services/deliveryAvailabilityService";
 import { StateMessage } from "../src/components/organisms/StateMessage";
@@ -31,7 +28,6 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
   const { t } = useTranslation();
   const language = useAppStore((state) => state.language);
   const setDeliveryPin = useAppStore((state) => state.setDeliveryPin);
-  const { bottomActionStyle, onScroll } = useScrollResponsiveBottomAction();
   // A returning customer starts from their default address instead of typing it all again.
   const [pin, setPin] = useState(useAppStore.getState().deliveryPin || prefill?.pincode || "");
   const [address, setAddress] = useState(prefill?.line1 ?? "");
@@ -81,16 +77,14 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
           skipLabel={t("location.skip")}
         />
         <KeyboardAwareScrollView
-          bottomOffset={104}
+          bottomOffset={ACTION_BAR_SPACE}
           mode="layout"
           keyboardShouldPersistTaps="handled"
-          onScroll={onScroll}
-          scrollEventThrottle={16}
           style={{ flex: 1 }}
           contentContainerStyle={{
             gap: theme.spacing.lg,
             paddingTop: theme.spacing.md,
-            paddingBottom: 132,
+            paddingBottom: theme.spacing.lg,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -176,36 +170,16 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
             ))}
           </View>
         </KeyboardAwareScrollView>
-        <KeyboardStickyView
-          offset={{ closed: 0, opened: theme.spacing.sm }}
-          style={{
-            position: "absolute",
-            right: theme.spacing.lg,
-            bottom: theme.spacing.sm,
-            left: theme.spacing.lg,
-          }}
-        >
-          <Animated.View
-            style={[
-              {
-                paddingTop: theme.spacing.xs,
-                backgroundColor: theme.colors.colorBackground,
-              },
-              bottomActionStyle,
-            ]}
-          >
-            <View style={{ paddingBottom: theme.spacing.xs }}>
-              {saveAddress.error ? (
-                <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger, paddingBottom: theme.spacing.xs }}>
-                  {describeError(saveAddress.error)}
-                </ThemedText>
-              ) : null}
-              <Button disabled={!complete || !detailsComplete} loading={saveAddress.isPending} onPress={() => void next()}>
-                {t("location.continue")}
-              </Button>
-            </View>
-          </Animated.View>
-        </KeyboardStickyView>
+        <KeyboardActionBar>
+          {saveAddress.error ? (
+            <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>
+              {describeError(saveAddress.error)}
+            </ThemedText>
+          ) : null}
+          <Button disabled={!complete || !detailsComplete} loading={saveAddress.isPending} onPress={() => void next()}>
+            {t("location.continue")}
+          </Button>
+        </KeyboardActionBar>
       </View>
     </SafeAreaView>
   );

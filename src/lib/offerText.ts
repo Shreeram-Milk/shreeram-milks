@@ -22,3 +22,10 @@ export function offerWorksForText(offer: Pick<Offer, "appliesOneTime" | "applies
   ];
   return parts.filter(Boolean).join(" · ");
 }
+
+/** "2026-10-31" (or a full timestamp) -> "31 Oct 2026", in the customer's language. Plain text, so no date library is needed. */
+export function formatOfferDay(day: string, language: "en" | "gu"): string {
+  const date = new Date(day.length === 10 ? `${day}T00:00:00Z` : day);
+  if (Number.isNaN(date.getTime())) return day;
+  return new Intl.DateTimeFormat(language === "gu" ? "gu-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: day.length === 10 ? "UTC" : "Asia/Kolkata" }).format(date);
+}

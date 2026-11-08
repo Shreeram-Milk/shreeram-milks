@@ -1,32 +1,35 @@
+import { router } from "expo-router";
+import { Image } from "expo-image";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "../src/components/atoms/Card";
+import { PressableScale } from "../src/components/atoms/PressableScale";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useOffers } from "../src/hooks/useContent";
 import { formatRupees } from "../src/lib/catalogCart";
 import { localized } from "../src/lib/contentLocalization";
-import { offerValueText, offerWorksForText } from "../src/lib/offerText";
+import { openFromCard } from "../src/lib/morph";
+import { formatOfferDay, offerValueText, offerWorksForText } from "../src/lib/offerText";
+import { remoteImage } from "../src/lib/remoteImage";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
 import type { Offer } from "../src/types/offers";
-
-/** "2026-10-31" -> "31 Oct 2026". Plain text, so no date library is needed. */
-function formatDay(day: string, language: "en" | "gu"): string {
-  const date = new Date(`${day}T00:00:00Z`);
-  return Number.isNaN(date.getTime()) ? day : new Intl.DateTimeFormat(language === "gu" ? "gu-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(date);
-}
 
 function OfferCard({ offer, language }: { offer: Offer; language: "en" | "gu" }) {
   const theme = useTheme();
   const { t } = useTranslation();
   const description = localized(offer.description, offer.descriptionGu, language);
+  const box = useRef<View>(null);
+  const open = () => openFromCard(box.current, `offer:${offer.id}`, theme.radii.lg, () => router.push({ pathname: "/offer", params: { offerId: offer.id } }));
   return (
-    <Card padded>
-      <View style={{ gap: theme.spacing.sm }}>
+    <PressableScale accessibilityRole="button" accessibilityLabel={localized(offer.title, offer.titleGu, language)} onPress={open}>
+      <View ref={box} collapsable={false} style={{ overflow: "hidden", borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface, ...theme.elevation.card }}>
+      {offer.imageUrl ? <Image source={remoteImage(offer.imageUrl)} contentFit="cover" style={{ width: "100%", aspectRatio: 2 }} /> : null}
+      <View style={{ gap: theme.spacing.sm, padding: theme.spacing.md }}>
         <View style={{ alignSelf: "flex-start", borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs, backgroundColor: theme.colors.colorAccentTint }}>
           <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorAccent }}>{offerValueText(offer, t)}</ThemedText>
         </View>
@@ -35,15 +38,15 @@ function OfferCard({ offer, language }: { offer: Offer; language: "en" | "gu" })
         {offer.minOrderPaise > 0 ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("offers.orderAbove", { amount: formatRupees(offer.minOrderPaise) })}</ThemedText> : null}
         <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("offers.worksFor")}: {offerWorksForText(offer, t)}</ThemedText>
         {offer.code ? (
-          <View style={{ alignSelf: "flex-start", borderRadius: theme.radii.md, borderWidth: theme.borderWidths.hairline, borderStyle: "dashed", borderColor: theme.colors.colorPrimary, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.xs }}>
-            <ThemedText variant="bodySmall" weight="bold" style={{ color: theme.colors.colorPrimary, letterSpacing: 1 }}>{t("offers.useCode", { code: offer.code })}</ThemedText>
-          </View>
+          <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorPrimary }}>{t("offers.hasCode")}</ThemedText>
         ) : (
           <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorAccent }}>{t("offers.automatic")}</ThemedText>
         )}
-        {offer.endsOn ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("offers.validUntil", { date: formatDay(offer.endsOn, language) })}</ThemedText> : null}
+        {offer.endsOn ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("offers.validUntil", { date: formatOfferDay(offer.endsOn, language) })}</ThemedText> : null}
+        <ThemedText variant="caption" weight="bold" style={{ color: theme.colors.colorPrimary }}>{t("offers.viewDetails")}</ThemedText>
       </View>
-    </Card>
+      </View>
+    </PressableScale>
   );
 }
 

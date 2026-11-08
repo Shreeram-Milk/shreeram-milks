@@ -15,7 +15,7 @@ import { ToastHost } from "../../providers/ToastProvider";
 import { useTheme } from "../../theme";
 import { AppIcon } from "../atoms/AppIcon";
 import { CloseIcon } from "../../icons/appIcons";
-import { KeyboardAwareBottomDrawer } from "./KeyboardAwareBottomDrawer";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 
 interface SubscriptionBottomSheetProps {
   onClose: () => void;
@@ -128,7 +128,8 @@ export function SubscriptionBottomSheet({
           onPress={close}
           style={StyleSheet.absoluteFill}
         />
-        <KeyboardAwareBottomDrawer>
+        {/* The sheet rides up on the keyboard, so a field inside it and its button stay visible. */}
+        <KeyboardStickyView>
           <Animated.View
             style={[
               {
@@ -176,7 +177,7 @@ export function SubscriptionBottomSheet({
             </Pressable>
             {children}
           </Animated.View>
-        </KeyboardAwareBottomDrawer>
+        </KeyboardStickyView>
         {/* The sheet opens in its own window above the app, so it carries its own copy of the toast. */}
         <ToastHost />
       </View>

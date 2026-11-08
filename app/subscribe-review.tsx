@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StatusBar, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, StatusBar, View } from "react-native";
+import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "../src/components/atoms/Button";
 import { RadioDot } from "../src/components/atoms/RadioDot";
@@ -11,7 +12,7 @@ import { CheckoutSection } from "../src/components/molecules/CheckoutSection";
 import { OfferCodeBox } from "../src/components/molecules/OfferCodeBox";
 import { PaymentPoller } from "../src/components/molecules/PaymentPoller";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
-import { CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
+import { CHECKOUT_FOOTER_SPACE, CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useAddresses } from "../src/hooks/useAddresses";
 import { useCheckPayment } from "../src/hooks/useOrders";
@@ -48,6 +49,7 @@ function readDraft(raw: string | string[] | undefined): Omit<SubscriptionDraft, 
 
 export default function SubscribeReviewScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const language = useAppStore((state) => state.language);
   const deliveryPin = useAppStore((state) => state.deliveryPin);
@@ -106,7 +108,7 @@ export default function SubscribeReviewScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
       <View style={{ paddingHorizontal: theme.layout.screenHorizontalPadding }}><ScreenHeader backLabel={t("commonActions.back")} title={t("subs.reviewTitle", { kind: kindText })} /></View>
-      <ScrollView contentContainerStyle={{ gap: theme.spacing.xl, padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.xl }}>
+      <KeyboardAwareScrollView bottomOffset={CHECKOUT_FOOTER_SPACE} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: theme.spacing.xl, padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.xl }}>
         <CheckoutSection title={t("checkout.review.deliveryTitle")}>
           {addressesLoading ? <View style={{ padding: theme.spacing.md }}><ThemedText variant="caption">{t("subs.loading")}</ThemedText></View> : null}
           {!addressesLoading && addresses.length === 0 ? (
@@ -192,7 +194,8 @@ export default function SubscribeReviewScreen() {
           </View>
         ) : null}
         {failure && !outcome ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(failure)}</ThemedText> : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
+      <KeyboardStickyView offset={{ closed: 0, opened: insets.bottom }}>
       <CheckoutFooter
         amountPaise={data?.totalPaise ?? 0}
         disabled={!data || quote.isFetching || busy || overCredit || badCode || outcome?.status === "pending"}
@@ -200,6 +203,7 @@ export default function SubscribeReviewScreen() {
         label={data?.paymentMethod === "credit" ? t("subs.startButton", { kind: kindText }) : t("shop.payment.payButton", { amount: formatRupees(data?.totalPaise ?? 0) })}
         onPress={submit}
       />
+      </KeyboardStickyView>
     </SafeAreaView>
   );
 }

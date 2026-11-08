@@ -8,7 +8,7 @@ import { Button } from '../src/components/atoms/Button';
 import { IconButton } from '../src/components/atoms/IconButton';
 import { ThemedText } from '../src/components/atoms/ThemedText';
 import { OtpBoxes } from '../src/components/molecules/OtpBoxes';
-import { KeyboardAwareBottomDrawer } from '../src/components/organisms/KeyboardAwareBottomDrawer';
+import { KeyboardActionBar } from '../src/components/organisms/KeyboardActionBar';
 import { useAfterSignIn } from '../src/hooks/useAfterSignIn';
 import { useRequestCode, useVerifyCode } from '../src/hooks/useCustomerAuth';
 import { isEmail } from '../src/lib/phone';
@@ -51,7 +51,7 @@ export default function VerifyScreen() {
 
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
     <StatusBar barStyle="dark-content" />
-    <View style={{ flex: 1, padding: theme.spacing.lg }}>
+    <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg }}>
       <IconButton icon={BackIcon} label={t('commonActions.back')} onPress={() => router.back()} />
       <View style={{ flex: 1, paddingTop: theme.spacing.xl, gap: theme.spacing.xl }}>
         <View style={{ gap: theme.spacing.sm }}><ThemedText variant="h1">{t('verify.title')}</ThemedText><ThemedText variant="body" style={{ color: theme.colors.colorTextSecondary }}>{t('verify.description', { email })}</ThemedText></View>
@@ -68,9 +68,9 @@ export default function VerifyScreen() {
           <ThemedText variant="bodySmall" weight="semibold" style={{ color: secondsLeft > 0 ? theme.colors.colorTextSecondary : theme.colors.colorPrimary }}>{secondsLeft > 0 ? t('verify.resendIn', { seconds: secondsLeft }) : t('verify.resend')}</ThemedText>
         </Pressable>
       </View>
-      <KeyboardAwareBottomDrawer style={{ position: 'absolute', right: theme.spacing.lg, bottom: theme.spacing.md, left: theme.spacing.lg, gap: theme.spacing.md, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.sm, backgroundColor: theme.colors.colorBackground }}>
+      <KeyboardActionBar>
         <Button disabled={!canContinue || routing} loading={verify.isPending || routing} onPress={submit}>{t('verify.continue')}</Button>
-      </KeyboardAwareBottomDrawer>
+      </KeyboardActionBar>
     </View>
   </SafeAreaView>;
 }

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { StatusBar, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ACTION_BAR_SPACE, KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { Avatar } from "../src/components/atoms/Avatar";
@@ -46,11 +47,11 @@ export default function EditProfileScreen() {
         />
         <KeyboardAwareScrollView
           mode="layout"
+          bottomOffset={ACTION_BAR_SPACE}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             gap: theme.spacing.md,
             paddingVertical: theme.spacing.md,
-            paddingBottom: theme.spacing.xxl,
           }}
         >
           <View style={{ alignItems: "center", gap: theme.spacing.sm }}>
@@ -98,6 +99,8 @@ export default function EditProfileScreen() {
             maxLength={10}
             autoComplete="tel"
           />
+        </KeyboardAwareScrollView>
+        <KeyboardActionBar>
           <Button
             disabled={phoneError || !draft.fullName.trim()}
             loading={save.isPending}
@@ -124,7 +127,7 @@ export default function EditProfileScreen() {
               {describeError(save.error)}
             </ThemedText>
           ) : null}
-        </KeyboardAwareScrollView>
+        </KeyboardActionBar>
       </View>
     </SafeAreaView>
   );

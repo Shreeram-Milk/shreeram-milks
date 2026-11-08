@@ -1,8 +1,9 @@
 import { router, useNavigation } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StatusBar, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, StatusBar, View } from "react-native";
+import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "../src/components/atoms/Button";
 import { RadioDot } from "../src/components/atoms/RadioDot";
@@ -13,7 +14,7 @@ import { CheckoutSection } from "../src/components/molecules/CheckoutSection";
 import { OfferCodeBox } from "../src/components/molecules/OfferCodeBox";
 import { PaymentPoller } from "../src/components/molecules/PaymentPoller";
 import { StateMessage } from "../src/components/organisms/StateMessage";
-import { CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
+import { CHECKOUT_FOOTER_SPACE, CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
 import { useAddresses } from "../src/hooks/useAddresses";
 import { useCheckoutLines } from "../src/hooks/useCheckoutLines";
 import { useCheckPayment, usePayForOrder, usePlaceOrder, useQuote } from "../src/hooks/useOrders";
@@ -30,6 +31,7 @@ const newKey = (): string => `${Date.now().toString(36)}${Math.random().toString
 
 export default function CheckoutReviewScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const language = (i18n.resolvedLanguage ?? i18n.language).startsWith("gu") ? "gu" : "en";
@@ -208,7 +210,7 @@ export default function CheckoutReviewScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView contentContainerStyle={{ gap: theme.spacing.xl, padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.xl }}>
+      <KeyboardAwareScrollView bottomOffset={CHECKOUT_FOOTER_SPACE} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: theme.spacing.xl, padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.xl }}>
         <CheckoutProgress step={2} title={t("checkout.review.title")} />
         <CheckoutSection title={t("checkout.review.deliveryTitle")} aside={changeLink}>
           <View style={{ gap: theme.spacing.xs, padding: theme.spacing.md }}>
@@ -308,7 +310,8 @@ export default function CheckoutReviewScreen() {
         {dateChanged ? <ThemedText accessibilityRole="alert" accessibilityLiveRegion="polite" variant="caption" weight="semibold" style={{ color: theme.colors.colorDanger }}>{t("shop.dateChanged")}</ThemedText> : null}
         {failure && !outcome ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(failure)}</ThemedText> : null}
         {data && problemCodes.includes("SLOT_REQUIRED") ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("shop.chooseWindowHint")}</ThemedText> : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
+      <KeyboardStickyView offset={{ closed: 0, opened: insets.bottom }}>
       <CheckoutFooter
         amountPaise={data?.totalPaise ?? 0}
         originalPaise={itemsPaise}
@@ -317,6 +320,7 @@ export default function CheckoutReviewScreen() {
         label={payOnlinePaise > 0 ? t("shop.payment.payButton", { amount: formatRupees(payOnlinePaise) }) : t("shop.place")}
         onPress={() => void submit()}
       />
+      </KeyboardStickyView>
     </SafeAreaView>
   );
 }

@@ -18,9 +18,11 @@ void SplashScreen.preventAutoHideAsync();
 /** Signed-in screens with the default slide animation (the tabs and the few with their own animation are listed in the Stack). */
 const PROTECTED_SCREENS = [
   "checkout-address", "checkout-review", "delivery-addresses", "delivery-address-form", "delivery-calendar", "doorstep-instructions",
-  "edit-profile", "help", "location", "my-report", "my-reports", "notifications", "offers", "orders", "order-tracking",
-  "product-details", "report-issue", "settings", "subscribe-review", "subscription-manage", "subscription-vacation", "support",
+  "edit-profile", "help", "location", "my-report", "my-reports", "notifications", "offers", "orders", "order-tracking", "rewards",
+  "report-issue", "settings", "subscribe-review", "subscription-manage", "subscription-vacation", "support",
 ] as const;
+/** Pages that open by growing out of a tapped card (see MorphPage). */
+const MORPH_SCREENS = ["product-details", "offer"] as const;
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();
@@ -72,6 +74,8 @@ export default function RootLayout() {
             <Stack.Screen name="search" options={{ animation: "fade_from_bottom" }} />
             <Stack.Screen name="delivery-slot" options={{ animation: "slide_from_bottom" }} />
             {PROTECTED_SCREENS.map((name) => <Stack.Screen key={name} name={name} />)}
+            {/* These pages grow out of the card that was tapped, over the list, so the stack adds no animation of its own. */}
+            {MORPH_SCREENS.map((name) => <Stack.Screen key={name} name={name} options={{ presentation: "transparentModal", animation: "none", contentStyle: { backgroundColor: "transparent" } }} />)}
           </Stack.Protected>
         </Stack>
       </AvailabilityGate>

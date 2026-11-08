@@ -18,6 +18,8 @@ export const queryKeys = {
   appConfig: ["app-config"] as const,
   banners: ["banners"] as const,
   offers: ["offers"] as const,
+  offer: (id: string) => ["offer", id] as const,
+  rewards: (customerId: string) => ["rewards", customerId] as const,
   help: ["help"] as const,
   policies: ["policies"] as const,
   onboardingSlides: ["onboarding-slides"] as const,
