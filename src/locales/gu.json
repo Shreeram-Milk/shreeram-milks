@@ -26,6 +26,8 @@
     "title": "કાર્ટ",
     "count": "{{count}} તાજા ઉત્પાદનો",
     "items": "વસ્તુઓ",
+    "itemCount_one": "{{count}} વસ્તુ",
+    "itemCount_other": "{{count}} વસ્તુઓ",
     "ready": "તમારી બાસ્કેટ કંઈક તાજું લેવા માટે તૈયાર છે.",
     "emptyTitle": "તમારી બાસ્કેટ ખાલી છે",
     "emptyDetail": "તમારી રોજિંદી જરૂરી વસ્તુઓ પસંદ કરો, અમે તેને તમે પસંદ કરેલા સમયે પહોંચાડીશું.",
@@ -135,8 +137,10 @@
     "tryOtherAddress": "બીજું સરનામું વાપરો",
     "creditShort": "તમારી પાસે {{left}} ક્રેડિટ બાકી છે અને આ ઓર્ડરને {{needed}} જોઈએ. કંઈક કાઢી નાખો, અથવા તમારી મર્યાદા વધારવા અમને કહો.",
     "orderOf": "ઓર્ડર {{index}} / {{count}}",
+    "deliveryGroup": "{{method}} · {{index}} / {{count}}",
+    "localDeliveryTitle": "સ્થાનિક ડિલિવરી",
     "chooseWindow": "ડિલિવરીનો સમય પસંદ કરો",
-    "dateChanged": "તમે ઑર્ડર જોતા હતા ત્યારે ડિલિવરીનો દિવસ અથવા ઑર્ડરનો છેલ્લો સમય બદલાઈ ગયો છે. કૃપા કરીને ઉપરની નવી વિગતો જોઈને ફરી ઑર્ડર કરો.",
+    "dateChanged": "ડિલિવરી અથવા ભાવની વિગતો બદલાઈ છે. આગળ વધતાં પહેલાં નવી વિગતો તપાસો.",
     "chooseWindowHint": "આગળ વધવા દરેક ઓર્ડર માટે ડિલિવરીનો સમય પસંદ કરો.",
     "courierTitle": "કુરિયર ડિલિવરી",
     "courierDetail": "કુરિયર દ્વારા મોકલાશે. ડિલિવરીનો સમય કુરિયર પર આધાર રાખે છે.",
@@ -436,6 +440,13 @@
     "emptyAll": "હજુ કોઈ પ્રોડક્ટ ઉપલબ્ધ નથી. થોડા સમય પછી ફરી જુઓ."
   },
   "orders": {
+    "viewDetails": "વિગતો જુઓ",
+    "expectedDay": "અપેક્ષિત દિવસ: {{day}}",
+    "currentAndPast": "ચાલુ અને જૂના ઓર્ડર",
+    "filterTitle": "ફિલ્ટર",
+    "filterStatus": "ઓર્ડરની સ્થિતિ",
+    "filterType": "ઓર્ડરનો પ્રકાર",
+    "showOrders": "ઓર્ડર જુઓ",
     "kind_direct": "સીધી ખરીદી",
     "kind_subscription": "સબ્સ્ક્રિપ્શન",
     "kind_trial": "ટ્રાયલ",
@@ -681,6 +692,7 @@
     "legalSubtitle": "ગોપનીયતા, નિયમો અને રિફંડ"
   },
   "addresses": {
+    "phoneRequired": "ડિલિવરી વખતે ફોન કરી શકાય એવો મોબાઇલ નંબર લખો.",
     "makeDefault": "ડિફૉલ્ટ બનાવો",
     "editShort": "ફેરફાર કરો",
     "removeShort": "કાઢી નાખો",
@@ -703,7 +715,7 @@
     "formTitleAdd": "ડિલિવરી સરનામું ઉમેરો",
     "formTitleEdit": "ડિલિવરી સરનામું સંપાદિત કરો",
     "fullName": "પૂરું નામ",
-    "mobile": "મોબાઇલ નંબર (વૈકલ્પિક)",
+    "mobile": "ડિલિવરી માટે મોબાઇલ નંબર",
     "line1": "ફ્લેટ / ઘર / બિલ્ડિંગ",
     "line2": "શેરી / વિસ્તાર",
     "landmark": "નિશાની (વૈકલ્પિક)",
@@ -770,6 +782,8 @@
     "invalidEmail": "માન્ય ઈમેલ સરનામું લખો."
   },
   "checkout": {
+    "phoneHelp": "સરનામું શોધવા માટે ડિલિવરી ટીમ આ નંબર પર ફોન કરી શકે છે.",
+    "savePhone": "નંબર સાચવો",
     "stepOf": "પગલું {{step}} / {{total}}",
     "change": "બદલો",
     "progress": {
@@ -978,6 +992,7 @@
     "myReportsDetail": "અમારી ટીમના જવાબ જુઓ"
   },
   "commonActions": {
+    "clearField": "{{field}} સાફ કરો",
     "back": "પાછળ",
     "save": "સાચવો",
     "done": "પૂર્ણ",
@@ -1191,6 +1206,8 @@
     "quickAway": "બહારગામ",
     "quickResume": "ફરી શરૂ કરો",
     "showAllDays": "બધી જુઓ ({{count}})",
+    "skippedHistory": "છોડેલી ડિલિવરી ({{count}})",
+    "skippedDateRange": "{{from}} થી {{to}}",
     "planDetails": "પ્લાનની વિગતો",
     "paymentLabel": "ચુકવણી",
     "perDeliveryLabel": "દરેક ડિલિવરી",

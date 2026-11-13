@@ -199,6 +199,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   control={control}
                   name="phone"
                   rules={{
+                    required: t("addresses.phoneRequired"),
                     pattern: {
                       value: /^[6-9]\d{9}$/,
                       message: t("addresses.invalidPhone"),
@@ -206,7 +207,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   }}
                   render={({ field: { onChange, value } }) => (
                     <FormField
-                      label={t("addresses.mobile")}
+                      label={`${t("addresses.mobile")} *`}
                       icon={PhoneIcon}
                       value={value}
                       onChangeText={onChange}

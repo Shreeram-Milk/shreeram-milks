@@ -23,13 +23,16 @@ export function ProductGridSkeleton({ rows = 2 }: { rows?: number }) {
   );
 }
 
-/** Stacked rows (orders, plans, settings) while a list loads. */
+/** Two soft text lines per row while a list loads. */
 export function ListSkeleton({ count = 4, rowHeight = 84 }: { count?: number; rowHeight?: number }) {
   const theme = useTheme();
   return (
     <View style={{ gap: theme.spacing.md }}>
       {Array.from({ length: count }, (_, index) => (
-        <Skeleton key={index} height={rowHeight} radius={theme.radii.lg} />
+        <View key={index} style={{ minHeight: rowHeight, justifyContent: "center", gap: theme.spacing.sm }}>
+          <Skeleton height={14} width="58%" />
+          <Skeleton height={10} width="36%" />
+        </View>
       ))}
     </View>
   );

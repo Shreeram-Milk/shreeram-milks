@@ -12,12 +12,12 @@ interface SkeletonProps {
 }
 
 const PULSE_MS = 600;
-// Most screens fill in faster than this from saved data, so the grey shapes never flash during a quick page change.
+// Delay placeholders so they do not flash during quick page changes.
 const SHOW_AFTER_MS = 300;
 const FADE_IN_MS = 200;
 
 /**
- * A grey placeholder in the shape of content that is still loading. It stays invisible for a short moment and only appears
+ * A soft, borderless placeholder in the shape of content that is still loading. It stays invisible for a short moment and appears
  * (then gently pulses) when loading really takes a while. With reduced motion it just appears, without pulsing.
  */
 export function Skeleton({ height, radius, style, width = "100%" }: SkeletonProps) {
@@ -36,5 +36,5 @@ export function Skeleton({ height, radius, style, width = "100%" }: SkeletonProp
   }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[{ width, height, borderRadius: radius ?? theme.radii.md, backgroundColor: theme.colors.colorBorder }, animatedStyle, style]} />;
+  return <Animated.View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[{ width, height, borderRadius: radius ?? theme.radii.md, backgroundColor: theme.colors.colorSkeleton }, animatedStyle, style]} />;
 }

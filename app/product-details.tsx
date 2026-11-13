@@ -33,6 +33,7 @@ import { useTheme } from "../src/theme";
 
 type PurchasePlan = "single" | "trial" | "subscription";
 const PLAN_OF_METHOD = { buy_once: "single", trial: "trial", subscription: "subscription" } as const;
+const PLAN_ORDER: PurchasePlan[] = ["single", "trial", "subscription"];
 const PLAN_LABEL: Record<PurchasePlan, string> = { single: "purchasePlans.single", trial: "purchasePlans.trial", subscription: "purchasePlans.subscription" };
 
 /** Back and cart as small white circles floating on the photo. The same on the loading page, so nothing jumps when it fills in. */
@@ -61,7 +62,7 @@ export default function ProductDetailsScreen() {
   // The product photo sits just under the status bar and is square, full width.
   return (
     <MorphPage morphKey={`product:${id ?? ""}`} heroTop={insets.top} heroHeight={width}>
-      <ProductDetailsContent />
+      <ProductDetailsContent key={id} />
     </MorphPage>
   );
 }
@@ -125,13 +126,16 @@ function ProductDetailsContent() {
   const highlights = language === "gu" && product.highlightsGu.length > 0 ? product.highlightsGu : product.highlightsEn;
   const nutrition = localized(product.nutritionEn, product.nutritionGu, language);
   // A courier product is bought once only: trials and subscriptions need a delivery window every day. The admin can switch trials and subscriptions off.
-  const plans = product.purchaseMethods
+  const offeredPlans = product.purchaseMethods
     .filter((method) => product.deliveryMethod !== "shipping" || method === "buy_once")
     .map((method) => PLAN_OF_METHOD[method])
     .filter((key) => (key !== "trial" || showTrials) && (key !== "subscription" || showSubscriptions));
+  const plans = PLAN_ORDER.filter((key) => offeredPlans.includes(key));
   const activePlan: PurchasePlan = plans.includes(plan) ? plan : (plans[0] ?? "single");
   const slots = delivery.data?.served && delivery.data.deliveryMethod === "local_delivery" ? delivery.data.slots : [];
-  const activeSlotId = slots.some((slot) => slot.slotId === slotId) ? slotId : (slots[0]?.slotId ?? null);
+  // A courier product eligible for local delivery can join the basket's window unless the customer picks one here.
+  const defaultSlotId = product.deliveryMethod === "shipping" ? null : (slots[0]?.slotId ?? null);
+  const activeSlotId = slots.some((slot) => slot.slotId === slotId) ? slotId : defaultSlotId;
   // Only a PIN code we are sure we cannot deliver to blocks buying; before a PIN is entered, or while checking, the customer can carry on.
   const blocked = Boolean(deliveryPin) && delivery.data?.served === false;
   const imageUrls = [product.imageUrl, ...product.galleryUrls].filter((url): url is string => Boolean(url));

@@ -19,12 +19,12 @@ function StepperButton({ icon, label, onPress }: { icon: IconSvgElement; label: 
   const theme = useTheme();
   return (
     <PressableScale accessibilityRole="button" accessibilityLabel={label} hitSlop={theme.spacing.xs} onPress={() => { tapFeedback(); onPress(); }} pressScale={theme.motion.pressScale.compactControl} style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
-      <AppIcon icon={icon} accessibilityLabel="" size="sm" tone="onPrimary" strong />
+      <AppIcon icon={icon} accessibilityLabel="" size="sm" tone="primary" />
     </PressableScale>
   );
 }
 
-/** Minus, the number, plus, on one solid orange pill. The number rolls up when it grows and down when it shrinks. */
+/** A neutral quantity control with a rolling count. */
 export function QuantityStepper({ onDecrement, onIncrement, unit = "", value }: QuantityStepperProps) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -41,11 +41,11 @@ export function QuantityStepper({ onDecrement, onIncrement, unit = "", value }: 
   const rollStyle = useAnimatedStyle(() => ({ transform: [{ translateY: offset.value }], opacity: 1 - Math.abs(offset.value) / (ROLL_DISTANCE * 2) }));
 
   return (
-    <View style={{ height: theme.sizes.quantityStepperHeight - 2, flexDirection: "row", alignItems: "center", paddingHorizontal: 2, borderRadius: theme.radii.md - 2, backgroundColor: theme.colors.colorPrimary }}>
+    <View style={{ minHeight: theme.sizes.quantityStepperHeight, flexDirection: "row", alignItems: "center", paddingHorizontal: 2, borderRadius: theme.radii.md - 2, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurfaceMuted }}>
       <StepperButton icon={MinusIcon} label={t("quantity.decrease")} onPress={onDecrement} />
       <View style={{ minWidth: 24, alignItems: "center", overflow: "hidden" }}>
         <Animated.View style={rollStyle}>
-          <ThemedText variant="label" weight="bold" style={{ color: theme.colors.colorTextInverse, fontVariant: ["tabular-nums"] }}>{`${value}${unit}`}</ThemedText>
+          <ThemedText variant="label" weight="bold" style={{ color: theme.colors.colorTextPrimary, fontVariant: ["tabular-nums"] }}>{`${value}${unit}`}</ThemedText>
         </Animated.View>
       </View>
       <StepperButton icon={AddIcon} label={t("quantity.increase")} onPress={onIncrement} />

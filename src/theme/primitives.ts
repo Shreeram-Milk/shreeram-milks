@@ -3,6 +3,7 @@ export const primitives = {
   orange900: '#B84A10',
   orange800: '#96380A',
   orange50: '#FFF1E6',
+  orange25: '#FFFAF7',
   mint800: '#1A7048',
   mint200: '#CFE8DA',
   mint50: '#EAF6EF',

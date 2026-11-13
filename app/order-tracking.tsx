@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useIsFocused, useLocalSearchParams } from "expo-router";
 import { useState, type PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, RefreshControl, ScrollView, StatusBar, View } from "react-native";
@@ -6,9 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppIcon, type IconSvgElement } from "../src/components/atoms/AppIcon";
 import { Button } from "../src/components/atoms/Button";
-import { Skeleton } from "../src/components/atoms/Skeleton";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { DashedRule } from "../src/components/molecules/DashedRule";
+import { ListSkeleton } from "../src/components/molecules/LoadingSkeletons";
 import { OrderStepsDown } from "../src/components/molecules/OrderSteps";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { ConfirmSheet } from "../src/components/organisms/ConfirmSheet";
@@ -98,18 +98,6 @@ function StatusSummary({ order, overdue, expected, countdown }: { order: Order; 
   );
 }
 
-/** While the order loads: grey shapes in the same layout as the page. */
-function TrackingSkeleton() {
-  const theme = useTheme();
-  return (
-    <View style={{ gap: theme.spacing.md, padding: theme.layout.screenHorizontalPadding }}>
-      <Skeleton height={124} radius={theme.radii.lg} />
-      <Skeleton height={168} radius={theme.radii.lg} />
-      <Skeleton height={140} radius={theme.radii.lg} />
-    </View>
-  );
-}
-
 /**
  * One order, laid out like a delivery company's tracking page: what is happening and when, every step with the exact time it
  * happened, the delivery details, the bill, the order information, and help or cancelling while that is still allowed.
@@ -121,20 +109,31 @@ export default function OrderTrackingScreen() {
   const language = useAppStore((state) => state.language);
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
   const id = Array.isArray(orderId) ? orderId[0] : orderId;
-  const { data: order, isError, isLoading, error, refetch, isRefetching } = useMyOrder(id);
+  const focused = useIsFocused();
+  const { data: order, isError, isLoading, error, refetch } = useMyOrder(id, focused);
   const cancel = useCancelOrder(id ?? "");
   const [confirming, setConfirming] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const countdown = useCountdownLabel(order?.status === "placed" ? order.deliveryDate : null, order?.slot?.startTime);
   const goBack = () => { if (router.canGoBack()) router.back(); else router.replace("/orders"); };
 
-  if (isLoading || isError || !order) {
+  const refresh = async () => {
+    setRefreshing(true);
+    try { await refetch(); } finally { setRefreshing(false); }
+  };
+
+  if (!order) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorSurfaceMuted }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
         <StatusBar barStyle="dark-content" />
         <View style={{ paddingHorizontal: theme.layout.screenHorizontalPadding }}>
           <ScreenHeader backLabel={t("commonActions.back")} title={t("track.title")} onBack={goBack} />
         </View>
-        {isLoading ? <TrackingSkeleton /> : (
+        {isLoading ? (
+          <View style={{ padding: theme.layout.screenHorizontalPadding }}>
+            <ListSkeleton count={3} rowHeight={124} />
+          </View>
+        ) : (
           <StateMessage type="error" title={t("tracking.unavailable")} description={isError ? describeError(error) : undefined} actionLabel={id && isError ? t("common.retry") : undefined} onAction={id && isError ? () => void refetch() : undefined} />
         )}
       </SafeAreaView>
@@ -150,12 +149,12 @@ export default function OrderTrackingScreen() {
       : order.paymentMethod === "online" ? t("track.payment.paidOnline") : t("track.payment.onCredit");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorSurfaceMuted }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
       <View style={{ paddingHorizontal: theme.layout.screenHorizontalPadding }}>
         <ScreenHeader backLabel={t("commonActions.back")} title={t("track.titleNumber", { number: order.orderNumber })} onBack={goBack} />
       </View>
-      <ScrollView refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />} contentContainerStyle={{ padding: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.xxl, gap: theme.spacing.md }}>
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />} contentContainerStyle={{ padding: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.xxl, gap: theme.spacing.md }}>
         <StatusSummary order={order} overdue={overdue} expected={expected} countdown={countdown} />
 
         <Section title={t("track.progress")}>

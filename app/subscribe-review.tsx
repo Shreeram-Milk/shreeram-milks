@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { formatPhone, isIndianMobile, toInternationalPhone } from "../src/lib/phone";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StatusBar, View } from "react-native";
@@ -13,6 +14,7 @@ import { OfferCodeBox } from "../src/components/molecules/OfferCodeBox";
 import { PaymentPoller } from "../src/components/molecules/PaymentPoller";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { CHECKOUT_FOOTER_SPACE, CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
+import { CheckoutPhoneField } from "../src/components/molecules/CheckoutPhoneField";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useAddresses } from "../src/hooks/useAddresses";
 import { useCheckPayment } from "../src/hooks/useOrders";
@@ -61,6 +63,7 @@ export default function SubscribeReviewScreen() {
   const [offerCode, setOfferCode] = useState("");
   // The address the product page checked (same PIN) comes first, then the default one.
   const address = addresses.find((item) => item.id === addressId) ?? addresses.find((item) => item.pincode === deliveryPin && item.isDefault) ?? addresses.find((item) => item.pincode === deliveryPin) ?? addresses.find((item) => item.isDefault) ?? addresses[0];
+  const hasDeliveryPhone = isIndianMobile(address?.phone ?? "");
   const draft = useMemo(() => (base && address ? { ...base, addressId: address.id, ...(offerCode ? { offerCode } : {}) } : null), [base, address, offerCode]);
   const quote = useSubscriptionQuote(draft);
   const start = useStartSubscription();
@@ -86,7 +89,7 @@ export default function SubscribeReviewScreen() {
   const data = quote.data;
   const busy = start.isPending || check.isPending;
   const submit = () => {
-    if (!draft || !data || busy) return;
+    if (!draft || !data || busy || !hasDeliveryPhone) return;
     setOutcome(null);
     start.mutate({ ...draft, idempotencyKey, expectedTotalPaise: data.totalPaise }, {
       onSuccess: onResult,
@@ -120,16 +123,18 @@ export default function SubscribeReviewScreen() {
           {addresses.map((item, index) => {
             const selected = item.id === address?.id;
             return (
-              <Pressable key={item.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => setAddressId(item.id)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.md, borderTopWidth: index === 0 ? theme.borderWidths.none : theme.borderWidths.hairline, borderTopColor: theme.colors.colorBorder, opacity: pressed ? theme.opacity.subdued : theme.opacity.full })}>
+              <Pressable key={item.id} accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={() => setAddressId(item.id)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.md, borderTopWidth: index === 0 ? theme.borderWidths.none : theme.borderWidths.hairline, borderTopColor: theme.colors.colorBorder, opacity: pressed ? theme.opacity.subdued : theme.opacity.full })}>
                 <View style={{ flex: 1, gap: theme.spacing.xs }}>
                   <ThemedText variant="bodySmall" weight="medium">{item.fullName}</ThemedText>
                   <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{[item.line1, item.line2, item.city].filter(Boolean).join(", ")} – {item.pincode}</ThemedText>
+                  {selected && hasDeliveryPhone ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatPhone(toInternationalPhone(item.phone))}</ThemedText> : null}
                 </View>
                 <RadioDot selected={selected} />
               </Pressable>
             );
           })}
         </CheckoutSection>
+        {address && !hasDeliveryPhone ? <CheckoutPhoneField key={address.id} address={address} /> : null}
 
         {quote.isLoading ? <StateMessage type="loading" title={t("shop.checking")} /> : null}
         {quote.isError ? <StateMessage type="error" title={t("shop.errorTitle")} description={describeError(quote.error)} actionLabel={t("commonActions.back")} onAction={() => router.back()} /> : null}
@@ -198,7 +203,7 @@ export default function SubscribeReviewScreen() {
       <KeyboardStickyView offset={{ closed: 0, opened: insets.bottom }}>
       <CheckoutFooter
         amountPaise={data?.totalPaise ?? 0}
-        disabled={!data || quote.isFetching || busy || overCredit || badCode || outcome?.status === "pending"}
+        disabled={!hasDeliveryPhone || !data || quote.isFetching || busy || overCredit || badCode || outcome?.status === "pending"}
         loading={busy}
         label={data?.paymentMethod === "credit" ? t("subs.startButton", { kind: kindText }) : t("shop.payment.payButton", { amount: formatRupees(data?.totalPaise ?? 0) })}
         onPress={submit}

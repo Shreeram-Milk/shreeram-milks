@@ -21,8 +21,7 @@ interface StateMessageProps {
 const appear = FadeIn.duration(motion.duration.normal).easing(Easing.bezier(...motion.easing.decelerate)).reduceMotion(ReduceMotion.System);
 
 /**
- * What a screen shows instead of content. Loading is grey placeholder rows (the title is read out to screen readers), never a
- * spinner; empty and error are a friendly icon, one sentence and at most one button.
+ * Loading shows soft placeholder lines and announces the title to screen readers. Empty and error states show a message and an optional action.
  */
 export function StateMessage({ actionLabel, description, icon, onAction, title, type }: StateMessageProps) {
   const theme = useTheme();

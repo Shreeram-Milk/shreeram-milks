@@ -9,6 +9,7 @@ import type { AppLanguage } from "../../types/models";
 import { AppIcon } from "../atoms/AppIcon";
 import { Card } from "../atoms/Card";
 import { PressableScale } from "../atoms/PressableScale";
+import { RadioDot } from "../atoms/RadioDot";
 import { Skeleton } from "../atoms/Skeleton";
 import { ThemedText } from "../atoms/ThemedText";
 
@@ -72,7 +73,7 @@ export function ProductDeliveryCard({ pin, delivery, isLoading, isError, languag
         </View>
       ) : null}
       {showSlotPicker ? (
-        <View accessibilityRole="radiogroup" accessibilityLabel={t("productDetails.slotTitle")} style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: theme.spacing.sm, paddingHorizontal: theme.spacing.md - 2, paddingBottom: theme.spacing.md - 2 }}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={t("productDetails.slotTitle")} style={{ gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md - 2, paddingBottom: theme.spacing.md - 2 }}>
           {delivery.slots.map((slot) => {
             const active = slot.slotId === selectedSlotId;
             const orderBy = formatOrderBy(slot.orderBy, language, t);
@@ -80,16 +81,16 @@ export function ProductDeliveryCard({ pin, delivery, isLoading, isError, languag
               <PressableScale
                 key={slot.slotId}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
+                accessibilityState={{ checked: active }}
                 onPress={() => onSelectSlot(slot.slotId)}
                 pressScale={theme.motion.pressScale.control}
-                // Two per row; a single time keeps half the width instead of stretching across.
-                containerStyle={{ width: "48%" }}
-                style={{ gap: 3, paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.md - 2, borderRadius: theme.radii.md, borderWidth: active ? 1.5 : theme.borderWidths.hairline, borderColor: active ? theme.colors.colorTextPrimary : theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface }}
+                style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.md - 2, borderRadius: theme.radii.md, borderWidth: theme.borderWidths.hairline, borderColor: active ? theme.colors.colorTextPrimary : theme.colors.colorBorder, backgroundColor: active ? theme.colors.colorSurfaceMuted : theme.colors.colorSurface }}
               >
-                <ThemedText variant="bodySmall" weight="semibold">{slot.name}</ThemedText>
-                <ThemedText variant="caption" style={{ color: theme.colors.colorTextPrimary }}>{formatWindow(slot.startTime, slot.endTime)}</ThemedText>
-                <ThemedText variant="caption" numberOfLines={2} style={{ color: theme.colors.colorTextSecondary }}>{[formatShortDay(slot.earliestDate, language, t), orderBy].filter(Boolean).join(" · ")}</ThemedText>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <ThemedText variant="bodySmall" weight="semibold">{slot.name} · {formatWindow(slot.startTime, slot.endTime)}</ThemedText>
+                  <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{[formatShortDay(slot.earliestDate, language, t), orderBy].filter(Boolean).join(" · ")}</ThemedText>
+                </View>
+                <RadioDot selected={active} />
               </PressableScale>
             );
           })}

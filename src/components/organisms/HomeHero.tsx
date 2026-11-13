@@ -1,8 +1,9 @@
-import { router, type Href } from "expo-router";
+import { Image } from "expo-image";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
 import { localized } from "../../lib/contentLocalization";
 import { LocationIcon, SearchIcon } from "../../icons/appIcons";
@@ -10,13 +11,16 @@ import { useTheme } from "../../theme";
 import type { BannerContent } from "../../types/content";
 import type { AppLanguage } from "../../types/models";
 import { AppIcon } from "../atoms/AppIcon";
+import { IconButton } from "../atoms/IconButton";
 import { PressableScale } from "../atoms/PressableScale";
 import { ThemedText } from "../atoms/ThemedText";
 import { CurvedHero } from "../molecules/CurvedHero";
 import { NotificationBell } from "../molecules/NotificationBell";
 
-const CURVE = 28;
+const BANNER_CORNER_RADIUS = 5;
+const HEADER_LOGO_SIZE = 36;
 const AUTO_SLIDE_MS = 5000;
+const LOCATION_LABEL_HOLD_MS = 2000;
 
 /** Where a promotion leads. A banner with no link does nothing; the server already checked the target exists. */
 export function bannerLink(banner: Pick<BannerContent, "ctaType" | "ctaTarget">): Href | null {
@@ -32,23 +36,73 @@ export function bannerLink(banner: Pick<BannerContent, "ctaType" | "ctaTarget">)
   }
 }
 
-type Props = { promotions: BannerContent[]; language: AppLanguage; locationText: string };
+type Props = { promotions: BannerContent[]; language: AppLanguage; locationPin: string; locationCity?: string; locationText: string; children?: React.ReactNode };
 
-/**
- * The top of Home: a big picture banner, about half the screen, with curved bottom corners. Several promotions slide sideways
- * (and move on by themselves every few seconds until touched). Delivery place, the bell and search sit on top of it.
- * With no promotion it shrinks to a warm header holding just those three.
- */
-export function HomeHero({ promotions, language, locationText }: Props) {
+function HomeLocationLabel({ pin, city }: { pin: string; city?: string }) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+  const rowHeight = Math.ceil(theme.sizes.iconMd * fontScale);
+  const shouldSlide = Boolean(pin && city) && !reduceMotion;
+  const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -rowHeight * progress.get() }] }));
+
+  useFocusEffect(useCallback(() => {
+    if (!pin || !city || reduceMotion) return;
+    progress.set(0);
+    const slide = {
+      duration: theme.motion.duration.slow,
+      easing: Easing.bezier(...theme.motion.easing.standard),
+      reduceMotion: ReduceMotion.System,
+    };
+    progress.set(withRepeat(
+      withSequence(
+        withDelay(LOCATION_LABEL_HOLD_MS, withTiming(1, slide), ReduceMotion.System),
+        withDelay(LOCATION_LABEL_HOLD_MS, withTiming(2, slide), ReduceMotion.System),
+        // The last row matches the first, so resetting the offset is invisible.
+        withTiming(0, { duration: 0 }),
+      ),
+      -1,
+      false,
+      undefined,
+      ReduceMotion.System,
+    ));
+    return () => {
+      cancelAnimation(progress);
+      progress.set(0);
+    };
+  }, [city, pin, progress, reduceMotion, theme.motion]));
+
+  if (!shouldSlide) {
+    return <ThemedText variant="caption" weight="semibold" numberOfLines={1} style={{ flex: 1 }}>{city || pin || t("home.deliveryLocation")}</ThemedText>;
+  }
+
+  return (
+    <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ flex: 1, height: rowHeight, overflow: "hidden" }}>
+      <Animated.View style={slideStyle}>
+        {[{ key: "pin", label: pin }, { key: "city", label: city }, { key: "repeat-pin", label: pin }].map(({ key, label }) => (
+          <View key={key} style={{ height: rowHeight, justifyContent: "center" }}>
+            <ThemedText variant="caption" weight="semibold" numberOfLines={1}>{label}</ThemedText>
+          </View>
+        ))}
+      </Animated.View>
+    </View>
+  );
+}
+
+/**
+ * The compact Home controls sit above the promotion carousel, leaving the banner artwork clear.
+ */
+export function HomeHero({ promotions, language, locationPin, locationCity, locationText, children }: Props) {
+  const theme = useTheme();
+  const { t } = useTranslation();
   const { width, height: screenHeight } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const list = useRef<FlatList<BannerContent>>(null);
   const touched = useRef(false);
   const count = promotions.length;
-  const heroHeight = count > 0 ? Math.round(Math.min(Math.max(width * 1.02, 360), screenHeight * 0.54)) : insets.top + 132;
+  const heroHeight = Math.round(Math.min(Math.max(width * 1.02, 360), screenHeight * 0.54));
 
   // Moves to the next promotion every few seconds, until the customer swipes it themselves.
   useEffect(() => {
@@ -69,71 +123,86 @@ export function HomeHero({ promotions, language, locationText }: Props) {
   }, [width]);
 
   return (
-    <View style={{ height: heroHeight, overflow: "hidden", borderBottomLeftRadius: CURVE, borderBottomRightRadius: CURVE, backgroundColor: theme.colors.colorPrimaryTint }}>
-      {count > 0 ? (
-        <FlatList
-          ref={list}
-          data={promotions}
-          horizontal
-          pagingEnabled
-          nestedScrollEnabled
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id}
-          onScrollBeginDrag={() => { touched.current = true; }}
-          onMomentumScrollEnd={onSlideEnd}
-          getItemLayout={(_, position) => ({ length: width, offset: width * position, index: position })}
-          renderItem={({ item }) => {
-            const link = bannerLink(item);
-            const title = localized(item.titleEn, item.titleGu, language);
-            return (
-              <Pressable accessibilityRole={link ? "button" : "image"} accessibilityLabel={title} disabled={!link} onPress={() => { if (link) router.push(link); }}>
-                <CurvedHero
-                  imageUrl={item.imageUrl}
-                  width={width}
-                  height={heroHeight}
-                  showText={item.showText}
-                  label={localized(item.labelEn, item.labelGu, language)}
-                  title={title}
-                  message={localized(item.messageEn, item.messageGu, language)}
-                  bottomSpace={count > 1 ? 14 : 0}
-                />
-              </Pressable>
-            );
-          }}
-        />
-      ) : null}
-
-      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, gap: theme.spacing.sm + 2, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.layout.screenHorizontalPadding }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
-          <View style={{ flex: 1, alignItems: "flex-start" }}>
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel={`${t("home.deliveryLocation")}: ${locationText}`}
-              onPress={() => router.push("/delivery-addresses")}
-              style={{ maxWidth: width - theme.layout.screenHorizontalPadding * 2 - 56, flexDirection: "row", alignItems: "center", gap: theme.spacing.xs, minHeight: 36, paddingHorizontal: theme.spacing.sm + 2, borderRadius: theme.radii.pill, backgroundColor: "rgba(255,255,255,0.94)" }}
-            >
-              <AppIcon icon={LocationIcon} accessibilityLabel="" size="sm" tone="accent" />
-              <ThemedText variant="caption" weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>{locationText}</ThemedText>
-            </PressableScale>
-          </View>
-          <View style={{ flex: 0 }}><NotificationBell /></View>
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "center", minHeight: theme.sizes.buttonHeight, paddingHorizontal: theme.layout.screenHorizontalPadding, backgroundColor: theme.colors.colorBackground }}>
+        <View style={{ flex: 1, alignItems: "flex-start", paddingRight: theme.spacing.xs }}>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={`${t("home.deliveryLocation")}: ${locationText}`}
+            onPress={() => router.push("/delivery-addresses")}
+            style={{ width: "100%", minHeight: theme.layout.touchTargetMin, flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}
+          >
+            <AppIcon icon={LocationIcon} accessibilityLabel="" size="sm" tone="accent" />
+            <HomeLocationLabel pin={locationPin} city={locationCity} />
+          </PressableScale>
         </View>
-        <PressableScale
-          accessibilityRole="search"
-          accessibilityLabel={t("search.placeholder")}
-          onPress={() => router.push("/search")}
-          style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurface, ...theme.elevation.card }}
+        <View
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={t("common.appName")}
+          pointerEvents="none"
+          style={{
+            width: HEADER_LOGO_SIZE,
+            height: HEADER_LOGO_SIZE,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: theme.radii.pill,
+            overflow: "hidden",
+            backgroundColor: theme.colors.colorPrimary,
+          }}
         >
-          <AppIcon icon={SearchIcon} accessibilityLabel="" size="sm" tone="secondary" />
-          <ThemedText variant="bodySmall" style={{ flex: 1, color: theme.colors.colorTextSecondary }} numberOfLines={1}>{t("search.placeholder")}</ThemedText>
-        </PressableScale>
+          {/* The existing foreground has transparent padding for Android's adaptive icon. */}
+          <Image
+            source={require("../../../assets/android-icon-monochrome.png")}
+            contentFit="contain"
+            style={{ width: theme.sizes.avatarLg, height: theme.sizes.avatarLg, transform: [{ translateY: theme.spacing.xs }] }}
+          />
+        </View>
+        <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end" }}>
+          <IconButton icon={SearchIcon} label={t("search.title")} onPress={() => router.push("/search")} />
+          <NotificationBell />
+        </View>
       </View>
-
-      {count > 1 ? (
-        <View pointerEvents="none" accessibilityLabel={t("home.bannerPosition", { current: index + 1, total: count })} style={{ position: "absolute", bottom: theme.spacing.sm + 2, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 5 }}>
-          {promotions.map((item, position) => (
-            <View key={item.id} style={{ width: position === index ? 18 : 6, height: 6, borderRadius: theme.radii.pill, backgroundColor: position === index ? theme.colors.colorTextInverse : "rgba(255,255,255,0.55)" }} />
-          ))}
+      {children}
+      {count > 0 ? (
+        <View style={{ height: heroHeight, overflow: "hidden", borderBottomLeftRadius: BANNER_CORNER_RADIUS, borderBottomRightRadius: BANNER_CORNER_RADIUS, backgroundColor: theme.colors.colorPrimaryTint }}>
+          <FlatList
+            ref={list}
+            data={promotions}
+            horizontal
+            pagingEnabled
+            nestedScrollEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            onScrollBeginDrag={() => { touched.current = true; }}
+            onMomentumScrollEnd={onSlideEnd}
+            getItemLayout={(_, position) => ({ length: width, offset: width * position, index: position })}
+            renderItem={({ item }) => {
+              const link = bannerLink(item);
+              const title = localized(item.titleEn, item.titleGu, language);
+              return (
+                <Pressable accessibilityRole={link ? "button" : "image"} accessibilityLabel={title} disabled={!link} onPress={() => { if (link) router.push(link); }}>
+                  <CurvedHero
+                    imageUrl={item.imageUrl}
+                    width={width}
+                    height={heroHeight}
+                    showText={item.showText}
+                    label={localized(item.labelEn, item.labelGu, language)}
+                    title={title}
+                    message={localized(item.messageEn, item.messageGu, language)}
+                    bottomSpace={count > 1 ? 14 : 0}
+                  />
+                </Pressable>
+              );
+            }}
+          />
+          {count > 1 ? (
+            <View pointerEvents="none" accessibilityLabel={t("home.bannerPosition", { current: index + 1, total: count })} style={{ position: "absolute", bottom: theme.spacing.sm + 2, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 5 }}>
+              {promotions.map((item, position) => (
+                <View key={item.id} style={{ width: position === index ? 18 : 6, height: 6, borderRadius: theme.radii.pill, backgroundColor: position === index ? theme.colors.colorTextInverse : "rgba(255,255,255,0.55)" }} />
+              ))}
+            </View>
+          ) : null}
         </View>
       ) : null}
     </View>

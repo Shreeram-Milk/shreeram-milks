@@ -5,8 +5,8 @@ export type OrderKind = "direct" | "subscription" | "trial";
 /** What a customer sees on an order: its status, or "overdue" when it is still open after its delivery window ended. */
 export type ShownStatus = OrderStatus | "overdue";
 
-/** One day on My Orders: its delivery date, the orders delivered (or to be delivered) that day, and whether it is history. */
-export type OrderDay = { date: string; orders: Order[]; earlier: boolean };
+/** Orders placed on the same day in India. */
+export type OrderDay = { date: string; orders: Order[] };
 
 const IST_OFFSET_MS = 330 * 60 * 1000;
 
@@ -34,16 +34,16 @@ export function shownStatus(order: Order, now: Date): ShownStatus {
   return order.status;
 }
 
-/** Within one day: the earlier window first; orders without a window last. */
-const bySlot = (a: Order, b: Order) => (a.slot?.startTime ?? "99:99").localeCompare(b.slot?.startTime ?? "99:99");
-
-/** Groups delivery days as today, history newest first, then future days nearest first. `today` is the India date. */
-export function groupByDay(orders: Order[], today: string): OrderDay[] {
+/** Newest purchase first. Older records without a placement timestamp fall back to their delivery date. */
+export function groupByDay(orders: Order[]): OrderDay[] {
   const byDate = new Map<string, Order[]>();
-  for (const order of orders) byDate.set(order.deliveryDate, [...(byDate.get(order.deliveryDate) ?? []), order]);
-  const days = [...byDate].map(([date, list]) => ({ date, orders: list.sort(bySlot), earlier: date < today }));
-  const current = days.filter((day) => day.date === today);
-  const earlier = days.filter((day) => day.earlier).sort((a, b) => b.date.localeCompare(a.date));
-  const future = days.filter((day) => day.date > today).sort((a, b) => a.date.localeCompare(b.date));
-  return [...current, ...earlier, ...future];
+  const entries = orders.map((order) => ({ order, placed: Date.parse(order.placedAt) }));
+  entries.sort((a, b) => (b.placed || 0) - (a.placed || 0));
+  for (const { order, placed } of entries) {
+    const date = Number.isFinite(placed) ? new Date(placed + IST_OFFSET_MS).toISOString().slice(0, 10) : order.deliveryDate;
+    const day = byDate.get(date);
+    if (day) day.push(order);
+    else byDate.set(date, [order]);
+  }
+  return [...byDate].sort(([a], [b]) => b.localeCompare(a)).map(([date, list]) => ({ date, orders: list }));
 }

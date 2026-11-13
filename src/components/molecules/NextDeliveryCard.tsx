@@ -67,7 +67,7 @@ export function NextDeliveryCard() {
   const parts = dateParts(next.date, language);
   const onTheWay = next.state === "out_for_delivery";
   const items = next.items.map((item) => `${localized(item.productName, item.productNameGu, language)} × ${item.quantity}`).join(", ");
-  const when = [next.slotName, next.startTime ? formatClock(next.startTime) : null].filter(Boolean).join(" · ");
+  const when = next.startTime ? formatClock(next.startTime) : "";
   const chipLabel = !onTheWay && countdown ? countdown : t(`subs.day_${next.state}`);
 
   return (
@@ -75,6 +75,7 @@ export function NextDeliveryCard() {
       accessibilityRole="button"
       accessibilityLabel={`${t("subs.nextDelivery")}: ${formatShortDay(next.date, language, t)}, ${when}. ${items}`}
       onPress={() => openDelivery(next)}
+      containerStyle={{ marginHorizontal: theme.layout.screenHorizontalPadding, marginVertical: theme.spacing.sm }}
       style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4, padding: theme.spacing.md - 4, borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorAccentBorder, backgroundColor: theme.colors.colorAccentTint }}
     >
       <View style={{ width: DATE_TILE_WIDTH, alignItems: "center", paddingVertical: theme.spacing.sm - 2, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurface, ...theme.elevation.sm }}>
@@ -89,8 +90,8 @@ export function NextDeliveryCard() {
             <ThemedText variant="badgeLabel" style={{ color: onTheWay ? theme.colors.colorTextInverse : theme.colors.colorOnHighlight }}>{chipLabel}</ThemedText>
           </View>
         </View>
-        <ThemedText variant="bodySmall" weight="bold" numberOfLines={1}>{formatShortDay(next.date, language, t)}{when ? ` · ${when}` : ""}</ThemedText>
-        <ThemedText variant="caption" numberOfLines={1} style={{ color: theme.colors.colorTextSecondary }}>{items}{more > 0 ? `  ${t("subs.moreOnDay", { count: more })}` : ""}</ThemedText>
+        <ThemedText variant="bodySmall" weight="bold">{formatShortDay(next.date, language, t)}{when ? ` · ${when}` : ""}</ThemedText>
+        <ThemedText variant="caption" numberOfLines={2} style={{ color: theme.colors.colorTextSecondary }}>{items}{more > 0 ? `  ${t("subs.moreOnDay", { count: more })}` : ""}</ThemedText>
       </View>
       <AppIcon icon={ForwardIcon} accessibilityLabel="" size="sm" tone="accent" />
     </PressableScale>

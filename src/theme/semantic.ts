@@ -6,7 +6,7 @@ import { primitives } from './primitives';
  * and warm neutrals, so the few coloured things stand out.
  */
 export const semantic = {
-  // The bottom bar is dark so it reads as the app's frame, apart from the white pages above it.
+  // The bottom bar is dark so it reads as the app's frame.
   colorNavigation: primitives.neutral900,
   colorNavigationText: primitives.neutral300,
   colorNavigationActive: primitives.white,
@@ -48,6 +48,8 @@ export const semantic = {
   colorSurfaceHero: primitives.neutral900,
   colorSurfaceDisabled: primitives.neutral150,
   colorBackground: primitives.white,
+  colorOrderHistoryBackground: primitives.orange25,
+  colorSkeleton: primitives.neutral100,
   colorOverlay: primitives.black,
   colorTransparent: primitives.transparent,
 } as const;

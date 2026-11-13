@@ -1,20 +1,23 @@
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StatusBar, View } from "react-native";
+import { Pressable, StatusBar, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppIcon } from "../src/components/atoms/AppIcon";
 import { RadioDot } from "../src/components/atoms/RadioDot";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { CheckoutEmptyCart } from "../src/components/molecules/CheckoutEmptyCart";
+import { CheckoutPhoneField } from "../src/components/molecules/CheckoutPhoneField";
 import { CheckoutProgress } from "../src/components/molecules/CheckoutProgress";
 import { CheckoutSection } from "../src/components/molecules/CheckoutSection";
 import { ChoiceTile } from "../src/components/molecules/ChoiceTile";
-import { CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
+import { CHECKOUT_FOOTER_SPACE, CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
 import { AddIcon, AlertsIcon, HomeIcon, ShieldIcon, TruckIcon } from "../src/icons/appIcons";
 import { pickDefaultAddress, useAddresses, useDoorstepInstructions, useSaveDoorstepInstructions } from "../src/hooks/useAddresses";
 import { useCheckoutLines } from "../src/hooks/useCheckoutLines";
 import { parseInstructions } from "../src/services/addressService";
+import { formatPhone, isIndianMobile, toInternationalPhone } from "../src/lib/phone";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
 import type { DoorstepInstructions } from "../src/types/models";
@@ -33,11 +36,13 @@ export default function CheckoutAddressScreen() {
   const totalPaise = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0) * 100;
   // The address picked earlier if it still exists, otherwise the default one, so the common case needs no tap.
   const selectedAddressId = addresses.some((address) => address.id === checkoutSelection.addressId) ? checkoutSelection.addressId : (pickDefaultAddress(addresses)?.id ?? null);
+  const selectedAddress = addresses.find((address) => address.id === selectedAddressId);
+  const needsPhone = selectedAddress !== undefined && !isIndianMobile(selectedAddress.phone);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView contentContainerStyle={{ gap: theme.spacing.xl, padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.xl }}>
+      <KeyboardAwareScrollView bottomOffset={CHECKOUT_FOOTER_SPACE} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: theme.spacing.xl, padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.xl }}>
         <CheckoutProgress step={1} title={t("checkout.address.title")} />
         {cart.length === 0 ? <CheckoutEmptyCart /> : (
           <>
@@ -50,7 +55,7 @@ export default function CheckoutAddressScreen() {
                       key={address.id}
                       accessibilityRole="radio"
                       accessibilityLabel={`${t(`addresses.${address.addressType}`)}, ${address.line1}`}
-                      accessibilityState={{ selected }}
+                      accessibilityState={{ checked: selected }}
                       onPress={() => setCheckoutAddress(address.id)}
                       style={({ pressed }) => ({
                         flexDirection: "row",
@@ -74,6 +79,7 @@ export default function CheckoutAddressScreen() {
                         <ThemedText variant="caption" numberOfLines={2} style={{ color: theme.colors.colorTextSecondary }}>
                           {address.line1}, {address.line2}, {address.city} – {address.pincode}
                         </ThemedText>
+                        {selected && isIndianMobile(address.phone) ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatPhone(toInternationalPhone(address.phone))}</ThemedText> : null}
                       </View>
                       <RadioDot selected={selected} />
                     </Pressable>
@@ -92,6 +98,7 @@ export default function CheckoutAddressScreen() {
               </View>
             </CheckoutSection>
             {addresses.length === 0 ? <ThemedText variant="caption" style={{ color: theme.colors.colorDanger, marginTop: -theme.spacing.md }}>{t("checkout.review.noAddress")}</ThemedText> : null}
+            {selectedAddress && needsPhone ? <CheckoutPhoneField key={selectedAddress.id} address={selectedAddress} /> : null}
 
             <CheckoutSection card={false} title={t("checkout.address.instructionsTitle")}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
@@ -106,8 +113,12 @@ export default function CheckoutAddressScreen() {
             </View>
           </>
         )}
-      </ScrollView>
-      {cart.length > 0 ? <CheckoutFooter amountPaise={totalPaise} disabled={!selectedAddressId} label={t("checkout.address.continue")} onPress={() => { if (selectedAddressId) { setCheckoutAddress(selectedAddressId); router.push("/checkout-review"); } }} /> : null}
+      </KeyboardAwareScrollView>
+      {cart.length > 0 ? <CheckoutFooter amountPaise={totalPaise} disabled={!selectedAddress || needsPhone} label={t("checkout.address.continue")} onPress={() => {
+        if (!selectedAddress || needsPhone) return;
+        setCheckoutAddress(selectedAddress.id);
+        router.push("/checkout-review");
+      }} /> : null}
     </SafeAreaView>
   );
 }

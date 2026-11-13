@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, StatusBar, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { PressableScale } from "../../src/components/atoms/PressableScale";
 import { RiseIn } from "../../src/components/atoms/RiseIn";
@@ -37,8 +38,11 @@ export default function HomeScreen() {
   const deliveryPin = useAppStore((state) => state.deliveryPin);
   const { data: addresses } = useAddresses();
   const defaultAddress = pickDefaultAddress(addresses);
+  const locationPin = defaultAddress?.pincode || deliveryPin;
+  const locationCity = defaultAddress?.city.trim();
+  const locationAddress = defaultAddress?.line2.trim() || defaultAddress?.line1.trim();
   const locationText = defaultAddress
-    ? [defaultAddress.line2 || defaultAddress.line1, defaultAddress.pincode].filter(Boolean).join(" • ")
+    ? [locationAddress, locationCity, defaultAddress.pincode].filter(Boolean).join(" • ")
     : deliveryPin
       ? t("home.deliveringToPin", { pin: deliveryPin })
       : t("home.setLocation");
@@ -63,12 +67,13 @@ export default function HomeScreen() {
   const listHeader = (
     <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.md }}>
       <View style={{ marginHorizontal: -theme.layout.screenHorizontalPadding }}>
-        <HomeHero promotions={promotions} language={language} locationText={locationText} />
+        <HomeHero promotions={promotions} language={language} locationPin={locationPin} locationCity={locationCity} locationText={locationText}>
+          <NextDeliveryCard />
+        </HomeHero>
       </View>
       <UpdateStrip />
       <HomeNotices banners={banners} language={language} />
       <CreditBanner />
-      <NextDeliveryCard />
       <CategoryChips categories={categories} language={language} selectedId={activeCategoryId} onSelect={setActiveCategoryId} />
       <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
         <ThemedText variant="h2">{t("home.picks")}</ThemedText>
@@ -89,8 +94,7 @@ export default function HomeScreen() {
   );
 
   return (
-    // The top banner runs up under the status bar, so this screen has no top safe area of its own.
-    <View style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
       <FlatList
         style={{ backgroundColor: theme.colors.colorBackground }}
@@ -108,6 +112,6 @@ export default function HomeScreen() {
       />
       <PushPermissionPrompt />
       <RewardPopup />
-    </View>
+    </SafeAreaView>
   );
 }

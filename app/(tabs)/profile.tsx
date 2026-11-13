@@ -23,7 +23,7 @@ function ProfileSection({ children, title }: { children: React.ReactNode; title:
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <ThemedText variant="overline" style={{ color: theme.colors.colorTextSecondary, paddingHorizontal: theme.spacing.xs, textTransform: "uppercase", letterSpacing: 0.8 }}>{title}</ThemedText>
-      <Card padded={false} style={{ overflow: "hidden" }}>{children}</Card>
+      <Card padded={false} style={{ overflow: "hidden", ...theme.elevation.none }}>{children}</Card>
     </View>
   );
 }
@@ -52,7 +52,7 @@ export default function ProfileScreen() {
           <IconButton icon={SettingsIcon} label={t("profile.openSettings")} filled onPress={() => router.push("/settings")} />
         </View>
         <RiseIn index={0} style={{ gap: theme.spacing.sm + 2 }}>
-          <Card style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4 }}>
+          <Card style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4, ...theme.elevation.none }}>
             <Avatar initials={profile.fullName.slice(0, 2).toUpperCase()} size="lg" />
             <View style={{ flex: 1, gap: 2 }}>
               <ThemedText variant="body" weight="extrabold" numberOfLines={2}>{profile.fullName}</ThemedText>

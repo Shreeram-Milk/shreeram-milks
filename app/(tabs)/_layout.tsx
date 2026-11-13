@@ -8,6 +8,7 @@ import { useMyOrders } from "../../src/hooks/useOrders";
 import { useSavedDeliveryPin } from "../../src/hooks/useSavedDeliveryPin";
 import { useMySubscriptions } from "../../src/hooks/useSubscriptions";
 import { CalendarIcon, CartIcon, HomeIcon, ProductsIcon, ProfileIcon } from "../../src/icons/appIcons";
+import { useTheme } from "../../src/theme";
 
 /**
  * The five main screens live in real tabs: all are prepared when the app opens (not on first visit), so switching is instant with no
@@ -15,6 +16,7 @@ import { CalendarIcon, CartIcon, HomeIcon, ProductsIcon, ProfileIcon } from "../
  */
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const theme = useTheme();
   const { showSubscriptions } = useFeatureFlags();
   // Start loading the customer's own lists now, so Orders and Plans open with their content instead of placeholders.
   useMyOrders();
@@ -31,7 +33,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      screenOptions={{ headerShown: false, animation: "fade", freezeOnBlur: true, lazy: false }}
+      screenOptions={{ headerShown: false, animation: "none", freezeOnBlur: true, lazy: false, sceneStyle: { backgroundColor: theme.colors.colorBackground } }}
       tabBar={({ state, navigation }) => {
         const activeKey = state.routes[state.index]?.name ?? "home";
         return (

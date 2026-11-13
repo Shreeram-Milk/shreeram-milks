@@ -40,7 +40,7 @@ export function useMyOrders() {
  * screen. The list copy never allows cancelling (canCancel is only on a single order read), so Cancel appears only once the
  * server has said it is allowed.
  */
-export function useMyOrder(orderId?: string) {
+export function useMyOrder(orderId?: string, watchStatus = false) {
   const customerId = useCustomerId();
   const client = useQueryClient();
   return useQuery({
@@ -48,6 +48,10 @@ export function useMyOrder(orderId?: string) {
     queryFn: () => getMyOrder(orderId ?? ""),
     enabled: customerId !== "" && Boolean(orderId),
     staleTime: 10_000,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return watchStatus && (status === "placed" || status === "out_for_delivery") ? 45_000 : false;
+    },
     placeholderData: () => client.getQueryData<Order[]>(queryKeys.orders(customerId))?.find((order) => order.id === orderId),
   });
 }

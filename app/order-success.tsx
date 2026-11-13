@@ -50,7 +50,7 @@ export default function OrderSuccessScreen() {
   const count = Math.max(placed.length, numbers.length, 1);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorSurfaceMuted }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={{ gap: theme.spacing.lg, padding: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.xl, paddingBottom: theme.spacing.xl }}>
         <View style={{ alignItems: "center", gap: theme.spacing.md }}>

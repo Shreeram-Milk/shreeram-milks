@@ -116,6 +116,8 @@
     "title": "Cart",
     "count": "{{count}} fresh product",
     "items": "items",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
     "ready": "Your basket is ready for something fresh.",
     "emptyTitle": "Your basket is empty",
     "emptyDetail": "Choose your daily essentials and we’ll deliver them in your chosen time slot.",
@@ -225,8 +227,10 @@
     "tryOtherAddress": "Use a different address",
     "creditShort": "You have {{left}} of credit left, and this order needs {{needed}}. Remove something, or ask us to raise your limit.",
     "orderOf": "Order {{index}} of {{count}}",
+    "deliveryGroup": "{{method}} · {{index}} of {{count}}",
+    "localDeliveryTitle": "Local delivery",
     "chooseWindow": "Choose a delivery window",
-    "dateChanged": "The delivery day or order-by time changed while you were reviewing. Please check the new details above, then place the order again.",
+    "dateChanged": "Your delivery or price details changed. Review the updated order before continuing.",
     "chooseWindowHint": "Choose a delivery window for each order to continue.",
     "courierTitle": "Courier delivery",
     "courierDetail": "Sent by courier. The delivery time depends on the courier.",
@@ -526,6 +530,13 @@
     "emptyAll": "No products are available yet. Please check back soon."
   },
   "orders": {
+    "viewDetails": "View details",
+    "expectedDay": "Expected {{day}}",
+    "currentAndPast": "Current and past",
+    "filterTitle": "Filter",
+    "filterStatus": "Order status",
+    "filterType": "Order type",
+    "showOrders": "Show orders",
     "kind_direct": "Direct purchase",
     "kind_subscription": "Subscription",
     "kind_trial": "Trial",
@@ -681,6 +692,7 @@
     "legalSubtitle": "Privacy, terms and refunds"
   },
   "addresses": {
+    "phoneRequired": "Enter a mobile number the delivery team can call.",
     "makeDefault": "Make default",
     "editShort": "Edit",
     "removeShort": "Remove",
@@ -703,7 +715,7 @@
     "formTitleAdd": "Add delivery address",
     "formTitleEdit": "Edit delivery address",
     "fullName": "Full name",
-    "mobile": "Mobile number (optional)",
+    "mobile": "Delivery mobile number",
     "line1": "Flat / house / building",
     "line2": "Street / area",
     "landmark": "Landmark (optional)",
@@ -770,6 +782,8 @@
     "invalidEmail": "Enter a valid email address."
   },
   "checkout": {
+    "phoneHelp": "The delivery team may call this number to find your address.",
+    "savePhone": "Save number",
     "stepOf": "Step {{step}} of {{total}}",
     "change": "Change",
     "progress": {
@@ -978,6 +992,7 @@
     "myReportsDetail": "See replies from our team"
   },
   "commonActions": {
+    "clearField": "Clear {{field}}",
     "back": "Back",
     "save": "Save",
     "done": "Done",
@@ -1191,6 +1206,8 @@
     "quickAway": "Going away",
     "quickResume": "Resume",
     "showAllDays": "Show all ({{count}})",
+    "skippedHistory": "Skipped deliveries ({{count}})",
+    "skippedDateRange": "{{from}} to {{to}}",
     "planDetails": "Plan details",
     "paymentLabel": "Payment",
     "perDeliveryLabel": "Per delivery",

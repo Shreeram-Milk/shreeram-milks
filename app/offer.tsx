@@ -52,7 +52,7 @@ function OfferBody({ shown }: { shown: Shown }) {
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
       <ScrollView contentContainerStyle={{ paddingBottom: theme.spacing.xl }} showsVerticalScrollIndicator={false}>
         <View style={{ overflow: "hidden", borderBottomLeftRadius: CURVE, borderBottomRightRadius: CURVE }}>
-          <CurvedHero imageUrl={offer.imageUrl} width={width} height={heroHeight} showText={offer.showText} label={offerValueText(offer, t)} title={title} message={description} />
+          <CurvedHero imageUrl={offer.imageUrl} width={width} height={heroHeight} showText={offer.showText} showStatusBarWash label={offerValueText(offer, t)} title={title} message={description} />
         </View>
         <View style={{ gap: theme.spacing.lg, padding: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.lg }}>
           {/* With the words switched off on the picture, they are written here instead. */}

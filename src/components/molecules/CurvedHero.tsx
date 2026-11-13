@@ -13,6 +13,8 @@ type Props = PropsWithChildren<{
   height: number;
   /** False: the picture shows alone (it already carries its own words). */
   showText: boolean;
+  /** Lightens the artwork behind dark status-bar icons on edge-to-edge screens. */
+  showStatusBarWash?: boolean;
   label?: string;
   title: string;
   message?: string;
@@ -24,7 +26,7 @@ type Props = PropsWithChildren<{
  * One big picture with its words on top, as on Home's top banner and an offer page. The words sit on a soft dark shade at the
  * bottom, so they read on any picture. Without a picture, a warm cream-to-peach background with dark words is shown instead.
  */
-export function CurvedHero({ imageUrl, width, height, showText, label, title, message, bottomSpace = 0, children }: Props) {
+export function CurvedHero({ imageUrl, width, height, showText, showStatusBarWash = false, label, title, message, bottomSpace = 0, children }: Props) {
   const theme = useTheme();
   const hasImage = Boolean(imageUrl);
   const textColor = hasImage ? theme.colors.colorTextInverse : theme.colors.colorTextPrimary;
@@ -43,16 +45,17 @@ export function CurvedHero({ imageUrl, width, height, showText, label, title, me
           <Rect width={width} height={height} fill="url(#warm)" />
         </Svg>
       )}
-      {/* A light wash under the status bar keeps the clock and battery readable on any picture. */}
-      <Svg width={width} height={120} style={{ position: "absolute", top: 0, left: 0 }} pointerEvents="none">
-        <Defs>
-          <LinearGradient id="top" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.55} />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
-          </LinearGradient>
-        </Defs>
-        <Rect width={width} height={120} fill="url(#top)" />
-      </Svg>
+      {showStatusBarWash ? (
+        <Svg width={width} height={120} style={{ position: "absolute", top: 0, left: 0 }} pointerEvents="none">
+          <Defs>
+            <LinearGradient id="top" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.55} />
+              <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          <Rect width={width} height={120} fill="url(#top)" />
+        </Svg>
+      ) : null}
       {showText && hasImage ? (
         <Svg width={width} height={height * 0.6} style={{ position: "absolute", left: 0, bottom: 0 }} pointerEvents="none">
           <Defs>

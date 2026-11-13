@@ -1,5 +1,5 @@
 import { router, useNavigation } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StatusBar, View } from "react-native";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
@@ -10,6 +10,7 @@ import { RadioDot } from "../src/components/atoms/RadioDot";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { CheckoutEmptyCart } from "../src/components/molecules/CheckoutEmptyCart";
 import { CheckoutProgress } from "../src/components/molecules/CheckoutProgress";
+import { CheckoutPhoneField } from "../src/components/molecules/CheckoutPhoneField";
 import { CheckoutSection } from "../src/components/molecules/CheckoutSection";
 import { OfferCodeBox } from "../src/components/molecules/OfferCodeBox";
 import { PaymentPoller } from "../src/components/molecules/PaymentPoller";
@@ -21,13 +22,20 @@ import { useCheckPayment, usePayForOrder, usePlaceOrder, useQuote } from "../src
 import { formatRupees } from "../src/lib/catalogCart";
 import { localized } from "../src/lib/contentLocalization";
 import { formatShortDay, formatOrderBy, formatWindow } from "../src/lib/deliveryText";
+import { formatPhone, isIndianMobile, toInternationalPhone } from "../src/lib/phone";
 import { describeError } from "../src/services/errorMapper";
 import { useAppStore } from "../src/store/useAppStore";
 import { useTheme } from "../src/theme";
-import type { OnlinePayment, Order, QuoteOrder } from "../src/types/orders";
+import type { OnlinePayment, Order, Quote, QuoteOrder } from "../src/types/orders";
 
 /** A fresh value for each distinct request. The same request retried keeps its key, so the server never makes a second order. */
 const newKey = (): string => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+
+// A catalog or address-coverage change can move items between deliveries without changing the total.
+const deliveryPlanOf = (quote: Quote): string => JSON.stringify(quote.orders.map((order) => [
+  order.key, order.deliveryMethod, order.selectedSlotId, order.deliveryDate, order.orderBy, order.payment, order.totalPaise,
+  order.items.map((item) => [item.variantId, item.quantity, item.isGift]),
+]));
 
 export default function CheckoutReviewScreen() {
   const theme = useTheme();
@@ -55,6 +63,7 @@ export default function CheckoutReviewScreen() {
   const check = useCheckPayment();
   // A payment that did not end in an order (still confirming, failed, or to be refunded), shown until the customer acts.
   const [outcome, setOutcome] = useState<OnlinePayment | null>(null);
+  const checkingBeforeSubmit = useRef(false);
   // A new attempt after a failed or abandoned payment needs a new request key; the same key would return the old payment.
   const [attempt, setAttempt] = useState(0);
   const requestKey = JSON.stringify(request);
@@ -93,7 +102,7 @@ export default function CheckoutReviewScreen() {
   const offerProblem = data?.problems.find((problem) => problem.code.startsWith("OFFER_")) ?? null;
   const otherProblems = [...new Set(problemCodes.filter((code) => code !== "SLOT_REQUIRED" && !code.startsWith("OFFER_")))];
   const busy = place.isPending || pay.isPending || check.isPending;
-  const blocked = !data || data.orders.length === 0 || problemCodes.length > 0 || quote.isFetching || busy;
+  const blocked = !isIndianMobile(address.phone) || !data || data.orders.length === 0 || problemCodes.length > 0 || quote.isError || quote.isPlaceholderData || quote.isFetching || busy;
   // Anything paid online goes through PhonePe first; the orders are written only once PhonePe confirms the payment.
   const payOnlinePaise = data?.orders.filter((order) => order.payment === "online").reduce((sum, order) => sum + order.totalPaise, 0) ?? 0;
 
@@ -124,16 +133,25 @@ export default function CheckoutReviewScreen() {
     if (code === "PAYMENT_ALREADY_STARTED" || code === "PAYMENT_PROVIDER_UNAVAILABLE") setAttempt((count) => count + 1);
   };
   const submit = async () => {
-    if (!request || blocked) return;
+    if (!request || !data || blocked || checkingBeforeSubmit.current) return;
     setOutcome(null);
     // Ask once more right before ordering: the server decides the delivery date from the clock, so it may have moved.
-    const shown = JSON.stringify(data?.orders.map((order) => [order.key, order.selectedSlotId, order.deliveryDate, order.orderBy]));
-    const latest = await quote.refetch();
-    if (latest.data && JSON.stringify(latest.data.orders.map((order) => [order.key, order.selectedSlotId, order.deliveryDate, order.orderBy])) !== shown) { setDateChangedFor(requestKey); return; }
-    setDateChangedFor(null);
-    const body = { ...request, idempotencyKey, expectedTotalPaise: data?.totalPaise ?? 0 };
-    if (payOnlinePaise > 0) pay.mutate(body, { onSuccess: onPayment, onError: onFailure });
-    else place.mutate(body, { onSuccess: finish, onError: onFailure });
+    checkingBeforeSubmit.current = true;
+    try {
+      const latest = await quote.refetch();
+      if (latest.isError || !latest.data) return;
+      if (latest.data.totalPaise !== data.totalPaise || deliveryPlanOf(latest.data) !== deliveryPlanOf(data)) {
+        setDateChangedFor(requestKey);
+        return;
+      }
+      if (latest.data.problems.length > 0) return;
+      setDateChangedFor(null);
+      const body = { ...request, idempotencyKey, expectedTotalPaise: data.totalPaise };
+      if (payOnlinePaise > 0) pay.mutate(body, { onSuccess: onPayment, onError: onFailure });
+      else place.mutate(body, { onSuccess: finish, onError: onFailure });
+    } finally {
+      checkingBeforeSubmit.current = false;
+    }
   };
   const failure = place.error ?? pay.error ?? check.error;
 
@@ -145,10 +163,11 @@ export default function CheckoutReviewScreen() {
 
   const renderOrder = (order: QuoteOrder, index: number, count: number) => {
     const local = order.deliveryMethod === "local_delivery";
+    const method = t(local ? "shop.localDeliveryTitle" : "shop.courierTitle");
     return (
-      <CheckoutSection key={order.key} title={count > 1 ? t("shop.orderOf", { index: index + 1, count }) : t("checkout.review.itemsTitle", { count: order.items.length })}>
+      <CheckoutSection key={order.key} title={count > 1 ? t("shop.deliveryGroup", { index: index + 1, count, method }) : method}>
         {order.items.map((item, position) => (
-          <View key={item.variantId} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.md, borderTopWidth: position === 0 ? theme.borderWidths.none : theme.borderWidths.hairline, borderTopColor: theme.colors.colorBorder }}>
+          <View key={`${item.variantId}:${position}`} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md, padding: theme.spacing.md, borderTopWidth: position === 0 ? theme.borderWidths.none : theme.borderWidths.hairline, borderTopColor: theme.colors.colorBorder }}>
             <View style={{ minWidth: theme.sizes.avatarSm, height: theme.sizes.avatarSm, paddingHorizontal: theme.spacing.xs, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted }}>
               <ThemedText variant="caption" weight="bold">{item.quantity}×</ThemedText>
             </View>
@@ -191,7 +210,6 @@ export default function CheckoutReviewScreen() {
           </View>
         ) : (
           <View style={{ gap: theme.spacing.xs, padding: theme.spacing.md }}>
-            <ThemedText variant="bodySmall" weight="medium">{t("shop.courierTitle")}</ThemedText>
             <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("shop.courierDetail")}</ThemedText>
           </View>
         )}
@@ -216,8 +234,10 @@ export default function CheckoutReviewScreen() {
           <View style={{ gap: theme.spacing.xs, padding: theme.spacing.md }}>
             <ThemedText variant="bodySmall" weight="medium">{address.fullName}</ThemedText>
             <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{[address.line1, address.line2, address.city].filter(Boolean).join(", ")} – {address.pincode}</ThemedText>
+            {isIndianMobile(address.phone) ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatPhone(toInternationalPhone(address.phone))}</ThemedText> : null}
           </View>
         </CheckoutSection>
+        {!isIndianMobile(address.phone) ? <CheckoutPhoneField key={address.id} address={address} /> : null}
 
         {quote.isLoading ? <StateMessage type="loading" title={t("shop.checking")} /> : null}
         {quote.isError ? (
