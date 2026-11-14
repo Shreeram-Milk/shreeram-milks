@@ -32,6 +32,15 @@ export function useProductImages(): ReadonlyMap<string, string> {
   return useMemo(() => new Map((data ?? []).filter((product) => product.imageUrl).map((product) => [product.id, product.imageUrl as string])), [data]);
 }
 
+/**
+ * Each size's current picture link, by size id. Cart lines are saved on the phone with the link they had when added, and
+ * links expire after a while, so the cart shows the fresh one from here.
+ */
+export function useVariantImages(): ReadonlyMap<string, string> {
+  const { data } = useCatalogProducts(null);
+  return useMemo(() => new Map((data ?? []).flatMap((product) => (product.imageUrl ? product.variants.map((variant) => [variant.id, product.imageUrl as string] as const) : []))), [data]);
+}
+
 export function useCatalogProduct(id: string | undefined) {
   const preview = useCatalogProductPreview(id);
   return useQuery({

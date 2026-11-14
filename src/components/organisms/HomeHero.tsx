@@ -17,7 +17,8 @@ import { ThemedText } from "../atoms/ThemedText";
 import { CurvedHero } from "../molecules/CurvedHero";
 import { NotificationBell } from "../molecules/NotificationBell";
 
-const BANNER_CORNER_RADIUS = 5;
+/** The banner is a rounded card inside the page margins, about two-thirds as tall as it is wide. */
+const BANNER_HEIGHT_RATIO = 0.62;
 const HEADER_LOGO_SIZE = 36;
 const AUTO_SLIDE_MS = 5000;
 const LOCATION_LABEL_HOLD_MS = 2000;
@@ -36,7 +37,7 @@ export function bannerLink(banner: Pick<BannerContent, "ctaType" | "ctaTarget">)
   }
 }
 
-type Props = { promotions: BannerContent[]; language: AppLanguage; locationPin: string; locationCity?: string; locationText: string; children?: React.ReactNode };
+type Props = { locationPin: string; locationCity?: string; locationText: string; children?: React.ReactNode };
 
 function HomeLocationLabel({ pin, city }: { pin: string; city?: string }) {
   const theme = useTheme();
@@ -94,33 +95,9 @@ function HomeLocationLabel({ pin, city }: { pin: string; city?: string }) {
 /**
  * The compact Home controls sit above the promotion carousel, leaving the banner artwork clear.
  */
-export function HomeHero({ promotions, language, locationPin, locationCity, locationText, children }: Props) {
+export function HomeHero({ locationPin, locationCity, locationText, children }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { width, height: screenHeight } = useWindowDimensions();
-  const [index, setIndex] = useState(0);
-  const list = useRef<FlatList<BannerContent>>(null);
-  const touched = useRef(false);
-  const count = promotions.length;
-  const heroHeight = Math.round(Math.min(Math.max(width * 1.02, 360), screenHeight * 0.54));
-
-  // Moves to the next promotion every few seconds, until the customer swipes it themselves.
-  useEffect(() => {
-    if (count < 2) return;
-    const timer = setInterval(() => {
-      if (touched.current) return;
-      setIndex((current) => {
-        const next = (current + 1) % count;
-        list.current?.scrollToOffset({ offset: next * width, animated: true });
-        return next;
-      });
-    }, AUTO_SLIDE_MS);
-    return () => clearInterval(timer);
-  }, [count, width]);
-
-  const onSlideEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (width > 0) setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
-  }, [width]);
 
   return (
     <View>
@@ -148,7 +125,8 @@ export function HomeHero({ promotions, language, locationPin, locationCity, loca
             justifyContent: "center",
             borderRadius: theme.radii.pill,
             overflow: "hidden",
-            backgroundColor: theme.colors.colorPrimary,
+            // The logo always sits on the brand orange.
+            backgroundColor: theme.colors.colorBrand,
           }}
         >
           {/* The existing foreground has transparent padding for Android's adaptive icon. */}
@@ -164,8 +142,47 @@ export function HomeHero({ promotions, language, locationPin, locationCity, loca
         </View>
       </View>
       {children}
+    </View>
+  );
+}
+
+/**
+ * The admin's promotions as a rounded card inside the page margins. It moves to the next one every few seconds until the
+ * customer swipes it themselves. Shows nothing when there are no promotions.
+ */
+export function PromotionCarousel({ promotions, language }: { promotions: BannerContent[]; language: AppLanguage }) {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const { width } = useWindowDimensions();
+  const [index, setIndex] = useState(0);
+  const list = useRef<FlatList<BannerContent>>(null);
+  const touched = useRef(false);
+  const count = promotions.length;
+  const cardWidth = width - theme.layout.screenHorizontalPadding * 2;
+  const heroHeight = Math.round(cardWidth * BANNER_HEIGHT_RATIO);
+
+  // Moves to the next promotion every few seconds, until the customer swipes it themselves.
+  useEffect(() => {
+    if (count < 2) return;
+    const timer = setInterval(() => {
+      if (touched.current) return;
+      setIndex((current) => {
+        const next = (current + 1) % count;
+        list.current?.scrollToOffset({ offset: next * width, animated: true });
+        return next;
+      });
+    }, AUTO_SLIDE_MS);
+    return () => clearInterval(timer);
+  }, [count, width]);
+
+  const onSlideEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (width > 0) setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
+  }, [width]);
+
+  return (
+    <View>
       {count > 0 ? (
-        <View style={{ height: heroHeight, overflow: "hidden", borderBottomLeftRadius: BANNER_CORNER_RADIUS, borderBottomRightRadius: BANNER_CORNER_RADIUS, backgroundColor: theme.colors.colorPrimaryTint }}>
+        <View style={{ height: heroHeight, marginTop: theme.spacing.sm }}>
           <FlatList
             ref={list}
             data={promotions}
@@ -181,10 +198,11 @@ export function HomeHero({ promotions, language, locationPin, locationCity, loca
               const link = bannerLink(item);
               const title = localized(item.titleEn, item.titleGu, language);
               return (
-                <Pressable accessibilityRole={link ? "button" : "image"} accessibilityLabel={title} disabled={!link} onPress={() => { if (link) router.push(link); }}>
+                <Pressable accessibilityRole={link ? "button" : "image"} accessibilityLabel={title} disabled={!link} onPress={() => { if (link) router.push(link); }} style={{ width, paddingHorizontal: theme.layout.screenHorizontalPadding }}>
+                  <View style={{ overflow: "hidden", borderRadius: theme.radii.xl, backgroundColor: theme.colors.colorSurfaceTile }}>
                   <CurvedHero
                     imageUrl={item.imageUrl}
-                    width={width}
+                    width={cardWidth}
                     height={heroHeight}
                     showText={item.showText}
                     label={localized(item.labelEn, item.labelGu, language)}
@@ -192,6 +210,7 @@ export function HomeHero({ promotions, language, locationPin, locationCity, loca
                     message={localized(item.messageEn, item.messageGu, language)}
                     bottomSpace={count > 1 ? 14 : 0}
                   />
+                  </View>
                 </Pressable>
               );
             }}

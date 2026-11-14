@@ -19,7 +19,7 @@ void SplashScreen.preventAutoHideAsync();
 const PROTECTED_SCREENS = [
   "checkout-address", "checkout-review", "delivery-addresses", "delivery-address-form", "delivery-calendar", "doorstep-instructions",
   "edit-profile", "help", "location", "my-report", "my-reports", "notifications", "offers", "orders", "order-tracking", "rewards",
-  "report-issue", "settings", "subscribe-review", "subscription-manage", "subscription-vacation", "support",
+  "report-issue", "settings", "subscribe-review", "subscription-manage", "subscription-vacation", "support", "wallet",
 ] as const;
 /** Pages that open by growing out of a tapped card (see MorphPage). */
 const MORPH_SCREENS = ["product-details", "offer"] as const;

@@ -29,8 +29,9 @@ export function ProductImageCarousel({ imageUrls, accessibilityLabel }: ProductI
         keyExtractor={(item, position) => item ?? `empty-${position}`}
         onMomentumScrollEnd={onScrollEnd}
         getItemLayout={(_data, position) => ({ length: width, offset: width * position, index: position })}
-        renderItem={({ item }) => (
-          <Image accessibilityLabel={accessibilityLabel} source={remoteImage(item)} contentFit="cover" transition={theme.motion.duration.fast} style={{ width, height: width }} />
+        renderItem={({ item, index: position }) => (
+          // The first photo is the one on the product card, already on the phone, so it shows at once; it also stands in while the others load.
+          <Image accessibilityLabel={accessibilityLabel} source={remoteImage(item)} placeholder={position > 0 ? remoteImage(slides[0]) : undefined} placeholderContentFit="cover" priority={position === 0 ? "high" : "normal"} contentFit="cover" transition={theme.motion.duration.fast} style={{ width, height: width }} />
         )}
       />
       {slides.length > 1 ? (

@@ -29,7 +29,7 @@ export function AppIcon({ accessibilityLabel, color, icon, size = 'md', strong =
     success: theme.colors.colorSuccess,
     warning: theme.colors.colorWarning,
     danger: theme.colors.colorDanger,
-    brand: theme.colors.colorPrimary,
+    brand: theme.colors.colorBrandText,
     accent: theme.colors.colorAccent,
     highlight: theme.colors.colorHighlightText,
   };

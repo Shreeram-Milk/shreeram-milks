@@ -80,7 +80,12 @@
     "GOOGLE_EMAIL_NOT_VERIFIED": "Your Google email is not verified. Please sign in another way.",
     "GOOGLE_ACCOUNT_CONFLICT": "This email is linked to a different Google account. Please sign in with your email code.",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "Google sign-in is not available right now. Please use your email.",
-    "GOOGLE_SIGN_IN_FAILED": "Google sign-in could not be completed. Please try again."
+    "GOOGLE_SIGN_IN_FAILED": "Google sign-in could not be completed. Please try again.",
+    "WALLET_BALANCE_LOW": "Your wallet doesn't have enough money for this order.",
+    "WALLET_NOT_AVAILABLE": "The wallet isn't available on this account.",
+    "WALLET_LIMIT": "That's more than your wallet can hold.",
+    "WALLET_EMPTY": "There's no money in your wallet to refund.",
+    "REFUND_ALREADY_REQUESTED": "A refund is already on its way."
   },
   "account": {
     "signOut": "Sign out",
@@ -197,7 +202,10 @@
     },
     "deliveringToPin": "Delivering to {{pin}}",
     "setLocation": "Set your delivery location",
-    "emptyAll": "No products are available yet. Please check back soon."
+    "emptyAll": "No products are available yet. Please check back soon.",
+    "greetingName": "{{greeting}}, {{name}}",
+    "everyMorning": "Every morning",
+    "allProducts": "All products"
   },
   "delivery": {
     "today": "today",
@@ -651,7 +659,8 @@
     "removedToast": "{{product}} removed from your cart",
     "add": "ADD",
     "added": "ADDED",
-    "options": "OPTIONS"
+    "options": "OPTIONS",
+    "oneLess": "One less {{product}}"
   },
   "profile": {
     "title": "Profile",
@@ -1351,5 +1360,58 @@
       "refunded": "Refunded",
       "partlyRefunded": "Partly refunded"
     }
+  },
+  "wallet": {
+    "title": "Wallet",
+    "back": "Back",
+    "balance": "Wallet balance",
+    "useIt": "Use it for any order. Ask for the balance back any time.",
+    "notAvailable": "Pay-later accounts can't add money. Any balance left can be refunded.",
+    "addMoney": "Add money",
+    "refund": "Refund",
+    "full": "Your wallet is full. It can hold up to {{max}}.",
+    "refundOnWay": "Refund of {{amount}} on its way",
+    "refundTimeline": "Asked on {{date}}. It goes back to the PhonePe payments you added it with and usually reaches you in 7–10 working days.",
+    "contactUs": "Questions? Contact us",
+    "pendingDetail": "PhonePe is still confirming your payment. Your balance updates here as soon as it does.",
+    "activity": "Activity",
+    "loadFailed": "Could not load your wallet",
+    "noActivity": "Nothing here yet. Money you add and orders you pay from the wallet show here.",
+    "addDetail": "Paid with PhonePe. The money shows in your wallet once PhonePe confirms the payment.",
+    "limits": "Spend it only at ShreeRam. A wallet can hold up to {{max}}.",
+    "payWithPhonePe": "Pay {{amount}} with PhonePe",
+    "added": "{{amount}} added to your wallet",
+    "addRefunded": "PhonePe took the payment but it could not be added. It will be refunded to you.",
+    "refundRequested": "Refund requested. Usually 7–10 working days.",
+    "refundTitle": "Refund {{amount}}?",
+    "refundDetail": "We send your wallet balance back to the PhonePe payments you added it with.",
+    "refundPoint1": "It usually reaches you in 7–10 working days.",
+    "refundPoint2": "You can't spend this money while it is on its way.",
+    "requestRefund": "Request refund",
+    "notNow": "Not now",
+    "entry_top_up": "Added with PhonePe",
+    "entry_order_payment": "Paid for order {{order}}",
+    "entry_order_return": "Returned from order {{order}}",
+    "entry_refund_hold": "Refund requested",
+    "entry_refund_release": "Refund cancelled, money back",
+    "entry_manual_adjustment": "Correction by ShreeRam",
+    "entry": "Wallet",
+    "entryDetail": "Balance {{amount}}",
+    "payFromWallet": "Pay from wallet",
+    "payFromWalletDetail": "Balance {{amount}}",
+    "payFromWalletShort": "Balance {{balance}} · add {{needed}} to use it",
+    "payButton": "Pay {{amount}} from wallet",
+    "addMoneyLink": "Add money",
+    "cartHint": "Wallet balance {{amount}}. You can pay with it at checkout."
+  },
+  "sizePicker": {
+    "detail": "Choose a size. Add as many as you like.",
+    "add": "Add",
+    "addSize": "Add {{size}} {{product}}",
+    "details": "View details",
+    "done": "Done"
+  },
+  "cartBar": {
+    "view": "View cart"
   }
 }

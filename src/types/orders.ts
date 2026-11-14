@@ -136,7 +136,7 @@ export interface CheckoutHandle {
 /** An online payment as the server reports it. Orders appear only once the payment is confirmed and they were written. */
 export interface OnlinePayment {
   merchantOrderId: string;
-  purpose: "order" | "credit_settlement" | "subscription";
+  purpose: "order" | "credit_settlement" | "subscription" | "wallet_topup";
   status: PaymentState;
   /** Paid, and what it paid for was delivered ("fulfilled"), or it could not be, so it will be refunded ("refund_due"). */
   fulfilment: "none" | "fulfilled" | "refund_due";

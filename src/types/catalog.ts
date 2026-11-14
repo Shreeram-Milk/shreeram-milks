@@ -3,6 +3,8 @@ export interface CatalogCategory {
   id: string;
   name: string;
   nameGu: string;
+  /** The tile picture the admin uploaded, if any. */
+  imageUrl?: string | null;
 }
 
 /** One size of a product with its price. Money is whole paise (₹70.00 = 7000), never decimals. */

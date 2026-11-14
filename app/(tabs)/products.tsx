@@ -27,7 +27,7 @@ export default function ProductsScreen() {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const { data: products = [], isError, isLoading, isPlaceholderData, isRefetching, refetch } = useCatalogProducts(activeCategoryId);
   const { data: categories = [] } = useCatalogCategories();
-  const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
+  const { onAdd, onDecrease, openProduct, quantityOf } = useCatalogCart();
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const activeCategoryName = activeCategory ? localized(activeCategory.name, activeCategory.nameGu, language) : t("home.categories.all");
 
@@ -36,7 +36,7 @@ export default function ProductsScreen() {
       <View style={{ flex: 1 }} />
     ) : (
       <RiseIn index={index} style={{ flex: 1, marginBottom: theme.spacing.md - 4, opacity: isPlaceholderData ? theme.opacity.subdued : theme.opacity.full }}>
-        <CatalogProductCard isAdded={isAdded(item)} product={item} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
+        <CatalogProductCard quantity={quantityOf(item)} product={item} onAdd={onAdd} onDecrease={onDecrease} onPress={openProduct} />
       </RiseIn>
     );
 

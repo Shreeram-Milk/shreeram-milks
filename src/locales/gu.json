@@ -107,7 +107,10 @@
     },
     "deliveringToPin": "{{pin}} પર ડિલિવરી",
     "setLocation": "તમારું ડિલિવરી સ્થાન નક્કી કરો",
-    "emptyAll": "હજુ કોઈ પ્રોડક્ટ ઉપલબ્ધ નથી. થોડા સમય પછી ફરી જુઓ."
+    "emptyAll": "હજુ કોઈ પ્રોડક્ટ ઉપલબ્ધ નથી. થોડા સમય પછી ફરી જુઓ.",
+    "greetingName": "{{greeting}}, {{name}}",
+    "everyMorning": "દરરોજ સવારે",
+    "allProducts": "બધી પ્રોડક્ટ"
   },
   "delivery": {
     "today": "આજે",
@@ -561,7 +564,8 @@
     "removedToast": "{{product}} કાર્ટમાંથી દૂર કર્યું",
     "add": "ઉમેરો",
     "added": "ઉમેર્યું",
-    "options": "વિકલ્પ"
+    "options": "વિકલ્પ",
+    "oneLess": "એક ઓછું {{product}}"
   },
   "errors": {
     "OFFER_CODE_INVALID": "આ ઑફર કોડ માન્ય નથી.",
@@ -633,7 +637,12 @@
     "GOOGLE_EMAIL_NOT_VERIFIED": "તમારો Google ઇમેઇલ ચકાસાયેલો નથી. કૃપા કરીને બીજી રીતે સાઇન ઇન કરો.",
     "GOOGLE_ACCOUNT_CONFLICT": "આ ઇમેઇલ બીજા Google ખાતા સાથે જોડાયેલો છે. કૃપા કરીને ઇમેઇલ કોડથી સાઇન ઇન કરો.",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "Google સાઇન-ઇન હમણાં ઉપલબ્ધ નથી. કૃપા કરીને ઇમેઇલ વાપરો.",
-    "GOOGLE_SIGN_IN_FAILED": "Google સાઇન-ઇન પૂર્ણ થઈ શક્યું નથી. કૃપા કરીને ફરી પ્રયાસ કરો."
+    "GOOGLE_SIGN_IN_FAILED": "Google સાઇન-ઇન પૂર્ણ થઈ શક્યું નથી. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "WALLET_BALANCE_LOW": "આ ઓર્ડર માટે તમારા વૉલેટમાં પૂરતા પૈસા નથી.",
+    "WALLET_NOT_AVAILABLE": "આ ખાતામાં વૉલેટ ઉપલબ્ધ નથી.",
+    "WALLET_LIMIT": "તમારું વૉલેટ આટલું રાખી શકતું નથી.",
+    "WALLET_EMPTY": "રિફંડ કરવા માટે વૉલેટમાં પૈસા નથી.",
+    "REFUND_ALREADY_REQUESTED": "રિફંડ પહેલેથી રસ્તામાં છે."
   },
   "account": {
     "signOut": "સાઇન આઉટ",
@@ -1351,5 +1360,58 @@
       "refunded": "રિફંડ થયું",
       "partlyRefunded": "આંશિક રિફંડ"
     }
+  },
+  "wallet": {
+    "title": "વૉલેટ",
+    "back": "પાછા",
+    "balance": "વૉલેટ બેલેન્સ",
+    "useIt": "કોઈ પણ ઓર્ડરમાં વાપરો. બેલેન્સ ગમે ત્યારે પાછું માંગી શકો.",
+    "notAvailable": "પછી ચૂકવનાર ખાતામાં પૈસા ઉમેરી શકાતા નથી. બાકી બેલેન્સ રિફંડ થઈ શકે છે.",
+    "addMoney": "પૈસા ઉમેરો",
+    "refund": "રિફંડ",
+    "full": "તમારું વૉલેટ ભરાઈ ગયું છે. તેમાં વધુમાં વધુ {{max}} રહી શકે.",
+    "refundOnWay": "{{amount}} નું રિફંડ રસ્તામાં છે",
+    "refundTimeline": "{{date}} એ માંગ્યું. જે PhonePe ચુકવણીથી ઉમેર્યા હતા ત્યાં પાછું જાય છે, અને સામાન્ય રીતે 7–10 કામકાજના દિવસમાં મળે છે.",
+    "contactUs": "પ્રશ્ન છે? અમારો સંપર્ક કરો",
+    "pendingDetail": "PhonePe હજી તમારી ચુકવણી ચકાસી રહ્યું છે. થતાં જ બેલેન્સ અહીં બદલાશે.",
+    "activity": "હિલચાલ",
+    "loadFailed": "તમારું વૉલેટ લોડ ન થયું",
+    "noActivity": "હજી કંઈ નથી. ઉમેરેલા પૈસા અને વૉલેટથી ચૂકવેલા ઓર્ડર અહીં દેખાશે.",
+    "addDetail": "PhonePe થી ચુકવણી. PhonePe ચુકવણી પાકી કરે પછી પૈસા વૉલેટમાં દેખાશે.",
+    "limits": "ફક્ત ShreeRam માં વાપરી શકાય. વૉલેટમાં વધુમાં વધુ {{max}} રહી શકે.",
+    "payWithPhonePe": "PhonePe થી {{amount}} ચૂકવો",
+    "added": "તમારા વૉલેટમાં {{amount}} ઉમેરાયા",
+    "addRefunded": "PhonePe એ ચુકવણી લીધી પણ ઉમેરી શકાઈ નથી. તે તમને રિફંડ થશે.",
+    "refundRequested": "રિફંડ માંગ્યું. સામાન્ય રીતે 7–10 કામકાજના દિવસ.",
+    "refundTitle": "{{amount}} રિફંડ કરવા છે?",
+    "refundDetail": "તમારું વૉલેટ બેલેન્સ જે PhonePe ચુકવણીથી ઉમેર્યું હતું ત્યાં પાછું મોકલીએ છીએ.",
+    "refundPoint1": "સામાન્ય રીતે 7–10 કામકાજના દિવસમાં મળે છે.",
+    "refundPoint2": "રસ્તામાં હોય ત્યાં સુધી આ પૈસા વાપરી શકાશે નહીં.",
+    "requestRefund": "રિફંડ માંગો",
+    "notNow": "હમણાં નહીં",
+    "entry_top_up": "PhonePe થી ઉમેર્યા",
+    "entry_order_payment": "ઓર્ડર {{order}} માટે ચૂકવ્યા",
+    "entry_order_return": "ઓર્ડર {{order}} ના પાછા",
+    "entry_refund_hold": "રિફંડ માંગ્યું",
+    "entry_refund_release": "રિફંડ રદ, પૈસા પાછા",
+    "entry_manual_adjustment": "ShreeRam દ્વારા સુધારો",
+    "entry": "વૉલેટ",
+    "entryDetail": "બેલેન્સ {{amount}}",
+    "payFromWallet": "વૉલેટથી ચૂકવો",
+    "payFromWalletDetail": "બેલેન્સ {{amount}}",
+    "payFromWalletShort": "બેલેન્સ {{balance}} · વાપરવા {{needed}} ઉમેરો",
+    "payButton": "વૉલેટથી {{amount}} ચૂકવો",
+    "addMoneyLink": "પૈસા ઉમેરો",
+    "cartHint": "વૉલેટ બેલેન્સ {{amount}}. ચેકઆઉટ વખતે તેનાથી ચૂકવી શકો."
+  },
+  "sizePicker": {
+    "detail": "સાઇઝ પસંદ કરો. જોઈએ તેટલું ઉમેરો.",
+    "add": "ઉમેરો",
+    "addSize": "{{size}} {{product}} ઉમેરો",
+    "details": "વિગતો જુઓ",
+    "done": "થઈ ગયું"
+  },
+  "cartBar": {
+    "view": "કાર્ટ જુઓ"
   }
 }

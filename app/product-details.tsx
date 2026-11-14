@@ -23,6 +23,7 @@ import { SubscribeSetup, emptyChoice, resolveChoice, type SubscribeChoice } from
 import { useCatalogProduct, useProductDelivery } from "../src/hooks/useCatalog";
 import { useFeatureFlags } from "../src/hooks/useContent";
 import { useMySubscriptions } from "../src/hooks/useSubscriptions";
+import { useSavedDeliveryPin } from "../src/hooks/useSavedDeliveryPin";
 import { BackIcon, CartIcon, SuccessIcon } from "../src/icons/appIcons";
 import { formatRupees, toCartProduct } from "../src/lib/catalogCart";
 import { localized } from "../src/lib/contentLocalization";
@@ -77,6 +78,8 @@ function ProductDetailsContent() {
   const id = Array.isArray(productId) ? productId[0] : productId;
   // Opened from a card, the page starts from what the card knew (isPlaceholderData) and the rest fills in when it arrives.
   const { data: product, isError, isLoading, isPlaceholderData, refetch } = useCatalogProduct(id);
+  // The tabs underneath are paused while this page is open, so it follows the saved address itself: an address edited from here shows at once.
+  useSavedDeliveryPin();
   const deliveryPin = useAppStore((state) => state.deliveryPin);
   const delivery = useProductDelivery(deliveryPin, product?.id ?? null);
   const { data: mySubscriptions = [] } = useMySubscriptions();

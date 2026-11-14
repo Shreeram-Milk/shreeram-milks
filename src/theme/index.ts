@@ -12,4 +12,4 @@ export { motion } from './motion';
 export { elevation } from './elevation';
 export { zIndex } from './zIndex';
 export { layout } from './layout';
-export { fontFamilyForLocale, useAppFonts, type AppLocale, type FontWeightName } from './fonts';
+export { displayFontFamily, fontFamilyForLocale, useAppFonts, type AppLocale, type FontWeightName } from './fonts';

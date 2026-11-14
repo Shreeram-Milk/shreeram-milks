@@ -13,7 +13,7 @@ export function parseCategory(raw: unknown): CatalogCategory | null {
   const item = record(raw);
   const id = text(item?.id);
   const name = text(item?.name).trim();
-  return item && id && name ? { id, name, nameGu: text(item.nameGu) } : null;
+  return item && id && name ? { id, name, nameGu: text(item.nameGu), imageUrl: text(item.imageUrl) || null } : null;
 }
 
 function parseVariant(raw: unknown): CatalogVariant | null {

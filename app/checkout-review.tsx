@@ -14,11 +14,13 @@ import { CheckoutPhoneField } from "../src/components/molecules/CheckoutPhoneFie
 import { CheckoutSection } from "../src/components/molecules/CheckoutSection";
 import { OfferCodeBox } from "../src/components/molecules/OfferCodeBox";
 import { PaymentPoller } from "../src/components/molecules/PaymentPoller";
+import { WalletPayChoice } from "../src/components/molecules/WalletPayChoice";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { CHECKOUT_FOOTER_SPACE, CheckoutFooter } from "../src/components/organisms/CheckoutFooter";
 import { useAddresses } from "../src/hooks/useAddresses";
 import { useCheckoutLines } from "../src/hooks/useCheckoutLines";
 import { useCheckPayment, usePayForOrder, usePlaceOrder, useQuote } from "../src/hooks/useOrders";
+import { useMyWallet } from "../src/hooks/useWallet";
 import { formatRupees } from "../src/lib/catalogCart";
 import { localized } from "../src/lib/contentLocalization";
 import { formatShortDay, formatOrderBy, formatWindow } from "../src/lib/deliveryText";
@@ -61,6 +63,9 @@ export default function CheckoutReviewScreen() {
   const place = usePlaceOrder();
   const pay = usePayForOrder();
   const check = useCheckPayment();
+  // A prepaid customer may pay from their wallet instead of PhonePe (see payWithWallet below).
+  const wallet = useMyWallet();
+  const [walletChoice, setWalletChoice] = useState<boolean | null>(null);
   // A payment that did not end in an order (still confirming, failed, or to be refunded), shown until the customer acts.
   const [outcome, setOutcome] = useState<OnlinePayment | null>(null);
   const checkingBeforeSubmit = useRef(false);
@@ -105,6 +110,9 @@ export default function CheckoutReviewScreen() {
   const blocked = !isIndianMobile(address.phone) || !data || data.orders.length === 0 || problemCodes.length > 0 || quote.isError || quote.isPlaceholderData || quote.isFetching || busy;
   // Anything paid online goes through PhonePe first; the orders are written only once PhonePe confirms the payment.
   const payOnlinePaise = data?.orders.filter((order) => order.payment === "online").reduce((sum, order) => sum + order.totalPaise, 0) ?? 0;
+  // A prepaid customer may pay that part from their wallet instead. On by default when the wallet covers it; the server checks again.
+  const walletCovers = Boolean(wallet.data?.enabled) && (wallet.data?.balancePaise ?? 0) >= payOnlinePaise;
+  const payWithWallet = payOnlinePaise > 0 && walletCovers && (walletChoice ?? true);
 
   // The bill: what the items cost, what the offer takes off, and what is paid. All three come from the server's answer.
   const itemsPaise = data?.orders.reduce((sum, order) => sum + order.items.reduce((inner, item) => inner + item.lineTotalPaise, 0), 0) ?? 0;
@@ -147,7 +155,8 @@ export default function CheckoutReviewScreen() {
       if (latest.data.problems.length > 0) return;
       setDateChangedFor(null);
       const body = { ...request, idempotencyKey, expectedTotalPaise: data.totalPaise };
-      if (payOnlinePaise > 0) pay.mutate(body, { onSuccess: onPayment, onError: onFailure });
+      if (payWithWallet) place.mutate({ ...body, payWith: "wallet" }, { onSuccess: finish, onError: onFailure });
+      else if (payOnlinePaise > 0) pay.mutate(body, { onSuccess: onPayment, onError: onFailure });
       else place.mutate(body, { onSuccess: finish, onError: onFailure });
     } finally {
       checkingBeforeSubmit.current = false;
@@ -327,6 +336,9 @@ export default function CheckoutReviewScreen() {
             {outcome.status === "pending" ? <PaymentPoller merchantOrderId={outcome.merchantOrderId} onResult={onPayment} /> : null}
           </View>
         ) : null}
+        {payOnlinePaise > 0 && wallet.data?.enabled ? (
+          <WalletPayChoice balancePaise={wallet.data.balancePaise} neededPaise={payOnlinePaise} selected={walletChoice ?? true} onChange={setWalletChoice} />
+        ) : null}
         {dateChanged ? <ThemedText accessibilityRole="alert" accessibilityLiveRegion="polite" variant="caption" weight="semibold" style={{ color: theme.colors.colorDanger }}>{t("shop.dateChanged")}</ThemedText> : null}
         {failure && !outcome ? <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>{describeError(failure)}</ThemedText> : null}
         {data && problemCodes.includes("SLOT_REQUIRED") ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("shop.chooseWindowHint")}</ThemedText> : null}
@@ -337,7 +349,7 @@ export default function CheckoutReviewScreen() {
         originalPaise={itemsPaise}
         disabled={blocked || outcome?.status === "pending"}
         loading={busy}
-        label={payOnlinePaise > 0 ? t("shop.payment.payButton", { amount: formatRupees(payOnlinePaise) }) : t("shop.place")}
+        label={payWithWallet ? t("wallet.payButton", { amount: formatRupees(payOnlinePaise) }) : payOnlinePaise > 0 ? t("shop.payment.payButton", { amount: formatRupees(payOnlinePaise) }) : t("shop.place")}
         onPress={() => void submit()}
       />
       </KeyboardStickyView>

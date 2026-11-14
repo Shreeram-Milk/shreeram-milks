@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 import { useCountdownLabel } from "../../hooks/useCountdownLabel";
+import { useGreetingPart } from "../../hooks/useGreeting";
 import { useMyDeliveries } from "../../hooks/useSubscriptions";
 import { ForwardIcon } from "../../icons/appIcons";
 import { localized } from "../../lib/contentLocalization";
@@ -15,22 +16,12 @@ import type { CalendarDelivery } from "../../types/subscriptions";
 import { AppIcon } from "../atoms/AppIcon";
 import { PressableScale } from "../atoms/PressableScale";
 import { ThemedText } from "../atoms/ThemedText";
+import { DeliveryScene } from "./DeliveryScene";
+import type { SceneSky } from "../../theme/illustration";
 
 const LOOK_AHEAD_DAYS = 14;
-const WEEKDAY_LOCALE = { en: "en-IN", gu: "gu-IN" } as const;
-const DATE_TILE_WIDTH = 52;
-
-/** "2026-10-17" as weekday, day and month, read as a plain calendar date (no timezone shift). */
-function dateParts(date: string, language: "en" | "gu") {
-  const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
-  const value = new Date(Date.UTC(year, month - 1, day));
-  const locale = WEEKDAY_LOCALE[language];
-  return {
-    weekday: value.toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" }),
-    day: String(day),
-    month: value.toLocaleDateString(locale, { month: "short", timeZone: "UTC" }),
-  };
-}
+/** The sky in the little scene follows the part of the day in India. */
+const SKY_OF_PART: Record<ReturnType<typeof useGreetingPart>, SceneSky> = { morning: "morning", afternoon: "day", evening: "evening", night: "night" };
 
 const ACTIVE_STATES: readonly CalendarDelivery["state"][] = ["upcoming", "placed", "out_for_delivery"];
 
@@ -60,40 +51,35 @@ export function NextDeliveryCard() {
   const coming = data.filter((entry) => ACTIVE_STATES.includes(entry.state));
   const next = coming[0];
   const countdown = useCountdownLabel(next?.date, next?.startTime);
+  const part = useGreetingPart();
   if (!signedIn || !next) return null;
 
   const sameDay = coming.filter((entry) => entry.date === next.date);
   const more = sameDay.length - 1;
-  const parts = dateParts(next.date, language);
   const onTheWay = next.state === "out_for_delivery";
   const items = next.items.map((item) => `${localized(item.productName, item.productNameGu, language)} × ${item.quantity}`).join(", ");
   const when = next.startTime ? formatClock(next.startTime) : "";
-  const chipLabel = !onTheWay && countdown ? countdown : t(`subs.day_${next.state}`);
+  const day = formatShortDay(next.date, language, t);
+  const status = onTheWay ? t("subs.day_out_for_delivery") : countdown ? `${t("subs.nextDelivery")} · ${countdown}` : t("subs.nextDelivery");
 
   return (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={`${t("subs.nextDelivery")}: ${formatShortDay(next.date, language, t)}, ${when}. ${items}`}
+      accessibilityLabel={`${onTheWay ? t("subs.day_out_for_delivery") : t("subs.nextDelivery")}: ${day}, ${when}. ${items}`}
       onPress={() => openDelivery(next)}
       containerStyle={{ marginHorizontal: theme.layout.screenHorizontalPadding, marginVertical: theme.spacing.sm }}
-      style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 4, padding: theme.spacing.md - 4, borderRadius: theme.radii.lg, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorAccentBorder, backgroundColor: theme.colors.colorAccentTint }}
+      style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.md - 2, padding: theme.spacing.md - 4, borderRadius: theme.radii.xl, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface }}
     >
-      <View style={{ width: DATE_TILE_WIDTH, alignItems: "center", paddingVertical: theme.spacing.sm - 2, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurface, ...theme.elevation.sm }}>
-        <ThemedText variant="badgeLabel" style={{ color: theme.colors.colorAccent }}>{parts.weekday}</ThemedText>
-        <ThemedText variant="h1" weight="extrabold">{parts.day}</ThemedText>
-        <ThemedText variant="badgeLabel" style={{ color: theme.colors.colorTextSecondary }}>{parts.month}</ThemedText>
-      </View>
+      <DeliveryScene sky={SKY_OF_PART[part]} state={onTheWay ? "out" : "scheduled"} />
       <View style={{ flex: 1, gap: 2 }}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: theme.spacing.sm - 2 }}>
-          <ThemedText variant="overline" style={{ color: theme.colors.colorAccent, textTransform: "uppercase", letterSpacing: 0.6 }}>{t("subs.nextDelivery")}</ThemedText>
-          <View style={{ borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.sm, paddingVertical: 1, backgroundColor: onTheWay ? theme.colors.colorAccent : theme.colors.colorHighlight }}>
-            <ThemedText variant="badgeLabel" style={{ color: onTheWay ? theme.colors.colorTextInverse : theme.colors.colorOnHighlight }}>{chipLabel}</ThemedText>
-          </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.xs + 2 }}>
+          {onTheWay ? <View style={{ width: 7, height: 7, borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorBrand }} /> : null}
+          <ThemedText variant="label" numberOfLines={1} style={{ flexShrink: 1, color: onTheWay ? theme.colors.colorBrandText : theme.colors.colorTextSecondary }}>{status}</ThemedText>
         </View>
-        <ThemedText variant="bodySmall" weight="bold">{formatShortDay(next.date, language, t)}{when ? ` · ${when}` : ""}</ThemedText>
+        <ThemedText variant="body" weight="bold" numberOfLines={1}>{day}{when ? `, ${when}` : ""}</ThemedText>
         <ThemedText variant="caption" numberOfLines={2} style={{ color: theme.colors.colorTextSecondary }}>{items}{more > 0 ? `  ${t("subs.moreOnDay", { count: more })}` : ""}</ThemedText>
       </View>
-      <AppIcon icon={ForwardIcon} accessibilityLabel="" size="sm" tone="accent" />
+      <AppIcon icon={ForwardIcon} accessibilityLabel="" size="sm" tone="secondary" />
     </PressableScale>
   );
 }

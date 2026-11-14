@@ -31,13 +31,13 @@ export default function SearchScreen() {
   const search = useDebouncedValue(query.trim(), SEARCH_PAUSE_MS);
   const { data: results = [], isError, isLoading, refetch } = useCatalogProducts(categoryId, search);
   const { data: categories = [] } = useCatalogCategories();
-  const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
+  const { onAdd, onDecrease, openProduct, quantityOf } = useCatalogCart();
   const renderItem = ({ item }: { item: CatalogProduct | GridSpacer }) =>
     isSpacer(item) ? (
       <View style={{ flex: 1 }} />
     ) : (
       <View style={{ flex: 1, marginBottom: theme.spacing.sm }}>
-        <CatalogProductCard product={item} isAdded={isAdded(item)} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
+        <CatalogProductCard quantity={quantityOf(item)} product={item} onAdd={onAdd} onDecrease={onDecrease} onPress={openProduct} />
       </View>
     );
   return (

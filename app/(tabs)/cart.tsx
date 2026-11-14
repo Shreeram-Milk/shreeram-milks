@@ -12,6 +12,8 @@ import { QuantityStepper } from "../../src/components/molecules/QuantityStepper"
 import { useAddresses, pickDefaultAddress } from "../../src/hooks/useAddresses";
 import { useDebouncedValue } from "../../src/hooks/useDebouncedValue";
 import { useQuote } from "../../src/hooks/useOrders";
+import { useMyWallet } from "../../src/hooks/useWallet";
+import { useVariantImages } from "../../src/hooks/useCatalog";
 import { CartIcon, LocationIcon } from "../../src/icons/appIcons";
 import { formatRupees } from "../../src/lib/catalogCart";
 import { getLocalizedProductName } from "../../src/lib/productLocalization";
@@ -40,6 +42,8 @@ export default function CartScreen() {
   const { i18n, t } = useTranslation();
   const cart = useAppStore((state) => state.cart);
   const updateQuantity = useAppStore((state) => state.updateCartQuantity);
+  const wallet = useMyWallet();
+  const variantImages = useVariantImages();
   const estimatedSubtotalPaise = cart.reduce((sum, item) => sum + Math.round(item.product.price * 100) * item.quantity, 0);
   // Which items the chosen (or default) address cannot receive, asked of the same server check that checkout uses.
   const { data: addresses = [] } = useAddresses();
@@ -65,8 +69,8 @@ export default function CartScreen() {
     const unitPaise = quotedPaise.get(item.product.id) ?? Math.round(item.product.price * 100);
     return (
       <Animated.View exiting={rowExit} style={{ flexDirection: "row", alignItems: "flex-start", gap: theme.spacing.md - 4, paddingVertical: theme.spacing.md, borderBottomWidth: theme.borderWidths.hairline, borderBottomColor: theme.colors.colorBorder }}>
-        <View style={{ width: 56, height: 56, overflow: "hidden", borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted }}>
-          {item.product.imageUrl ? <Image source={remoteImage(item.product.imageUrl)} contentFit="cover" style={{ width: "100%", height: "100%" }} /> : null}
+        <View style={{ width: 52, height: 64, overflow: "hidden", borderTopLeftRadius: 26, borderTopRightRadius: 26, borderBottomLeftRadius: theme.radii.sm * 2, borderBottomRightRadius: theme.radii.sm * 2, backgroundColor: theme.colors.colorSurfaceTile }}>
+          {(variantImages.get(item.product.id) ?? item.product.imageUrl) ? <Image source={remoteImage(variantImages.get(item.product.id) ?? item.product.imageUrl)} contentFit="cover" style={{ width: "100%", height: "100%" }} /> : null}
         </View>
         <View style={{ flex: 1, gap: theme.spacing.xs }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: theme.spacing.sm }}>
@@ -106,11 +110,14 @@ export default function CartScreen() {
   );
 
   const footer = (
-    <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
-      <ThemedText variant="bodySmall" weight="bold">{t("cart.billDetails")}</ThemedText>
+    <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.lg, padding: theme.spacing.md, borderRadius: theme.radii.xl, backgroundColor: theme.colors.colorSurface, borderWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder }}>
+      <ThemedText variant="h2">{t("cart.billDetails")}</ThemedText>
       <BillRow label={t("cart.subtotal")} value={formatRupees(subtotalPaise)} />
       {discountPaise > 0 ? <BillRow label={t("offers.discount")} value={`−${formatRupees(discountPaise)}`} valueColor={theme.colors.colorAccent} /> : null}
       <BillRow label={t("cart.delivery")} value={t("cart.free")} valueColor={theme.colors.colorAccent} />
+      {wallet.data?.enabled && wallet.data.balancePaise > 0 ? (
+        <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary, paddingTop: theme.spacing.xs }}>{t("wallet.cartHint", { amount: formatRupees(wallet.data.balancePaise) })}</ThemedText>
+      ) : null}
     </View>
   );
 
@@ -118,7 +125,7 @@ export default function CartScreen() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
       <StatusBar barStyle="dark-content" />
       <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: theme.layout.screenHorizontalPadding, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.md - 4 }}>
-        <ThemedText variant="h1">{t("cart.title")}</ThemedText>
+        <ThemedText accessibilityRole="header" variant="display" weight="semibold">{t("cart.title")}</ThemedText>
         {itemCount > 0 ? <ThemedText variant="label" style={{ color: theme.colors.colorTextSecondary }}>{t("cart.itemCount", { count: itemCount })}</ThemedText> : null}
       </View>
       {cart.length === 0 ? (

@@ -42,7 +42,7 @@ export function SearchField({ clearLabel, label, onChangeText, placeholder, valu
         placeholder={placeholder}
         placeholderTextColor={theme.colors.colorTextDisabled}
         returnKeyType="search"
-        selectionColor={theme.colors.colorPrimary}
+        selectionColor={theme.colors.colorTextSelection} cursorColor={theme.colors.colorCursor} selectionHandleColor={theme.colors.colorCursor}
         style={{ flex: 1, color: theme.colors.colorTextPrimary, fontFamily: fontFamilyForLocale(language), fontSize: theme.typography.body.fontSize, paddingVertical: theme.spacing.sm }}
         value={value}
       />

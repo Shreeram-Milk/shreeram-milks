@@ -46,7 +46,7 @@ export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput({
       onBlur={(event) => { setIsFocused(false); onBlur?.(event); }}
       onFocus={(event) => { setIsFocused(true); onFocus?.(event); }}
       placeholderTextColor={props.placeholderTextColor ?? theme.colors.colorTextDisabled}
-      selectionColor={theme.colors.colorPrimary}
+      selectionColor={theme.colors.colorTextSelection} cursorColor={theme.colors.colorCursor} selectionHandleColor={theme.colors.colorCursor}
       style={[bare ? { minHeight: FIELD_HEIGHT, paddingHorizontal: theme.spacing.sm } : { minHeight: FIELD_HEIGHT, paddingHorizontal: theme.spacing.md, ...fieldChrome(theme, { focused: isFocused, error: hasError }) }, text, style]}
     />
   );

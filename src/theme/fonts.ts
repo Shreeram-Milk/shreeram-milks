@@ -6,6 +6,7 @@ import {
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { BricolageGrotesque_600SemiBold, BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque';
 import {
   NotoSansGujarati_400Regular,
   NotoSansGujarati_500Medium,
@@ -24,6 +25,9 @@ export const fontAssets = {
   NotoSansGujarati_500Medium,
   NotoSansGujarati_600SemiBold,
   NotoSansGujarati_700Bold,
+  // Headlines only (display, h1, h2) in English. Two weights, to keep the app small.
+  BricolageGrotesque_600SemiBold,
+  BricolageGrotesque_700Bold,
 };
 
 export function useAppFonts() {
@@ -32,6 +36,11 @@ export function useAppFonts() {
 
 export type AppLocale = 'en' | 'gu';
 export type FontWeightName = 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold';
+
+/** The headline face for English titles. Gujarati titles keep Noto Sans Gujarati, which has the Gujarati letters. */
+export function displayFontFamily(weight: FontWeightName = 'semibold') {
+  return weight === 'bold' || weight === 'extrabold' ? 'BricolageGrotesque_700Bold' : 'BricolageGrotesque_600SemiBold';
+}
 
 export function fontFamilyForLocale(locale: AppLocale, weight: FontWeightName = 'regular') {
   if (locale === 'gu') {

@@ -76,7 +76,7 @@ export function usePlaceOrder() {
   const customerId = useCustomerId();
   return useMutation({
     mutationFn: placeOrders,
-    onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) })]),
+    onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) }), client.invalidateQueries({ queryKey: queryKeys.wallet(customerId) }), client.invalidateQueries({ queryKey: queryKeys.walletEntries(customerId) })]),
   });
 }
 
@@ -86,7 +86,7 @@ export function usePayForOrder() {
   const customerId = useCustomerId();
   return useMutation({
     mutationFn: async (request: Parameters<typeof startOrderPayment>[0]) => payAndConfirm(await startOrderPayment(request), customerId),
-    onSettled: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) })]),
+    onSettled: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) }), client.invalidateQueries({ queryKey: queryKeys.wallet(customerId) }), client.invalidateQueries({ queryKey: queryKeys.walletEntries(customerId) })]),
   });
 }
 
@@ -96,7 +96,7 @@ export function useCheckPayment() {
   const customerId = useCustomerId();
   return useMutation({
     mutationFn: confirmPayment,
-    onSettled: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) })]),
+    onSettled: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) }), client.invalidateQueries({ queryKey: queryKeys.wallet(customerId) }), client.invalidateQueries({ queryKey: queryKeys.walletEntries(customerId) })]),
   });
 }
 
@@ -105,7 +105,7 @@ export function useCancelOrder(orderId: string) {
   const customerId = useCustomerId();
   return useMutation({
     mutationFn: (reason: string) => cancelMyOrder(orderId, reason),
-    onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) })]),
+    onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) }), client.invalidateQueries({ queryKey: queryKeys.wallet(customerId) }), client.invalidateQueries({ queryKey: queryKeys.walletEntries(customerId) })]),
   });
 }
 

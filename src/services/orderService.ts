@@ -113,6 +113,8 @@ export interface CheckoutRequest {
   slots: Record<string, string>;
   /** A code the customer typed. Without one, the server picks the best automatic offer (if any). */
   offerCode?: string;
+  /** A prepaid customer pays with PhonePe (default) or from their wallet. Only sent when placing. */
+  payWith?: "online" | "wallet";
 }
 
 /** Asks the server to price the cart and say what it becomes. Nothing is saved. */
@@ -152,7 +154,7 @@ export function parsePayment(raw: unknown): OnlinePayment {
   const fulfilment = item.fulfilment === "fulfilled" || item.fulfilment === "refund_due" ? item.fulfilment : "none";
   return {
     merchantOrderId,
-    purpose: item.purpose === "credit_settlement" || item.purpose === "subscription" ? item.purpose : "order",
+    purpose: item.purpose === "credit_settlement" || item.purpose === "subscription" || item.purpose === "wallet_topup" ? item.purpose : "order",
     status,
     fulfilment,
     amountPaise: whole(item.amountPaise),

@@ -246,12 +246,12 @@ export function SharedCalendar({
                         borderRadius: theme.radii.pill,
                         alignItems: "center",
                         justifyContent: "center",
-                        borderWidth: mode === "single" && isSelected ? theme.borderWidths.medium : theme.borderWidths.none,
-                        borderColor: theme.colors.colorPrimary,
+                        borderWidth: (mode === "single" && isSelected) || isEndpoint ? theme.borderWidths.medium : theme.borderWidths.none,
+                        borderColor: theme.colors.colorSelectionBorder,
                         backgroundColor: isDisabled
                           ? theme.colors.colorSurfaceDisabled
                           : isEndpoint
-                            ? theme.colors.colorPrimary
+                            ? theme.colors.colorSelection
                             : isBetweenRange
                               ? theme.colors.colorTransparent
                             : status?.color ?? theme.colors.colorSurface,
@@ -260,7 +260,7 @@ export function SharedCalendar({
                       <ThemedText
                         variant="caption"
                         weight={mode === "single" || isEndpoint || isSelected ? "semibold" : "regular"}
-                        style={{ color: isDisabled ? theme.colors.colorTextDisabled : isEndpoint || status ? theme.colors.colorTextInverse : theme.colors.colorTextPrimary }}
+                        style={{ color: isDisabled ? theme.colors.colorTextDisabled : status && !isEndpoint ? theme.colors.colorTextInverse : theme.colors.colorTextPrimary }}
                       >
                         {new Date(`${date}T12:00:00`).getDate()}
                       </ThemedText>

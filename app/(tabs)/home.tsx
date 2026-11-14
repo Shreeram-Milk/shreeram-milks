@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, StatusBar, View } from "react-native";
+import { FlatList, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { PressableScale } from "../../src/components/atoms/PressableScale";
@@ -9,12 +9,13 @@ import { RiseIn } from "../../src/components/atoms/RiseIn";
 import { ThemedText } from "../../src/components/atoms/ThemedText";
 import { CategoryChips } from "../../src/components/molecules/CategoryChips";
 import { CreditBanner } from "../../src/components/molecules/CreditBanner";
+import { HomeGreeting } from "../../src/components/molecules/HomeGreeting";
 import { ProductGridSkeleton } from "../../src/components/molecules/LoadingSkeletons";
 import { NextDeliveryCard } from "../../src/components/molecules/NextDeliveryCard";
 import { UpdateStrip } from "../../src/components/molecules/UpdateStrip";
 import { CatalogProductCard } from "../../src/components/organisms/CatalogProductCard";
 import { HomeNotices } from "../../src/components/organisms/HomeBanners";
-import { HomeHero } from "../../src/components/organisms/HomeHero";
+import { HomeHero, PromotionCarousel } from "../../src/components/organisms/HomeHero";
 import { RewardPopup } from "../../src/components/organisms/RewardPopup";
 import { PushPermissionPrompt } from "../../src/components/organisms/PushPermissionPrompt";
 import { StateMessage } from "../../src/components/organisms/StateMessage";
@@ -27,6 +28,11 @@ import { isSpacer, padToColumns, type GridSpacer } from "../../src/lib/gridList"
 import { useAppStore } from "../../src/store/useAppStore";
 import { useTheme } from "../../src/theme";
 import type { CatalogProduct } from "../../src/types/catalog";
+
+/** The "Every morning" row: shown with at least two daily products, at most eight, each card this wide. */
+const DAILY_MIN = 2;
+const RAIL_MAX = 8;
+const RAIL_CARD_WIDTH = 152;
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -50,9 +56,12 @@ export default function HomeScreen() {
   const { data: banners, isRefetching: bannersRefetching, refetch: refetchBanners } = useBanners();
   // Promotions fill the top banner; the switch in the admin turns them off.
   const promotions = showSeasonalBanner ? (banners ?? []).filter((banner) => banner.type === "promotion") : [];
-  const { isAdded, onAdd, onRemove, openProduct } = useCatalogCart();
+  const { onAdd, onDecrease, openProduct, quantityOf } = useCatalogCart();
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const activeCategoryName = activeCategory ? localized(activeCategory.name, activeCategory.nameGu, language) : t("home.categories.all");
+
+  // "Every morning": what can be delivered daily (offered as a subscription), across all shelves. Only when "All" is chosen.
+  const dailyProducts = activeCategoryId === null ? products.filter((item) => item.purchaseMethods.includes("subscription")).slice(0, RAIL_MAX) : [];
 
   // While another shelf loads, the old products stay but dim, so the list never jumps to blank.
   const renderProduct = ({ item, index }: { item: CatalogProduct | GridSpacer; index: number }) =>
@@ -60,14 +69,15 @@ export default function HomeScreen() {
       <View style={{ flex: 1 }} />
     ) : (
       <RiseIn index={index} style={{ flex: 1, marginBottom: theme.spacing.md - 4, opacity: isPlaceholderData ? theme.opacity.subdued : theme.opacity.full }}>
-        <CatalogProductCard isAdded={isAdded(item)} product={item} onAdd={onAdd} onRemove={onRemove} onPress={openProduct} />
+        <CatalogProductCard quantity={quantityOf(item)} product={item} onAdd={onAdd} onDecrease={onDecrease} onPress={openProduct} />
       </RiseIn>
     );
 
   const listHeader = (
     <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.md }}>
       <View style={{ marginHorizontal: -theme.layout.screenHorizontalPadding }}>
-        <HomeHero promotions={promotions} language={language} locationPin={locationPin} locationCity={locationCity} locationText={locationText}>
+        <HomeHero locationPin={locationPin} locationCity={locationCity} locationText={locationText}>
+          <HomeGreeting />
           <NextDeliveryCard />
         </HomeHero>
       </View>
@@ -75,8 +85,28 @@ export default function HomeScreen() {
       <HomeNotices banners={banners} language={language} />
       <CreditBanner />
       <CategoryChips categories={categories} language={language} selectedId={activeCategoryId} onSelect={setActiveCategoryId} />
+      {dailyProducts.length >= DAILY_MIN ? (
+        <View style={{ gap: theme.spacing.md - 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+            <ThemedText accessibilityRole="header" variant="h2">{t("home.everyMorning")}</ThemedText>
+            <PressableScale accessibilityRole="button" accessibilityLabel={t("home.seeAll")} hitSlop={theme.spacing.sm} onPress={() => router.push("/products")}>
+              <ThemedText variant="label" weight="bold" style={{ textDecorationLine: "underline" }}>{t("home.seeAll")}</ThemedText>
+            </PressableScale>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -theme.layout.screenHorizontalPadding }} contentContainerStyle={{ gap: theme.spacing.md - 2, paddingHorizontal: theme.layout.screenHorizontalPadding }}>
+            {dailyProducts.map((item) => (
+              <View key={item.id} style={{ width: RAIL_CARD_WIDTH }}>
+                <CatalogProductCard quantity={quantityOf(item)} product={item} onAdd={onAdd} onDecrease={onDecrease} onPress={openProduct} />
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+      <View style={{ marginHorizontal: -theme.layout.screenHorizontalPadding }}>
+        <PromotionCarousel promotions={promotions} language={language} />
+      </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-        <ThemedText variant="h2">{t("home.picks")}</ThemedText>
+        <ThemedText variant="h2">{activeCategory ? activeCategoryName : t("home.allProducts")}</ThemedText>
         <PressableScale accessibilityRole="button" accessibilityLabel={t("home.seeAll")} hitSlop={theme.spacing.sm} onPress={() => router.push("/products")}>
           <ThemedText variant="label" weight="bold" style={{ color: theme.colors.colorPrimary }}>{t("home.seeAll")}</ThemedText>
         </PressableScale>

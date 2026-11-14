@@ -1,5 +1,13 @@
 /** Raw colour values. No component may import this module directly. */
 export const primitives = {
+  // Brand refresh: ink for actions, saffron (the logo's orange) for graphics, a deeper saffron for orange text, milk-white pages.
+  ink900: '#17130F',
+  milk50: '#FAF8F4',
+  tile100: '#F1EBE2',
+  saffron500: '#FF6700',
+  saffron700: '#C93800',
+  // Saffron at about a quarter strength: selected text stays readable on it.
+  saffronSelection: 'rgba(255, 103, 0, 0.24)',
   orange900: '#B84A10',
   orange800: '#96380A',
   orange50: '#FFF1E6',
