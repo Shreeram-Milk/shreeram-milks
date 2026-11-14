@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "../services/queryKeys";
-import { getMyWallet, getWalletEntries, requestWalletRefund, startTopUp } from "../services/walletService";
+import { getMyWallet, getWalletEntries, getWalletRefunds, requestWalletRefund, startTopUp } from "../services/walletService";
 import { useSessionStore } from "../store/useSessionStore";
 import { payAndConfirm } from "./useOrders";
 
@@ -27,6 +27,12 @@ export function useWalletEntries() {
   });
 }
 
+/** Every refund asked for, with where each one is: waiting, sent by ShreeRam, or in the bank. */
+export function useWalletRefunds() {
+  const customerId = useCustomerId();
+  return useQuery({ queryKey: queryKeys.walletRefunds(customerId), queryFn: getWalletRefunds, enabled: customerId !== "", staleTime: 10_000 });
+}
+
 /** Adds money with PhonePe. The answer shown is always the server's (which asks PhonePe), never PhonePe's screen. */
 export function useTopUp() {
   const client = useQueryClient();
@@ -43,6 +49,10 @@ export function useRequestWalletRefund() {
   const customerId = useCustomerId();
   return useMutation({
     mutationFn: (idempotencyKey: string) => requestWalletRefund(idempotencyKey),
-    onSettled: () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.wallet(customerId) }), client.invalidateQueries({ queryKey: queryKeys.walletEntries(customerId) })]),
+    onSettled: () => Promise.all([
+      client.invalidateQueries({ queryKey: queryKeys.wallet(customerId) }),
+      client.invalidateQueries({ queryKey: queryKeys.walletEntries(customerId) }),
+      client.invalidateQueries({ queryKey: queryKeys.walletRefunds(customerId) }),
+    ]),
   });
 }

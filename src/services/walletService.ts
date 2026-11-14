@@ -19,7 +19,10 @@ function parseRefund(raw: unknown): WalletRefund | null {
   const id = text(item?.id);
   const status = REFUND_STATUSES.find((value) => value === item?.status);
   if (!item || !id || !status) return null;
-  return { id, amountPaise: whole(item.amountPaise), status, requestedAt: text(item.requestedAt), handledAt: text(item.handledAt) || null };
+  return {
+    id, amountPaise: whole(item.amountPaise), status, requestedAt: text(item.requestedAt), handledAt: text(item.handledAt) || null,
+    completedAt: text(item.completedAt) || null, providerReference: text(item.providerReference), staffNote: text(item.staffNote),
+  };
 }
 
 /** Checks the wallet from the server. Anything unreadable shows as an empty, unusable wallet, never as money that is not there. */
@@ -55,6 +58,13 @@ export async function getWalletEntries(page: number, pageSize = 20): Promise<{ i
   const body = record(await apiGet<unknown>(`/customer/wallet/entries?page=${page}&pageSize=${pageSize}`, { auth: true }));
   const items = Array.isArray(body?.items) ? body.items.map(parseEntry).filter((entry): entry is WalletEntry => entry !== null) : [];
   return { items, total: whole(body?.total) };
+}
+
+/** Every refund the customer asked for, newest first. */
+export async function getWalletRefunds(): Promise<WalletRefund[]> {
+  requireApi();
+  const body = record(await apiGet<unknown>("/customer/wallet/refund-requests", { auth: true }));
+  return Array.isArray(body?.requests) ? body.requests.map(parseRefund).filter((refund): refund is WalletRefund => refund !== null) : [];
 }
 
 /** Starts adding money with PhonePe. The wallet grows only once PhonePe confirms. The same key returns the same payment. */

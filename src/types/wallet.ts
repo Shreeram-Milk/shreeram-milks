@@ -7,7 +7,14 @@ export interface WalletRefund {
   amountPaise: number;
   status: RefundStatus;
   requestedAt: string;
+  /** When ShreeRam sent it (or cancelled it). */
   handledAt: string | null;
+  /** When the money reached the customer's bank. Set automatically once PhonePe confirms it (live payments only). */
+  completedAt: string | null;
+  /** The PhonePe refund reference(s), to find it on a bank statement. */
+  providerReference: string;
+  /** Why it was cancelled, when it was. */
+  staffNote: string;
 }
 
 /** The customer's wallet as the server reports it. */

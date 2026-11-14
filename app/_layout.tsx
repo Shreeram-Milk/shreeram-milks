@@ -5,6 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { AvailabilityGate } from "../src/components/organisms/AvailabilityGate";
 import { LanguageSwitchOverlay } from "../src/components/organisms/LanguageSwitchOverlay";
+import { ApplyFreshUpdate } from "../src/components/organisms/ApplyFreshUpdate";
 import { DeliveryPinSync } from "../src/components/organisms/DeliveryPinSync";
 import { PushSetup } from "../src/components/organisms/PushSetup";
 import { SignedOutGuard } from "../src/components/organisms/SignedOutGuard";
@@ -82,6 +83,7 @@ export default function RootLayout() {
       </AvailabilityGate>
       <LanguageSwitchOverlay />
       <PushSetup />
+      <ApplyFreshUpdate />
       {sessionStatus === "signedIn" ? <DeliveryPinSync /> : null}
       <StartupHandoff />
       <SignedOutGuard />

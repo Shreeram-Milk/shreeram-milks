@@ -10,6 +10,7 @@ export const queryKeys = {
   credit: (customerId: string) => ["credit", customerId] as const,
   wallet: (customerId: string) => ["wallet", customerId] as const,
   walletEntries: (customerId: string) => ["wallet-entries", customerId] as const,
+  walletRefunds: (customerId: string) => ["wallet-refunds", customerId] as const,
   subscriptions: (customerId: string) => ["subscriptions", customerId] as const,
   deliveries: (customerId: string) => ["deliveries", customerId] as const,
   addresses: (customerId: string) => ["addresses", customerId] as const,
