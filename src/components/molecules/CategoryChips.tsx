@@ -37,7 +37,7 @@ function CategoryTile({ imageUrl, label, onPress, selected, fallback }: { imageU
           backgroundColor: imageUrl ? theme.colors.colorSurfaceTile : theme.colors.colorBrandTint,
         }}
       >
-        {imageUrl ? <Image source={remoteImage(imageUrl)} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: "100%", height: "100%" }} accessibilityIgnoresInvertColors />
+        {imageUrl ? <Image source={remoteImage(imageUrl)} contentFit="cover" cachePolicy="memory-disk" transition={theme.motion.duration.fast} style={{ width: "100%", height: "100%" }} accessibilityIgnoresInvertColors />
           : <ThemedText variant="h1" style={{ color: theme.colors.colorBrandText }}>{fallback}</ThemedText>}
       </View>
       <ThemedText variant="caption" weight={selected ? "bold" : "medium"} numberOfLines={1} style={{ color: selected ? theme.colors.colorTextPrimary : theme.colors.colorTextSecondary }}>{label}</ThemedText>

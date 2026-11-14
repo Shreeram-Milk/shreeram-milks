@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { fetchAddresses, fetchInstructions, removeAddress, saveAddress, saveInstructions, type AddressDraft } from '../services/addressService';
 import { queryKeys } from '../services/queryKeys';
+import { useAppStore } from '../store/useAppStore';
 import { useSessionStore } from '../store/useSessionStore';
 import type { DeliveryAddress, DoorstepInstructions } from '../types/models';
 
@@ -19,7 +20,14 @@ export function useSaveAddress() {
   const customerId = useSessionStore((state) => state.customer?.id ?? '');
   return useMutation({
     mutationFn: ({ draft, id }: { draft: AddressDraft; id?: string }) => saveAddress(draft, id),
-    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.addresses(customerId) }),
+    onSuccess: (saved) => {
+      // A new default address takes over at once everywhere: delivery checks, the cart and checkout all follow it.
+      if (saved.isDefault) {
+        useAppStore.getState().setCheckoutAddress(saved.id);
+        if (saved.pincode) useAppStore.getState().setDeliveryPin(saved.pincode);
+      }
+      return client.invalidateQueries({ queryKey: queryKeys.addresses(customerId) });
+    },
   });
 }
 

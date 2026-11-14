@@ -70,7 +70,7 @@ export default function CartScreen() {
     return (
       <Animated.View exiting={rowExit} style={{ flexDirection: "row", alignItems: "flex-start", gap: theme.spacing.md - 4, paddingVertical: theme.spacing.md, borderBottomWidth: theme.borderWidths.hairline, borderBottomColor: theme.colors.colorBorder }}>
         <View style={{ width: 52, height: 64, overflow: "hidden", borderTopLeftRadius: 26, borderTopRightRadius: 26, borderBottomLeftRadius: theme.radii.sm * 2, borderBottomRightRadius: theme.radii.sm * 2, backgroundColor: theme.colors.colorSurfaceTile }}>
-          {(variantImages.get(item.product.id) ?? item.product.imageUrl) ? <Image source={remoteImage(variantImages.get(item.product.id) ?? item.product.imageUrl)} contentFit="cover" style={{ width: "100%", height: "100%" }} /> : null}
+          {(variantImages.get(item.product.id) ?? item.product.imageUrl) ? <Image source={remoteImage(variantImages.get(item.product.id) ?? item.product.imageUrl)} contentFit="cover" cachePolicy="memory-disk" style={{ width: "100%", height: "100%" }} /> : null}
         </View>
         <View style={{ flex: 1, gap: theme.spacing.xs }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: theme.spacing.sm }}>

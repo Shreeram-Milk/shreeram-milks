@@ -75,7 +75,7 @@ export const CatalogProductCard = memo(function CatalogProductCard({ onAdd, onDe
       <PressableScale accessibilityRole="button" accessibilityLabel={productName} onPress={() => openFromCard(photo.current, `product:${product.id}`, theme.radii.lg, product.imageUrl, () => onPress(product.id))} onPressIn={() => prefetch(product.id)}>
         {/* An arch, taken from the logo: the top corners are as round as the card is wide. */}
         <View ref={photo} collapsable={false} style={{ overflow: "hidden", aspectRatio: 4 / 5, borderTopLeftRadius: 999, borderTopRightRadius: 999, borderBottomLeftRadius: theme.radii.md, borderBottomRightRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceTile }}>
-          <Image source={remoteImage(product.imageUrl)} contentFit="cover" transition={theme.motion.duration.fast} style={{ width: "100%", height: "100%" }} />
+          <Image source={remoteImage(product.imageUrl)} contentFit="cover" cachePolicy="memory-disk" transition={theme.motion.duration.fast} style={{ width: "100%", height: "100%" }} />
         </View>
         <View style={{ gap: 1, paddingTop: theme.spacing.sm + 2, paddingHorizontal: 2 }}>
           {badge ? <ThemedText variant="badgeLabel" numberOfLines={1} style={{ color: theme.colors.colorBrandText }}>{badge}</ThemedText> : null}
