@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, StatusBar, View } from "react-native";
@@ -13,6 +13,7 @@ import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { ConfirmSheet } from "../src/components/organisms/ConfirmSheet";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { SubscriptionBottomSheet } from "../src/components/organisms/SubscriptionBottomSheet";
+import { WALLET_ON } from "../src/config/features";
 import { useMyWallet, useRequestWalletRefund, useTopUp, useWalletEntries, useWalletRefunds } from "../src/hooks/useWallet";
 import { WalletIcon } from "../src/icons/appIcons";
 import { formatRupees } from "../src/lib/catalogCart";
@@ -115,7 +116,12 @@ function RefundCard({ refund }: { refund: WalletRefund }) {
  * The wallet: the balance, adding money with PhonePe, asking for the balance back, and every past change. The balance shown
  * always comes from the server; money is added only after PhonePe confirms the payment.
  */
-export default function WalletScreen() {
+/** While the wallet is switched off, an old link to it (a notification, a saved screen) just opens the Account tab. */
+export default function WalletRoute() {
+  return WALLET_ON ? <WalletScreen /> : <Redirect href="/(tabs)/profile" />;
+}
+
+function WalletScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const { showToast } = useToast();

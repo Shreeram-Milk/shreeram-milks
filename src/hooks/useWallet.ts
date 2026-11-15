@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { WALLET_ON } from "../config/features";
 import { queryKeys } from "../services/queryKeys";
 import { getMyWallet, getWalletEntries, getWalletRefunds, requestWalletRefund, startTopUp } from "../services/walletService";
 import { useSessionStore } from "../store/useSessionStore";
@@ -8,10 +9,10 @@ import { payAndConfirm } from "./useOrders";
 const PAGE_SIZE = 20;
 const useCustomerId = () => useSessionStore((state) => state.customer?.id ?? "");
 
-/** The signed-in customer's wallet. Short-lived: orders, refunds and staff change it from elsewhere. */
+/** The signed-in customer's wallet. Short-lived: orders, refunds and staff change it from elsewhere. Never asked for while the wallet is switched off, so nothing about it shows anywhere. */
 export function useMyWallet() {
   const customerId = useCustomerId();
-  return useQuery({ queryKey: queryKeys.wallet(customerId), queryFn: getMyWallet, enabled: customerId !== "", staleTime: 10_000 });
+  return useQuery({ queryKey: queryKeys.wallet(customerId), queryFn: getMyWallet, enabled: WALLET_ON && customerId !== "", staleTime: 10_000 });
 }
 
 /** Wallet activity, newest first, one page at a time. */
