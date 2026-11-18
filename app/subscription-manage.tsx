@@ -163,7 +163,7 @@ export default function ManageSubscriptionScreen() {
             <View style={{ flexDirection: "row", gap: theme.spacing.sm + 2 }}>
               <QuickAction icon={ForwardIcon} label={t("subs.quickSkip")} tone="brand" tint={theme.colors.colorPrimaryTint} onPress={nextChangeable ? () => setPending(nextChangeable) : undefined} />
               {!subscription.openPause ? <QuickAction icon={CalendarIcon} label={t("subs.quickAway")} tone="highlight" tint={theme.colors.colorHighlightTint} onPress={() => openVacation()} /> : null}
-              {subscription.pauses.length > 0 ? <QuickAction icon={RepeatIcon} label={t("subs.quickResume")} tone="accent" tint={theme.colors.colorAccentTint} onPress={() => openVacation("resume")} /> : null}
+              {subscription.pauses.some((pause) => (pause.untilDate ?? "9999-12-31") >= indiaToday()) ? <QuickAction icon={RepeatIcon} label={t("subs.quickResume")} tone="accent" tint={theme.colors.colorAccentTint} onPress={() => openVacation("resume")} /> : null}
             </View>
             {pauseNote ? <ThemedText variant="caption" style={{ color: theme.colors.colorHighlightText }}>{pauseNote}</ThemedText> : null}
           </View>

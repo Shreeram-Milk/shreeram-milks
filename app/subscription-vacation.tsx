@@ -69,7 +69,13 @@ export default function SubscriptionVacationScreen() {
   const [pickedPause, setPickedPause] = useState<string | null>(null);
   const [pickedResume, setPickedResume] = useState<string | null>(null);
   const pauseDate = pickedPause !== null && pickedPause >= windowStart && pickedPause <= windowEnd ? pickedPause : windowStart;
-  const resumeDate = pickedResume !== null && pickedResume > pauseDate && pickedResume <= lastResume ? pickedResume : addDaysTo(pauseDate, 1) <= lastResume ? addDaysTo(pauseDate, 1) : lastResume;
+  // Restarting a paused subscription: any day from tomorrow (the server says if its cut-off makes that too early) until the last
+  // day of the vacation being ended. The paused days themselves cannot be "changed", so the vacation window does not apply here.
+  const resumable = resuming ? data.find((item) => item.id === id)?.pauses.find((pause) => (pause.untilDate ?? "9999-12-31") >= today) ?? null : null;
+  const firstRestart = addDaysTo(today, 1);
+  const lastRestart = resumable?.untilDate ?? undefined;
+  const restartDate = pickedResume !== null && pickedResume >= firstRestart && (!lastRestart || pickedResume <= lastRestart) ? pickedResume : firstRestart;
+  const resumeDate = resuming ? restartDate : pickedResume !== null && pickedResume > pauseDate && pickedResume <= lastResume ? pickedResume : addDaysTo(pauseDate, 1) <= lastResume ? addDaysTo(pauseDate, 1) : lastResume;
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const duration = daysBetween(pauseDate, resumeDate);
@@ -83,7 +89,7 @@ export default function SubscriptionVacationScreen() {
   const toggle = (subscriptionId: string) => setSelectedIds(chosen.includes(subscriptionId) ? chosen.filter((item) => item !== subscriptionId) : [...chosen, subscriptionId]);
   const selectDate = (date: string) => {
     if (date < today) return;
-    if (resuming) { setPickedResume(date); return; }
+    if (resuming) { if (date >= firstRestart && (!lastRestart || date <= lastRestart)) setPickedResume(date); return; }
     if (date < windowStart || date > lastResume) return;
     if (activeField === "pause") {
       if (date > windowEnd) return;
@@ -108,6 +114,8 @@ export default function SubscriptionVacationScreen() {
         await changeMySubscription(subscriptionId, resuming ? { type: "resume", fromDate: resumeDate } : { type: "pause", fromDate: pauseDate, untilDate: addDaysTo(resumeDate, -1) });
       } catch (error) {
         const earliest = (error as { details?: { earliestDate?: unknown } }).details?.earliestDate;
+        // Too early for the cut-off: move the calendar to the first day that works, so one more tap restarts it.
+        if (resuming && typeof earliest === "string") setPickedResume(earliest);
         const subscription = data.find((item) => item.id === subscriptionId);
         const label = subscription ? localized(subscription.productName, subscription.productNameGu, lang) : "";
         problems.push(`${label}: ${typeof earliest === "string" ? t("subs.earliestIs", { date: formatDeliveryDate(earliest, lang) }) : describeError(error)}`);
@@ -149,7 +157,11 @@ export default function SubscriptionVacationScreen() {
                 <ThemedText variant="body" weight="semibold">{t(resuming ? "subs.restartOn" : "subscriptionVacation.selectDates")}</ThemedText>
                 <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t(resuming ? "subs.resumeDetail" : "subs.vacationDatesDetail")}</ThemedText>
               </View>
-              {resuming ? null : (
+              {resuming ? (
+                <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+                  <DateCard active label={t("subs.deliveriesBackOn")} value={resumeDate} onPress={() => undefined} />
+                </View>
+              ) : (
                 <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
                   <DateCard active={activeField === "pause"} label={t("subs.noDeliveryFrom")} value={pauseDate} onPress={() => setActiveField("pause")} />
                   <DateCard active={activeField === "resume"} label={t("subs.deliveriesBackOn")} value={resumeDate} onPress={() => setActiveField("resume")} />
@@ -162,7 +174,7 @@ export default function SubscriptionVacationScreen() {
                 </View>
               ) : null}
               {resuming ? null : <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.windowHint", { from: formatDeliveryDate(windowStart, lang), to: formatDeliveryDate(windowEnd, lang) })}</ThemedText>}
-              <CalendarPicker resuming={resuming} pauseDate={pauseDate} resumeDate={resumeDate} minDate={resuming ? today : windowStart} maxDate={resuming ? undefined : lastResume} onDateSelect={selectDate} pausedDays={resuming ? undefined : pausedDays} />
+              <CalendarPicker resuming={resuming} pauseDate={pauseDate} resumeDate={resumeDate} minDate={resuming ? firstRestart : windowStart} maxDate={resuming ? lastRestart : lastResume} onDateSelect={selectDate} pausedDays={resuming ? undefined : pausedDays} />
               {resuming ? null : (
                 <View style={{ flexDirection: "row", justifyContent: "space-between", padding: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorHighlightTint }}>
                   <ThemedText variant="bodySmall" weight="semibold">{t("subscriptionVacation.totalDuration")}</ThemedText>
