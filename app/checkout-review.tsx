@@ -1,3 +1,5 @@
+import { needsDeliveryClarification } from "../src/lib/deliveryDetails";
+import { addressLines } from "../src/lib/addressGrouping";
 import { router, useNavigation } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -142,6 +144,10 @@ export default function CheckoutReviewScreen() {
   };
   const submit = async () => {
     if (!request || !data || blocked || checkingBeforeSubmit.current) return;
+    if (needsDeliveryClarification(address)) {
+      router.push({ pathname: "/delivery-address-form", params: { addressId: address.id, clarify: "1" } });
+      return;
+    }
     setOutcome(null);
     // Ask once more right before ordering: the server decides the delivery date from the clock, so it may have moved.
     checkingBeforeSubmit.current = true;
@@ -242,7 +248,7 @@ export default function CheckoutReviewScreen() {
         <CheckoutSection title={t("checkout.review.deliveryTitle")} aside={changeLink}>
           <View style={{ gap: theme.spacing.xs, padding: theme.spacing.md }}>
             <ThemedText variant="bodySmall" weight="medium">{address.fullName}</ThemedText>
-            <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{[address.line1, address.line2, address.city].filter(Boolean).join(", ")} – {address.pincode}</ThemedText>
+            <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{[addressLines(address), address.city].filter(Boolean).join(", ")} – {address.pincode}</ThemedText>
             {isIndianMobile(address.phone) ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatPhone(toInternationalPhone(address.phone))}</ThemedText> : null}
           </View>
         </CheckoutSection>
@@ -349,7 +355,7 @@ export default function CheckoutReviewScreen() {
         originalPaise={itemsPaise}
         disabled={blocked || outcome?.status === "pending"}
         loading={busy}
-        label={payWithWallet ? t("wallet.payButton", { amount: formatRupees(payOnlinePaise) }) : payOnlinePaise > 0 ? t("shop.payment.payButton", { amount: formatRupees(payOnlinePaise) }) : t("shop.place")}
+        label={needsDeliveryClarification(address) ? t("addresses.clarifyAction") : payWithWallet ? t("wallet.payButton", { amount: formatRupees(payOnlinePaise) }) : payOnlinePaise > 0 ? t("shop.payment.payButton", { amount: formatRupees(payOnlinePaise) }) : t("shop.place")}
         onPress={() => void submit()}
       />
       </KeyboardStickyView>

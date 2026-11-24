@@ -14,6 +14,7 @@ export const queryKeys = {
   subscriptions: (customerId: string) => ["subscriptions", customerId] as const,
   deliveries: (customerId: string) => ["deliveries", customerId] as const,
   addresses: (customerId: string) => ["addresses", customerId] as const,
+  deliveryPlaces: (customerId: string, pin: string, kind: string, search: string) => ["delivery-places", customerId, pin, kind, search] as const,
   instructions: (customerId: string) => ["doorstep-instructions", customerId] as const,
   myTickets: (customerId: string) => ["my-tickets", customerId] as const,
   myTicket: (customerId: string, id: string) => ["my-ticket", customerId, id] as const,

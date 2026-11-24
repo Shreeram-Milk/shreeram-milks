@@ -1,3 +1,4 @@
+import { addressLines } from "../src/lib/addressGrouping";
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -217,7 +218,7 @@ export default function DeliverySlotScreen() {
                 numberOfLines={2}
                 weight="semibold"
               >
-                {address ? [address.line1, address.line2].filter(Boolean).join(", ") : t("deliverySlot.pinOnly", { pin: deliveryPin })}
+                {address ? addressLines(address) : t("deliverySlot.pinOnly", { pin: deliveryPin })}
               </ThemedText>
               {address ? (
                 <ThemedText

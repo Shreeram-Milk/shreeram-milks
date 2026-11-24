@@ -25,6 +25,17 @@ export interface DemoUser {
 }
 
 export type AddressType = "home" | "work" | "other";
+export type AddressKind = "society" | "independent" | "unspecified";
+export type DeliveryDetails = { building: string; towerWing: string; floor: string; unit: string; lane: string };
+
+export interface DeliveryPlace {
+  id: string;
+  name: string;
+  locality: string;
+  pinCode: string;
+  kind: "society" | "locality";
+  status: "pending" | "approved";
+}
 
 export interface DeliveryAddress {
   addressType: AddressType;
@@ -37,6 +48,13 @@ export interface DeliveryAddress {
   line2: string;
   phone: string;
   pincode: string;
+  /** Optional for saved addresses from older app versions. */
+  addressKind?: AddressKind;
+  deliveryPlaceId?: string | null;
+  deliveryPlaceName?: string;
+  locality?: string;
+  deliveryDetails?: DeliveryDetails;
+  deliveryDetailsConfirmed?: boolean;
 }
 
 export interface DoorstepInstructions {

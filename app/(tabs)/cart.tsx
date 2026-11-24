@@ -96,7 +96,7 @@ export default function CartScreen() {
           <AppIcon icon={LocationIcon} accessibilityLabel="" size="sm" tone="secondary" />
           <ThemedText variant="bodySmall" style={{ flex: 1, color: theme.colors.colorTextSecondary }}>
             <ThemedText variant="bodySmall" weight="semibold">{t("home.deliveryLocation")} · </ThemedText>
-            {[address.line2 || address.line1, address.pincode].filter(Boolean).join(" · ")}
+            {[address.deliveryPlaceName || address.locality || address.line2 || address.line1, address.pincode].filter(Boolean).join(" · ")}
           </ThemedText>
         </View>
       ) : null}

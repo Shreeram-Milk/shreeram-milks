@@ -43,6 +43,8 @@ Admin training examples (23 Nov 2026): the refund and scratch-card workflows use
 | Apple 1.6 — security | Passwords hashed, TLS, least privilege, no secrets in the app. | ✅ backend design |
 | Permission texts | Each permission (location, notifications, camera if ever used) needs a clear one-line reason in both languages. | ❌ (when each is added) |
 
+Society/locality address grouping (24 Nov 2026): customers may select or add a society/building or area/locality solely for delivery planning. Independent houses remain supported with real directions instead of a required society or numeric house number. Only approved shared place names appear to other customers; pending names are visible to their submitter. Flat numbers, contact details and complete customer addresses remain private. The manual feature adds no GPS permission, background location or native module. Optional Cloudflare AI assistance is hidden unless enabled on the backend. Before requesting it, the customer explicitly consents to sending street-address text, with no name or phone fields; suggestions are reviewed before filling only blank structured fields, never automatically saving or changing the original address. Live provider behavior is unverified while the provider account is unavailable. Optional building, wing, floor, unit and lane details remain blank when unknown; legacy customers confirm their delivery directions once before starting a new checkout in the updated app. Existing payment reconciliation is not gated by that prompt. Privacy-policy wording and the live Play Console Data safety declaration must still be checked by the owner before rollout; code changes do not update those declarations.
+
 ## D. Content
 
 | Rule | What it means for us | Status |

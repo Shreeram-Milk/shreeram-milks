@@ -1,5 +1,7 @@
 import type { AddressType, DeliveryAddress, DoorstepInstructions } from '../types/models';
 import { ApiRequestError, apiGet, apiSend, hasApi } from './apiClient';
+import { addressGroupingBody, parseAddressGrouping } from '../lib/addressGrouping';
+import { deliveryDetailsBody, parseDeliveryDetails } from '../lib/deliveryDetails';
 
 const record = (value: unknown): Record<string, unknown> | null => (typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null);
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -32,6 +34,9 @@ export function parseAddress(raw: unknown): DeliveryAddress | null {
     city: text(item.city),
     pincode: text(item.pinCode),
     isDefault: item.isDefault === true,
+    ...parseAddressGrouping(item),
+    deliveryDetails: parseDeliveryDetails(item.deliveryDetails),
+    deliveryDetailsConfirmed: item.deliveryDetailsConfirmed === true,
   };
 }
 
@@ -59,6 +64,8 @@ const toBody = (draft: AddressDraft) => ({
   city: draft.city.trim(),
   pinCode: draft.pincode.trim(),
   isDefault: draft.isDefault,
+  ...addressGroupingBody(draft),
+  ...deliveryDetailsBody(draft),
 });
 
 export async function fetchAddresses(): Promise<DeliveryAddress[]> {

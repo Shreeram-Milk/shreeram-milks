@@ -1,3 +1,5 @@
+import { needsDeliveryClarification } from "../src/lib/deliveryDetails";
+import { addressLines } from "../src/lib/addressGrouping";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable, StatusBar, View } from "react-native";
@@ -77,7 +79,7 @@ export default function CheckoutAddressScreen() {
                           {address.isDefault ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>· {t("addresses.default")}</ThemedText> : null}
                         </View>
                         <ThemedText variant="caption" numberOfLines={2} style={{ color: theme.colors.colorTextSecondary }}>
-                          {address.line1}, {address.line2}, {address.city} – {address.pincode}
+                          {[addressLines(address), address.city].filter(Boolean).join(", ")} – {address.pincode}
                         </ThemedText>
                         {selected && isIndianMobile(address.phone) ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{formatPhone(toInternationalPhone(address.phone))}</ThemedText> : null}
                       </View>
@@ -114,9 +116,13 @@ export default function CheckoutAddressScreen() {
           </>
         )}
       </KeyboardAwareScrollView>
-      {cart.length > 0 ? <CheckoutFooter amountPaise={totalPaise} disabled={!selectedAddress || needsPhone} label={t("checkout.address.continue")} onPress={() => {
+      {cart.length > 0 ? <CheckoutFooter amountPaise={totalPaise} disabled={!selectedAddress || needsPhone} label={t(needsDeliveryClarification(selectedAddress) ? "addresses.clarifyAction" : "checkout.address.continue")} onPress={() => {
         if (!selectedAddress || needsPhone) return;
         setCheckoutAddress(selectedAddress.id);
+        if (needsDeliveryClarification(selectedAddress)) {
+          router.push({ pathname: "/delivery-address-form", params: { addressId: selectedAddress.id, clarify: "1" } });
+          return;
+        }
         router.push("/checkout-review");
       }} /> : null}
     </SafeAreaView>

@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
-import { Animated, Easing, StatusBar, Switch, View } from "react-native";
+import { Alert, Animated, Easing, StatusBar, Switch, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ACTION_BAR_SPACE, KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
@@ -14,15 +14,21 @@ import { LocationIcon, MapPinIcon, PhoneIcon, ProfileIcon } from "../src/icons/a
 import { FormField } from "../src/components/molecules/FormField";
 import { ScreenHeader } from "../src/components/molecules/ScreenHeader";
 import { StateMessage } from "../src/components/organisms/StateMessage";
+import { AddressKindPicker } from "../src/components/molecules/AddressKindPicker";
+import { AddressRefinement } from "../src/components/organisms/AddressRefinement";
+import { DeliveryDetailsFields } from "../src/components/organisms/DeliveryDetailsFields";
+import { parseDeliveryDetails } from "../src/lib/deliveryDetails";
+import { DeliveryPlacePicker } from "../src/components/organisms/DeliveryPlacePicker";
+import { useDeliveryPlaces } from "../src/hooks/useDeliveryPlaces";
 import { useAddresses, useSaveAddress } from "../src/hooks/useAddresses";
 import { describeError } from "../src/services/errorMapper";
 import { useToast } from "../src/providers/ToastProvider";
 import { useTheme } from "../src/theme";
-import type { AddressType, DeliveryAddress } from "../src/types/models";
+import type { AddressKind, AddressType, DeliveryAddress } from "../src/types/models";
 
 type AddressFormValues = Omit<DeliveryAddress, "id">;
 
-function AddressForm({ existing, addresses }: { existing: DeliveryAddress | undefined; addresses: DeliveryAddress[] }) {
+function AddressForm({ existing, addresses, clarify }: { existing: DeliveryAddress | undefined; addresses: DeliveryAddress[]; clarify: boolean }) {
   const theme = useTheme();
   const { t } = useTranslation();
   const save = useSaveAddress();
@@ -35,7 +41,14 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
     setValue,
     trigger,
   } = useForm<AddressFormValues>({
-    defaultValues: existing ?? {
+    defaultValues: {
+      addressKind: existing?.addressKind ?? (existing ? "unspecified" : "society"),
+      deliveryPlaceId: existing?.deliveryPlaceId ?? null,
+      deliveryPlaceName: existing?.deliveryPlaceName ?? "",
+      locality: existing?.locality ?? "",
+      deliveryDetails: parseDeliveryDetails(existing?.deliveryDetails),
+      deliveryDetailsConfirmed: existing?.deliveryDetailsConfirmed === true,
+      ...(existing ?? {
       addressType: "home",
       city: "",
       fullName: "",
@@ -45,13 +58,43 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
       line2: "",
       phone: "",
       pincode: "",
+      }),
     },
   });
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(clarify ? 2 : 1);
   const [stepX] = useState(() => new Animated.Value(0));
   const [stepOpacity] = useState(() => new Animated.Value(1));
   const addressType = useWatch({ control, name: "addressType" });
   const isDefault = useWatch({ control, name: "isDefault" });
+  const addressKind = useWatch({ control, name: "addressKind" }) ?? "unspecified";
+  const pinCode = useWatch({ control, name: "pincode" });
+  const placeName = useWatch({ control, name: "deliveryPlaceName" }) ?? "";
+  const details = useWatch({ control, name: "deliveryDetails" });
+  const detailsConfirmed = useWatch({ control, name: "deliveryDetailsConfirmed" }) === true;
+  const locationValues = useWatch({ control, name: ["line1", "line2", "landmark", "city", "pincode", "addressKind", "deliveryPlaceId", "deliveryPlaceName", "locality"] });
+  const savedLocationValues = existing ? [existing.line1, existing.line2, existing.landmark, existing.city, existing.pincode, existing.addressKind ?? "unspecified", existing.deliveryPlaceId, existing.deliveryPlaceName, existing.locality] : [];
+  const savedLocationUnchanged = JSON.stringify(locationValues.map(value => value ?? "")) === JSON.stringify(savedLocationValues.map(value => value ?? ""));
+
+  const selectedPlaceId = useWatch({ control, name: "deliveryPlaceId" });
+  const [placeConfirmed, setPlaceConfirmed] = useState(Boolean(existing?.deliveryPlaceId || existing?.deliveryPlaceName));
+  const places = useDeliveryPlaces(pinCode, addressKind === "society" ? "society" : "locality", placeName, step === 2 && addressKind !== "unspecified" && !placeConfirmed);
+  const clearPlace = () => {
+    setValue("deliveryDetailsConfirmed", false);
+    setValue("deliveryPlaceId", null);
+    setValue("deliveryPlaceName", "");
+    setPlaceConfirmed(false);
+  };
+  const chooseKind = (kind: AddressKind) => {
+    setValue("addressKind", kind);
+    const currentDetails = parseDeliveryDetails(details);
+    setValue("deliveryDetails", kind === "society" ? { ...currentDetails, lane: "" } : { ...currentDetails, building: "", towerWing: "" });
+    clearPlace();
+  };
+  const addPlace = () => Alert.alert(t("addresses.confirmPlaceTitle"), t("addresses.confirmPlaceBody", { name: placeName.trim(), pin: pinCode }), [
+    { text: t("addresses.cancel"), style: "cancel" },
+    { text: t("addresses.confirmPlace"), onPress: () => { setValue("deliveryPlaceName", placeName.trim()); setPlaceConfirmed(true); } },
+  ]);
+
 
   const transitionToStep = (nextStep: number, direction: 1 | -1) => {
     Animated.parallel([
@@ -188,7 +231,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                       label={t("addresses.fullName")}
                       icon={ProfileIcon}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }}
                       error={errors.fullName?.message}
                       autoComplete="name"
                       returnKeyType="next"
@@ -210,7 +253,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                       label={`${t("addresses.mobile")} *`}
                       icon={PhoneIcon}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }}
                       error={errors.phone?.message}
                       keyboardType="phone-pad"
                       maxLength={10}
@@ -223,6 +266,38 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
               <>
                 <Controller
                   control={control}
+                  name="pincode"
+                  rules={{
+                    required: t("addresses.required"),
+                    pattern: {
+                      value: /^[1-9]\d{5}$/,
+                      message: t("addresses.invalidPincode"),
+                    },
+                  }}
+                  render={({ field: { onChange, value } }) => (
+                    <FormField
+                      label={t("addresses.pincode")}
+                      icon={LocationIcon}
+                      value={value}
+                      onChangeText={(next) => { onChange(next); clearPlace(); setValue("locality", ""); }}
+                      error={errors.pincode?.message}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                    />
+                  )}
+                />
+
+                <AddressKindPicker value={addressKind} showLegacy={Boolean(existing && (!existing.addressKind || existing.addressKind === "unspecified"))} onChange={chooseKind} />
+                {addressKind !== "unspecified" ? <Controller control={control} name="deliveryPlaceName" rules={{ validate: value => (addressKind === "independent" && !(value ?? "").trim()) || (placeConfirmed && Boolean((value ?? "").trim())) || t("addresses.chooseOrAddPlace") }} render={() => <DeliveryPlacePicker
+                  kind={addressKind === "society" ? "society" : "locality"} name={placeName} selected={placeConfirmed} pinValid={/^[1-9]\d{5}$/.test(pinCode)}
+                  places={places.data ?? []} loading={places.isFetching || places.isDebouncing} failed={places.isError} error={errors.deliveryPlaceName?.message}
+                  onChange={name => { setValue("deliveryDetailsConfirmed", false); setValue("deliveryPlaceName", name); setValue("deliveryPlaceId", null); setPlaceConfirmed(false); }}
+                  onPick={place => { setValue("deliveryDetailsConfirmed", false); setValue("deliveryPlaceId", place.id); setValue("deliveryPlaceName", place.name); setValue("locality", place.locality); setPlaceConfirmed(true); }}
+                  onAdd={addPlace} onClear={clearPlace} onRetry={() => void places.refetch()}
+                />} /> : null}
+                <Controller control={control} name="locality" render={({ field: { value, onChange } }) => <FormField label={t("addresses.locality")} value={value ?? ""} onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }} maxLength={150} editable={!selectedPlaceId} helper={selectedPlaceId ? t("addresses.placeLocalityLocked") : undefined} />} />
+                <Controller
+                  control={control}
                   name="line1"
                   rules={{
                     validate: (value) =>
@@ -230,10 +305,12 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                   }}
                   render={({ field: { onChange, value } }) => (
                     <FormField
-                      label={t("addresses.line1")}
+                      label={t(addressKind === "independent" ? "addresses.houseDirections" : "addresses.line1")}
                       icon={MapPinIcon}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }}
+                      maxLength={150}
+                      helper={addressKind === "independent" ? t("addresses.houseDirectionsHelp") : undefined}
                       error={errors.line1?.message}
                     />
                   )}
@@ -241,16 +318,12 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                 <Controller
                   control={control}
                   name="line2"
-                  rules={{
-                    validate: (value) =>
-                      Boolean(value.trim()) || t("addresses.required"),
-                  }}
                   render={({ field: { onChange, value } }) => (
                     <FormField
-                      label={t("addresses.line2")}
+                      label={t("addresses.streetOptional")}
                       icon={MapPinIcon}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }}
                       error={errors.line2?.message}
                     />
                   )}
@@ -263,29 +336,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                       label={t("addresses.landmark")}
                       icon={LocationIcon}
                       value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name="pincode"
-                  rules={{
-                    required: t("addresses.required"),
-                    pattern: {
-                      value: /^\d{6}$/,
-                      message: t("addresses.invalidPincode"),
-                    },
-                  }}
-                  render={({ field: { onChange, value } }) => (
-                    <FormField
-                      label={t("addresses.pincode")}
-                      icon={LocationIcon}
-                      value={value}
-                      onChangeText={onChange}
-                      error={errors.pincode?.message}
-                      keyboardType="number-pad"
-                      maxLength={6}
+                      onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }}
                     />
                   )}
                 />
@@ -301,11 +352,21 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
                       label={t("addresses.city")}
                       icon={MapPinIcon}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }}
                       error={errors.city?.message}
                     />
                   )}
                 />
+                {clarify ? <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("addresses.clarifyHint")}</ThemedText> : null}
+                {existing ? <AddressRefinement addressId={existing.id} current={parseDeliveryDetails(details)} disabled={!savedLocationUnchanged} onAccept={value => {
+                  setValue("deliveryDetails", addressKind === "society" ? { ...value, lane: "" } : { ...value, building: "", towerWing: "" });
+                  setValue("deliveryDetailsConfirmed", false);
+                }} /> : null}
+                <Controller control={control} name="deliveryDetailsConfirmed" rules={{ validate: value => value === true || t("addresses.detailsConfirmRequired") }} render={() => <DeliveryDetailsFields
+                  kind={addressKind} value={parseDeliveryDetails(details)} confirmed={detailsConfirmed} error={errors.deliveryDetailsConfirmed?.message}
+                  onChange={value => { setValue("deliveryDetails", value); setValue("deliveryDetailsConfirmed", false); }}
+                  onConfirm={value => setValue("deliveryDetailsConfirmed", value, { shouldValidate: true })}
+                />} />
                 <View style={{ gap: theme.spacing.sm }}>
                   <ThemedText variant="bodySmall">
                     {t("addresses.type")}
@@ -385,7 +446,7 @@ function AddressForm({ existing, addresses }: { existing: DeliveryAddress | unde
 export default function DeliveryAddressFormScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { addressId } = useLocalSearchParams<{ addressId?: string }>();
+  const { addressId, clarify } = useLocalSearchParams<{ addressId?: string; clarify?: string }>();
   const { data: addresses, isLoading, isError, refetch } = useAddresses();
   if (isLoading || isError || !addresses) {
     return (
@@ -395,5 +456,5 @@ export default function DeliveryAddressFormScreen() {
       </SafeAreaView>
     );
   }
-  return <AddressForm key={addressId ?? "new"} existing={addresses.find((address) => address.id === addressId)} addresses={addresses} />;
+  return <AddressForm key={addressId ?? "new"} existing={addresses.find((address) => address.id === addressId)} addresses={addresses} clarify={clarify === "1"} />;
 }
