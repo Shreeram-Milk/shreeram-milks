@@ -34,6 +34,7 @@ function parseQuote(raw: unknown): SubscriptionQuote {
   const item = record(raw);
   if (!item) throw new ApiRequestError("UNKNOWN_ERROR", 0);
   return {
+    selectedDates: Array.isArray(item.selectedDates) ? item.selectedDates.filter((date): date is string => typeof date === "string") : undefined,
     kind: item.kind === "trial" ? "trial" : "subscription",
     productName: text(item.productName), productNameGu: text(item.productNameGu), variantName: text(item.variantName), unitPricePaise: whole(item.unitPricePaise),
     planName: text(item.planName), scheduleType: oneOf(item.scheduleType, SCHEDULES, "daily"), weekdays: numbers(item.weekdays), deliveriesPerLine: whole(item.deliveriesPerLine),
@@ -106,7 +107,9 @@ function subscriptionOf(body: unknown): Subscription {
 /** The server's price and dates for what the customer chose. Nothing is written. */
 export async function quoteSubscription(draft: SubscriptionDraft): Promise<SubscriptionQuote> {
   requireApi();
-  return parseQuote(record(await apiSend<unknown>("POST", "/customer/subscriptions/quote", draft, { auth: true }))?.quote);
+  const quote = parseQuote(record(await apiSend<unknown>("POST", "/customer/subscriptions/quote", draft, { auth: true }))?.quote);
+  if (draft.selectedDates && JSON.stringify([...draft.selectedDates].sort()) !== JSON.stringify(quote.selectedDates)) throw new ApiRequestError("UNKNOWN_ERROR", 0);
+  return quote;
 }
 
 /**
@@ -136,7 +139,7 @@ export async function getMySubscription(id: string): Promise<Subscription> {
 export type SubscriptionAction =
   | { type: "skip"; date: string; lineId?: string }
   | { type: "pause"; fromDate: string; untilDate: string | null }
-  | { type: "resume"; fromDate: string }
+  | { type: "resume"; fromDate: string; onlyDate?: boolean }
   | { type: "cancel"; reason: string };
 
 export async function changeMySubscription(id: string, action: SubscriptionAction): Promise<Subscription> {

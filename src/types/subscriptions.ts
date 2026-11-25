@@ -13,6 +13,7 @@ export interface SubscriptionDraft {
   deliveries?: number;
   /** The last day the customer picked on the calendar; the server counts the deliveries from it. */
   endDate?: string;
+  selectedDates?: string[];
   trialPlanId?: string;
   /** For "chosen weekdays" rules: 1 = Monday ... 7 = Sunday. */
   weekdays: number[];
@@ -24,6 +25,7 @@ export interface SubscriptionDraft {
 }
 
 export interface SubscriptionQuote {
+  selectedDates?: string[];
   kind: SubscriptionKind;
   productName: string;
   productNameGu: string;

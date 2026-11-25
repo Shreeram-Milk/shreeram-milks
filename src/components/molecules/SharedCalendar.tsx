@@ -7,7 +7,7 @@ import { ThemedText } from "../atoms/ThemedText";
 import { BackIcon, ForwardIcon } from "../../icons/appIcons";
 import { useTheme } from "../../theme";
 
-export type CalendarMode = "single" | "range";
+export type CalendarMode = "single" | "range" | "multiple";
 
 export interface CalendarDateStatus {
   color: string;
@@ -20,6 +20,8 @@ interface SharedCalendarProps {
   onMonthChange: (month: Date) => void;
   onDateSelect: (date: string) => void;
   selectedDate?: string;
+  selectedDates?: ReadonlySet<string>;
+  disabledDates?: ReadonlySet<string>;
   fromDate?: string;
   toDate?: string;
   minDate?: string;
@@ -79,6 +81,8 @@ export function SharedCalendar({
   onDateSelect,
   onMonthChange,
   selectedDate,
+  selectedDates,
+  disabledDates,
   toDate,
 }: SharedCalendarProps) {
   const theme = useTheme();
@@ -220,8 +224,8 @@ export function SharedCalendar({
                   date > rangeStart && date < rangeEnd,
                 );
                 const status = date ? dateStatuses?.[date] : undefined;
-                const isSelected = mode === "single" && Boolean(date) && date === selectedDate;
-                const isDisabled = Boolean((date && minDate && date < minDate) || (date && maxDate && date > maxDate));
+                const isSelected = Boolean(date && (mode === "multiple" ? selectedDates?.has(date) : mode === "single" && date === selectedDate));
+                const isDisabled = Boolean((date && disabledDates?.has(date)) || (date && minDate && date < minDate) || (date && maxDate && date > maxDate));
                 const isMarked = Boolean(date && markedDates?.has(date) && !isDisabled);
                 const label = date
                   ? new Date(`${date}T12:00:00`).toLocaleDateString(i18n.language, { day: "numeric", month: "long", year: "numeric" })
@@ -246,11 +250,11 @@ export function SharedCalendar({
                         borderRadius: theme.radii.pill,
                         alignItems: "center",
                         justifyContent: "center",
-                        borderWidth: (mode === "single" && isSelected) || isEndpoint ? theme.borderWidths.medium : theme.borderWidths.none,
+                        borderWidth: isSelected || isEndpoint ? theme.borderWidths.medium : theme.borderWidths.none,
                         borderColor: theme.colors.colorSelectionBorder,
                         backgroundColor: isDisabled
                           ? theme.colors.colorSurfaceDisabled
-                          : isEndpoint
+                          : isEndpoint || isSelected
                             ? theme.colors.colorSelection
                             : isBetweenRange
                               ? theme.colors.colorTransparent

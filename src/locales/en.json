@@ -1058,6 +1058,18 @@
     "close": "Close"
   },
   "subs": {
+    "pickDatesTitle": "Choose delivery dates",
+    "pickDatesDetail": "Tap each date you want a delivery. Tap a selected date again to remove it.",
+    "pauseDatesDetail": "Tap the dates to pause. Tap again to deselect. Amber dates are already paused.",
+    "restoreDatesDetail": "Tap paused dates to restore those deliveries. Other paused dates stay paused.",
+    "selectedDatesCount": "{{count}} dates selected",
+    "selectPauseDates": "Pause selected dates",
+    "restoreSelectedDates": "Restore selected deliveries",
+    "noDatesToChange": "There are no delivery dates available to change.",
+    "customDates": "Custom dates",
+    "saveDates": "Save selected dates",
+    "datesChanged": "Delivery dates updated",
+
     "subscription": "Subscription",
     "trial": "Trial",
     "oneOff": "One-time order",

@@ -82,6 +82,7 @@ function DayEntry({ entry, language, onDone }: { entry: CalendarDelivery; langua
     {entry.items.map((item, index) => <ThemedText key={index} variant="body" weight="semibold">{localized(item.productName, item.productNameGu, language)} · {item.variantName} × {item.quantity}</ThemedText>)}
     <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{entry.slotName ? `${entry.slotName}${entry.startTime ? ` · ${formatClock(entry.startTime)}` : ""}` : t("subs.courier")} · {t(`subs.day_${entry.state === "cancelled" ? "skipped" : entry.state}`)}</ThemedText>
     <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+      {entry.subscriptionId && entry.state === "paused" ? <Button style={{ flex: 1 }} variant="secondary" onPress={() => router.push({ pathname: "/subscription-vacation", params: { id: entry.subscriptionId ?? "", mode: "resume" } })}>{t("subs.resumeButton")}</Button> : null}
       {entry.subscriptionId && entry.canChange && !skipped ? <Button style={{ flex: 1 }} variant="secondary" onPress={() => setConfirming(true)}>{t("subs.skip")}</Button> : null}
       {entry.subscriptionId ? <Button style={{ flex: 1 }} variant="secondary" onPress={() => router.push({ pathname: "/subscription-manage", params: { id: entry.subscriptionId ?? "" } })}>{t("calendar.manage")}</Button> : null}
       {entry.orderId && !entry.subscriptionId ? <Button style={{ flex: 1 }} variant="secondary" onPress={() => router.push({ pathname: "/order-tracking", params: { orderId: entry.orderId ?? "" } })}>{t("subs.track")}</Button> : null}

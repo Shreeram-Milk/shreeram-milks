@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { formatRupees } from "../../lib/catalogCart";
 import { addDaysTo, formatOrderBy, formatShortDay, formatWindow } from "../../lib/deliveryText";
 import { deliveriesUpTo, firstDeliveryOnOrAfter, isDeliveryDay, lastDeliveryDate } from "../../lib/subscriptionSchedule";
+import { dateRange, toggleDate } from "../../lib/customSubscriptionDates";
 import { useTheme } from "../../theme";
 import type { CatalogProductDetail } from "../../types/catalog";
 import type { ServedSlot } from "../../types/delivery";
@@ -31,13 +32,13 @@ export interface SubscribeChoice {
   trialPlanId: string | null;
   /** 1 = Monday ... 7 = Sunday, for "chosen weekdays" rules. */
   weekdays: number[];
+  selectedDates?: string[];
   /** Quantity per delivery window; a window at 0 is not chosen. */
   quantities: Record<string, number>;
 }
 
 export const emptyChoice: SubscribeChoice = { ruleId: null, quick: null, endDate: null, trialPlanId: null, weekdays: [1, 2, 3, 4, 5, 6, 7], quantities: {} };
 const MAX_PER_SLOT = 20;
-const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 type Rule = CatalogProductDetail["subscriptionRules"][number];
 
@@ -56,17 +57,17 @@ export function resolveChoice(choice: SubscribeChoice, kind: "subscription" | "t
   const lines = slots.filter((slot) => (quantities[slot.slotId] ?? 0) > 0).map((slot) => ({ slotId: slot.slotId, quantity: quantities[slot.slotId] ?? 0 }));
   const chosenSlots = slots.filter((slot) => lines.some((line) => line.slotId === slot.slotId));
   const earliest = (chosenSlots.length > 0 ? chosenSlots : slots).map((slot) => slot.earliestDate).sort().at(-1) ?? null;
-  const weekdays = kind === "subscription" && rule?.systemType === "custom_weekdays" ? choice.weekdays : [];
+  const weekdays = kind === "subscription" && rule?.systemType === "custom_weekdays" ? [1, 2, 3, 4, 5, 6, 7] : [];
   const scheduleType = kind === "trial" ? "daily" : (rule?.systemType ?? "daily");
   // On "chosen weekdays" the first delivery is the first chosen weekday on or after the earliest day.
-  const startDate = earliest && scheduleType === "custom_weekdays" ? (weekdays.length ? Array.from({ length: 7 }, (_, index) => addDaysTo(earliest, index)).find((date) => isDeliveryDay(date, earliest, "custom_weekdays", weekdays)) ?? earliest : earliest) : earliest;
+  let startDate = earliest && scheduleType === "custom_weekdays" ? (weekdays.length ? Array.from({ length: 7 }, (_, index) => addDaysTo(earliest, index)).find((date) => isDeliveryDay(date, earliest, "custom_weekdays", weekdays)) ?? earliest : earliest) : earliest;
 
   // The earliest and latest last day the rule allows, and the quick choices that fit between them.
   const maxLast = startDate ? addDaysTo(startDate, (kind === "trial" ? 365 : (rule?.maxDays ?? 365)) - 1) : null;
   // The shortest plan is measured to its last delivery day, so a minimum that lands on a day without delivery rounds up to the next one.
   const minLast = startDate && maxLast ? firstDeliveryOnOrAfter(addDaysTo(startDate, (kind === "trial" ? 1 : (rule?.minDays ?? 1)) - 1), startDate, scheduleType, weekdays, maxLast) : null;
   const quickOptions = startDate && minLast && maxLast && rule
-    ? rule.lengthOptions.filter((count) => { const last = lastDeliveryDate(startDate, count, scheduleType, weekdays); return Boolean(last && last >= minLast && last <= maxLast); })
+    ? rule.lengthOptions.filter((count) => { const last = lastDeliveryDate(startDate!, count, scheduleType, weekdays); return Boolean(last && last >= minLast && last <= maxLast); })
     : [];
 
   let wanted: string | null = null;
@@ -79,12 +80,17 @@ export function resolveChoice(choice: SubscribeChoice, kind: "subscription" | "t
     }
   }
   const counted = startDate && wanted ? deliveriesUpTo(startDate, wanted, scheduleType, weekdays) : { count: 0, lastDate: null };
-  const deliveries = counted.count > 0 ? counted.count : null;
-  const endDate = counted.lastDate;
-  const quickSelected = startDate && endDate ? (quickOptions.find((count) => lastDeliveryDate(startDate, count, scheduleType, weekdays) === endDate) ?? null) : null;
+  const selectedDates = kind === "subscription" && scheduleType === "custom_weekdays" && earliest && maxLast
+    ? [...new Set(choice.selectedDates ?? (wanted ? dateRange(earliest, wanted) : []))].filter(date => date >= earliest && date <= maxLast).sort()
+    : undefined;
+  if (selectedDates) startDate = selectedDates[0] ?? earliest;
+  const deliveries = selectedDates ? selectedDates.length || null : counted.count > 0 ? counted.count : null;
+  const endDate = selectedDates ? selectedDates.at(-1) ?? null : counted.lastDate;
+  const quickSelected = startDate && endDate ? (quickOptions.find((count) => lastDeliveryDate(startDate!, count, scheduleType, weekdays) === endDate) ?? null) : null;
   const perDelivery = lines.reduce((sum, line) => sum + line.quantity, 0);
-  const ready = Boolean(deliveries && startDate && endDate && lines.length > 0 && (kind === "trial" ? trialPlanId : rule) && (weekdays.length > 0 || rule?.systemType !== "custom_weekdays" || kind === "trial"));
-  return { rule, deliveries, trialPlanId, quantities, lines, startDate, endDate, earliest, weekdays, scheduleType, minLast, maxLast, quickOptions, quickSelected, perDelivery, ready };
+  const spanValid = !selectedDates || Boolean(startDate && endDate && dateRange(startDate, endDate).length >= (rule?.minDays ?? 1));
+  const ready = spanValid && Boolean(deliveries && startDate && endDate && lines.length > 0 && (kind === "trial" ? trialPlanId : rule) && (weekdays.length > 0 || rule?.systemType !== "custom_weekdays" || kind === "trial"));
+  return { selectedDates, rule, deliveries, trialPlanId, quantities, lines, startDate, endDate, earliest, weekdays, scheduleType, minLast, maxLast, quickOptions, quickSelected, perDelivery, ready };
 }
 
 interface SubscribeSetupProps {
@@ -108,6 +114,7 @@ export function SubscribeSetup({ kind, product, unitPricePaise, slots, language,
   const set = (patch: Partial<SubscribeChoice>) => onChange({ ...choice, quantities: resolved.quantities, ...patch });
   const [lengthOpen, setLengthOpen] = useState(false);
   // The last day being tried in the drawer; it is only kept when the customer confirms.
+  const [pendingDates, setPendingDates] = useState<string[]>([]);
   const [pendingEnd, setPendingEnd] = useState<string | null>(null);
 
   return (
@@ -123,13 +130,13 @@ export function SubscribeSetup({ kind, product, unitPricePaise, slots, language,
               <SegmentedTabs
                 tabs={product.subscriptionRules.map((rule) => ({ key: rule.id, label: rule.name || t(`subs.schedule_${rule.systemType}`) }))}
                 value={resolved.rule?.id ?? ""}
-                onChange={(ruleId) => set({ ruleId, quick: null, endDate: null })}
+                onChange={(ruleId) => set({ ruleId, quick: null, endDate: null, selectedDates: undefined })}
               />
             </Section>
           ) : resolved.rule ? <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.scheduleIs", { schedule: t(`subs.schedule_${resolved.rule.systemType}`) })}</ThemedText> : null}
           {resolved.rule && resolved.startDate && resolved.endDate ? (
             <Section title={t("subs.length")}>
-              <Pressable accessibilityRole="button" accessibilityLabel={`${t("subs.length")}: ${t("subs.deliveriesUntil", { count: resolved.deliveries ?? 0, date: formatShortDay(resolved.endDate, language, t) })}`} onPress={() => { setPendingEnd(resolved.endDate); setLengthOpen(true); }} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md, minHeight: theme.layout.touchTargetMin + 8, paddingHorizontal: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted, opacity: pressed ? theme.opacity.subdued : theme.opacity.full })}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`${t("subs.length")}: ${t("subs.deliveriesUntil", { count: resolved.deliveries ?? 0, date: formatShortDay(resolved.endDate, language, t) })}`} onPress={() => { setPendingEnd(resolved.endDate); setPendingDates(resolved.selectedDates ?? []); setLengthOpen(true); }} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md, minHeight: theme.layout.touchTargetMin + 8, paddingHorizontal: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorSurfaceMuted, opacity: pressed ? theme.opacity.subdued : theme.opacity.full })}>
                 <View style={{ flex: 1, gap: 2 }}>
                   <ThemedText variant="bodySmall" weight="bold">{t("subs.deliveries", { count: resolved.deliveries ?? 0 })}</ThemedText>
                   <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.fromTo", { from: formatShortDay(resolved.startDate, language, t), to: formatShortDay(resolved.endDate, language, t) })}</ThemedText>
@@ -140,7 +147,7 @@ export function SubscribeSetup({ kind, product, unitPricePaise, slots, language,
                 visible={lengthOpen}
                 onClose={() => setLengthOpen(false)}
                 language={language}
-                start={resolved.startDate}
+                start={resolved.selectedDates ? resolved.earliest ?? resolved.startDate : resolved.startDate}
                 type={resolved.scheduleType}
                 weekdays={resolved.weekdays}
                 minLast={resolved.minLast ?? resolved.startDate}
@@ -151,22 +158,13 @@ export function SubscribeSetup({ kind, product, unitPricePaise, slots, language,
                 pricePaise={unitPricePaise * Math.max(1, resolved.perDelivery)}
                 pending={pendingEnd ?? resolved.endDate}
                 onPending={setPendingEnd}
-                onApply={(endDate) => { set({ endDate, quick: null }); setLengthOpen(false); }}
+                selectedDates={pendingDates}
+                onSelectedDates={setPendingDates}
+                onApply={(endDate) => { set({ endDate, quick: null, selectedDates: resolved.selectedDates ? pendingDates : undefined }); setLengthOpen(false); }}
               />
             </Section>
           ) : null}
-          {resolved.rule?.systemType === "custom_weekdays" ? (
-            <Section title={t("subs.whichDays")}>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs }}>
-                {WEEKDAY_KEYS.map((key, index) => {
-                  const day = index + 1;
-                  const selected = choice.weekdays.includes(day);
-                  return <Pressable key={key} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={t(`subs.weekday_${key}`)} onPress={() => set({ weekdays: selected ? choice.weekdays.filter((item) => item !== day) : [...choice.weekdays, day].sort() })} style={({ pressed }) => ({ flexGrow: 1, flexBasis: "12%", aspectRatio: 1, maxWidth: 56, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.md, borderWidth: theme.borderWidths.hairline, borderColor: selected ? theme.colors.colorAccent : theme.colors.colorBorder, backgroundColor: selected ? theme.colors.colorAccent : theme.colors.colorSurface, opacity: pressed ? theme.opacity.subdued : theme.opacity.full })}><ThemedText variant="caption" weight="semibold" style={{ color: selected ? theme.colors.colorTextInverse : theme.colors.colorTextPrimary }}>{t(`subs.weekdayShort_${key}`)}</ThemedText></Pressable>;
-                })}
-              </View>
-              {choice.weekdays.length === 0 ? <ThemedText variant="caption" style={{ color: theme.colors.colorDanger }}>{t("subs.pickADay")}</ThemedText> : null}
-            </Section>
-          ) : null}
+
         </>
       )}
       <Section title={t("subs.windows")}>
@@ -199,7 +197,7 @@ export function SubscribeSetup({ kind, product, unitPricePaise, slots, language,
       {resolved.startDate ? (
         <Section title={t("subs.whenTitle")}>
           <DeliveryRange
-            start={resolved.startDate}
+            start={resolved.selectedDates ? resolved.earliest ?? resolved.startDate : resolved.startDate}
             end={resolved.endDate}
             firstLabel={t("subs.firstDelivery")}
             lastLabel={t("subs.lastDelivery")}
@@ -228,6 +226,8 @@ interface LengthDrawerProps {
   pricePaise: number;
   pending: string;
   onPending: (endDate: string) => void;
+  selectedDates: string[];
+  onSelectedDates: (dates: string[]) => void;
   onApply: (endDate: string) => void;
 }
 
@@ -236,7 +236,7 @@ interface LengthDrawerProps {
  * dot, days outside the rule's shortest and longest plan are greyed out) or taps a quick choice. A card at the top shows the first
  * and last day as day tiles, how many deliveries that is, and the total, updating as they tap.
  */
-function LengthDrawer({ visible, onClose, language, start, type, weekdays, minLast, maxLast, minDays, maxDays, quickOptions, pricePaise, pending, onPending, onApply }: LengthDrawerProps) {
+function LengthDrawer({ visible, onClose, language, start, type, weekdays, minLast, maxLast, minDays, maxDays, quickOptions, pricePaise, pending, onPending, onApply, selectedDates, onSelectedDates }: LengthDrawerProps) {
   const theme = useTheme();
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
@@ -246,9 +246,11 @@ function LengthDrawer({ visible, onClose, language, start, type, weekdays, minLa
     for (let date = start; date <= maxLast; date = addDaysTo(date, 1)) if (isDeliveryDay(date, start, type, weekdays)) days.add(date);
     return days;
   }, [start, maxLast, type, weekdays]);
-  const counted = deliveriesUpTo(start, pending, type, weekdays);
+  const custom = type === "custom_weekdays";
+  const counted = custom ? { count: selectedDates.length, lastDate: selectedDates.at(-1) ?? null } : deliveriesUpTo(start, pending, type, weekdays);
   const last = counted.lastDate ?? pending;
-  const select = (date: string) => onPending(date < minLast ? minLast : date > maxLast ? maxLast : date);
+  const select = (date: string) => custom ? onSelectedDates(toggleDate(selectedDates, date)) : onPending(date < minLast ? minLast : date > maxLast ? maxLast : date);
+  const validSpan = !custom || Boolean(selectedDates[0] && dateRange(selectedDates[0], last).length >= minDays);
   // The note turns amber when the pick sits at the shortest or longest plan the rule allows.
   const atLimit = pending === minLast || pending === maxLast;
 
@@ -256,12 +258,12 @@ function LengthDrawer({ visible, onClose, language, start, type, weekdays, minLa
     <SubscriptionBottomSheet visible={visible} onClose={onClose}>
       <View style={{ gap: theme.spacing.md }}>
         <View style={{ gap: theme.spacing.xs, paddingRight: theme.layout.touchTargetMin }}>
-          <ThemedText variant="h2">{t("subs.pickEndTitle")}</ThemedText>
-          <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.pickEndDetail")}</ThemedText>
+          <ThemedText variant="h2">{t(custom ? "subs.pickDatesTitle" : "subs.pickEndTitle")}</ThemedText>
+          <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t(custom ? "subs.pickDatesDetail" : "subs.pickEndDetail")}</ThemedText>
         </View>
         <ScrollView style={{ maxHeight: height * 0.62 }} contentContainerStyle={{ gap: theme.spacing.md }} showsVerticalScrollIndicator={false} nestedScrollEnabled>
           <DeliveryRange
-            start={start}
+            start={custom ? selectedDates[0] ?? start : start}
             end={last}
             firstLabel={t("subs.firstDelivery")}
             lastLabel={t("subs.lastDelivery")}
@@ -269,7 +271,7 @@ function LengthDrawer({ visible, onClose, language, start, type, weekdays, minLa
             middleDetail={formatRupees(pricePaise * counted.count)}
             language={language}
           />
-          {quickOptions.length > 0 ? (
+          {!custom && quickOptions.length > 0 ? (
             <View style={{ gap: theme.spacing.xs }}>
               <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.quickChoices")}</ThemedText>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
@@ -287,21 +289,22 @@ function LengthDrawer({ visible, onClose, language, start, type, weekdays, minLa
           ) : null}
           <AfterOpen fallback={<Skeleton height={320} radius={theme.radii.lg} />}>
           <SharedCalendar
-            mode="range"
+            mode={custom ? "multiple" : "range"}
+            selectedDates={new Set(selectedDates)}
             month={month}
             onMonthChange={setMonth}
             fromDate={start}
             toDate={last}
             minDate={start}
             maxDate={maxLast}
-            markedDates={marked}
+            markedDates={custom ? new Set(selectedDates) : marked}
             onDateSelect={select}
-            legend={[{ color: theme.colors.colorPrimary, label: t(`subs.dot_${type}`) }]}
+            legend={[{ color: theme.colors.colorPrimary, label: t(custom ? "subs.customDates" : `subs.dot_${type}`) }]}
           />
           </AfterOpen>
           <ThemedText variant="caption" style={{ color: atLimit ? theme.colors.colorWarning : theme.colors.colorTextSecondary }}>{t("subs.limitsNote", { min: minDays, max: maxDays })}</ThemedText>
         </ScrollView>
-        <Button disabled={counted.count < 1} onPress={() => onApply(last)}>{t("subs.useDeliveries", { count: counted.count })}</Button>
+        <Button disabled={counted.count < 1 || !validSpan} onPress={() => onApply(last)}>{t("subs.useDeliveries", { count: counted.count })}</Button>
       </View>
     </SubscriptionBottomSheet>
   );

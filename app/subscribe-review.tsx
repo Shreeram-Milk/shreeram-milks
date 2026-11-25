@@ -42,6 +42,7 @@ function readDraft(raw: string | string[] | undefined): Omit<SubscriptionDraft, 
       kind: draft.kind, variantId: draft.variantId, startDate: draft.startDate, lines,
       ruleId: typeof draft.ruleId === "string" ? draft.ruleId : undefined, deliveries: typeof draft.deliveries === "number" ? draft.deliveries : undefined, endDate: typeof draft.endDate === "string" ? draft.endDate : undefined,
       trialPlanId: typeof draft.trialPlanId === "string" ? draft.trialPlanId : undefined,
+      selectedDates: Array.isArray(draft.selectedDates) ? draft.selectedDates.filter((date): date is string => typeof date === "string") : undefined,
       weekdays: Array.isArray(draft.weekdays) ? draft.weekdays.filter((day): day is number => typeof day === "number") : [],
     };
   } catch {
@@ -142,7 +143,7 @@ export default function SubscribeReviewScreen() {
         {data ? (
           <CheckoutSection title={localized(data.productName, data.productNameGu, language)}>
             <View style={{ gap: theme.spacing.sm, padding: theme.spacing.md }}>
-              <Row label={t("subs.plan")} value={`${data.planName || kindText} · ${t(`subs.schedule_${data.scheduleType}`)}`} />
+              <Row label={t("subs.plan")} value={`${data.planName || kindText} · ${t(data.selectedDates ? "subs.customDates" : `subs.schedule_${data.scheduleType}`)}`} />
               <Row label={t("subs.size")} value={`${data.variantName} · ${formatRupees(data.unitPricePaise)} ${t("checkout.review.each")}`} />
               <Row label={t("subs.length")} value={t("subs.deliveriesEach", { count: data.deliveriesPerLine })} />
               <Row label={t("subs.firstDelivery")} value={formatDeliveryDate(data.startDate, language)} />

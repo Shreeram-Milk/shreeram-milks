@@ -150,7 +150,7 @@ function ProductDetailsContent() {
   const setup = repeating && !existing ? resolveChoice(choice, repeating, product, slots) : null;
   const reviewSubscription = () => {
     if (!repeating || !setup?.ready || !setup.startDate) return;
-    const draft = { kind: repeating, variantId: variant.id, ruleId: repeating === "subscription" ? setup.rule?.id : undefined, endDate: repeating === "subscription" ? (setup.endDate ?? undefined) : undefined, trialPlanId: setup.trialPlanId ?? undefined, weekdays: setup.weekdays, startDate: setup.startDate, lines: setup.lines };
+    const draft = { kind: repeating, variantId: variant.id, ruleId: repeating === "subscription" ? setup.rule?.id : undefined, endDate: repeating === "subscription" ? (setup.endDate ?? undefined) : undefined, trialPlanId: setup.trialPlanId ?? undefined, selectedDates: setup.selectedDates, weekdays: setup.weekdays, startDate: setup.startDate, lines: setup.lines };
     router.push({ pathname: "/subscribe-review", params: { draft: JSON.stringify(draft) } });
   };
 

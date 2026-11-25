@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,13 +9,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../src/components/atoms/Button";
 import { IconButton } from "../src/components/atoms/IconButton";
 import { ThemedText } from "../src/components/atoms/ThemedText";
+import { dateRange, toggleDate } from "../src/lib/customSubscriptionDates";
+import { isDeliveryDay } from "../src/lib/subscriptionSchedule";
 import { SharedCalendar } from "../src/components/molecules/SharedCalendar";
 import { StateMessage } from "../src/components/organisms/StateMessage";
 import { useCatalogProduct } from "../src/hooks/useCatalog";
 import { useMySubscriptions } from "../src/hooks/useSubscriptions";
 import { BackIcon } from "../src/icons/appIcons";
 import { localized } from "../src/lib/contentLocalization";
-import { addDaysTo, formatDeliveryDate, indiaToday } from "../src/lib/deliveryText";
+import { addDaysTo, indiaToday } from "../src/lib/deliveryText";
 import { describeError } from "../src/services/errorMapper";
 import { changeMySubscription } from "../src/services/subscriptionService";
 import { queryKeys } from "../src/services/queryKeys";
@@ -25,199 +27,94 @@ import { useTheme } from "../src/theme";
 import type { Subscription } from "../src/types/subscriptions";
 import { remoteImage } from "../src/lib/remoteImage";
 
-type Step = "products" | "dates" | "success";
-type DateField = "pause" | "resume";
-
-const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
-/** The days a plan can still be paused on: from its first day that can still change to its last delivery day. Null when nothing can change. */
-function pauseWindow(subscription: Subscription): { start: string; end: string } | null {
-  const start = subscription.days.find((day) => day.lines.some((line) => line.canChange))?.date;
-  // The list of coming days is only the next few weeks, so the plan's own last delivery day is the true end.
-  const end = subscription.endDate ?? subscription.days[subscription.days.length - 1]?.date;
-  return start && end ? { start, end } : null;
-}
-const monthOf = (date: string) => new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, 1);
-
-/**
- * A vacation: choose the subscriptions, then on the calendar the first day without delivery and the day deliveries come back.
- * Paused days are never lost: they are added at the end. With `mode=resume` it restarts a paused subscription on a chosen day.
- */
+/** Individual pause dates and individual restores use the same calendar and server cut-off checks. */
 export default function SubscriptionVacationScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ id?: string; mode?: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const resuming = params.mode === "resume";
-  const { data = [], isLoading } = useMySubscriptions();
+  const { data = [], isLoading, isError, refetch } = useMySubscriptions();
   const client = useQueryClient();
-  const customerId = useSessionStore((state) => state.customer?.id ?? "");
-  const lang = useAppStore((state) => state.language);
-  // Only live subscriptions without a pause already running can take a vacation.
-  const choices = data.filter((item) => (item.status === "active" || item.status === "paused") && (resuming ? item.id === id : !item.openPause));
-  const single = Boolean(id) || choices.length === 1;
-  const [step, setStep] = useState<Step>(single || resuming ? "dates" : "products");
-  const [selectedIds, setSelectedIds] = useState<string[] | null>(id ? [id] : null);
-  const chosen = selectedIds ?? choices.map((item) => item.id);
+  const customerId = useSessionStore(state => state.customer?.id ?? "");
   const today = indiaToday();
-  const [activeField, setActiveField] = useState<DateField>("pause");
-  // A vacation can only fall inside the days the chosen subscriptions still have deliveries (each plan's own limits are checked on confirm).
-  const windows = data.filter((item) => chosen.includes(item.id)).map(pauseWindow).filter((item): item is { start: string; end: string } => item !== null);
-  const windowStart = windows.length > 0 ? windows.reduce((first, item) => (item.start < first ? item.start : first), windows[0].start) : addDaysTo(today, 1);
-  const windowEnd = windows.length > 0 ? windows.reduce((last, item) => (item.end > last ? item.end : last), windows[0].end) : addDaysTo(today, 1);
-  // The day deliveries come back may be the day after the last delivery (a vacation to the very end).
-  const lastResume = addDaysTo(windowEnd, 1);
-  const [pickedPause, setPickedPause] = useState<string | null>(null);
-  const [pickedResume, setPickedResume] = useState<string | null>(null);
-  const pauseDate = pickedPause !== null && pickedPause >= windowStart && pickedPause <= windowEnd ? pickedPause : windowStart;
-  // Restarting a paused subscription: any day from tomorrow (the server says if its cut-off makes that too early) until the last
-  // day of the vacation being ended. The paused days themselves cannot be "changed", so the vacation window does not apply here.
-  const resumable = resuming ? data.find((item) => item.id === id)?.pauses.find((pause) => (pause.untilDate ?? "9999-12-31") >= today) ?? null : null;
-  const firstRestart = addDaysTo(today, 1);
-  const lastRestart = resumable?.untilDate ?? undefined;
-  const restartDate = pickedResume !== null && pickedResume >= firstRestart && (!lastRestart || pickedResume <= lastRestart) ? pickedResume : firstRestart;
-  const resumeDate = resuming ? restartDate : pickedResume !== null && pickedResume > pauseDate && pickedResume <= lastResume ? pickedResume : addDaysTo(pauseDate, 1) <= lastResume ? addDaysTo(pauseDate, 1) : lastResume;
+  const [month, setMonth] = useState(() => new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, 1));
+  const [selectedIds, setSelectedIds] = useState<string[] | null>(id ? [id] : null);
+  const choices = data.filter(item => (item.status === "active" || item.status === "paused") && (!id || item.id === id));
+  const chosen = choices.filter(item => selectedIds === null || selectedIds.includes(item.id));
+  const [dates, setDates] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const duration = daysBetween(pauseDate, resumeDate);
-  // Vacations already set on the chosen subscriptions, shown in the list and on the calendar so nobody pauses them twice.
-  const existingPauses = data.filter((item) => chosen.includes(item.id)).flatMap((item) => item.pauses.filter((pause) => (pause.untilDate ?? pause.fromDate) >= today).map((pause) => ({ ...pause, name: localized(item.productName, item.productNameGu, lang) })));
-  const pausedDays: Record<string, { color: string; label: string }> = {};
-  for (const pause of existingPauses) {
-    for (let date = pause.fromDate; date <= (pause.untilDate ?? pause.fromDate) && Object.keys(pausedDays).length < 400; date = addDaysTo(date, 1)) pausedDays[date] = { color: theme.colors.colorWarning, label: t("subs.alreadyPaused") };
-  }
-
-  const toggle = (subscriptionId: string) => setSelectedIds(chosen.includes(subscriptionId) ? chosen.filter((item) => item !== subscriptionId) : [...chosen, subscriptionId]);
-  const selectDate = (date: string) => {
-    if (date < today) return;
-    if (resuming) { if (date >= firstRestart && (!lastRestart || date <= lastRestart)) setPickedResume(date); return; }
-    if (date < windowStart || date > lastResume) return;
-    if (activeField === "pause") {
-      if (date > windowEnd) return;
-      setPickedPause(date);
-      if (date >= resumeDate) setPickedResume(addDaysTo(date, 1));
-      setActiveField("resume");
-    } else if (date > pauseDate) setPickedResume(date);
-  };
-
-  const confirm = async () => {
-    setBusy(true);
-    setFailure(null);
-    const problems: string[] = [];
-    for (const subscriptionId of resuming && id ? [id] : chosen) {
-      const own = data.find((item) => item.id === subscriptionId);
-      const ownWindow = own ? pauseWindow(own) : null;
-      if (!resuming && ownWindow && (pauseDate > ownWindow.end || addDaysTo(resumeDate, -1) < ownWindow.start)) {
-        problems.push(`${localized(own!.productName, own!.productNameGu, lang)}: ${t("subs.outsideWindow")}`);
-        continue;
-      }
-      try {
-        await changeMySubscription(subscriptionId, resuming ? { type: "resume", fromDate: resumeDate } : { type: "pause", fromDate: pauseDate, untilDate: addDaysTo(resumeDate, -1) });
-      } catch (error) {
-        const earliest = (error as { details?: { earliestDate?: unknown } }).details?.earliestDate;
-        // Too early for the cut-off: move the calendar to the first day that works, so one more tap restarts it.
-        if (resuming && typeof earliest === "string") setPickedResume(earliest);
-        const subscription = data.find((item) => item.id === subscriptionId);
-        const label = subscription ? localized(subscription.productName, subscription.productNameGu, lang) : "";
-        problems.push(`${label}: ${typeof earliest === "string" ? t("subs.earliestIs", { date: formatDeliveryDate(earliest, lang) }) : describeError(error)}`);
+  const [done, setDone] = useState(false);
+  const last = addDaysTo(today, 364);
+  const available = new Set<string>();
+  const paused = new Set<string>();
+  const statuses: Record<string, { color: string; label: string }> = {};
+  for (const item of chosen) {
+    for (const day of item.days) if (day.date >= today && day.lines.some(line => line.canChange && (line.state === "upcoming" || line.state === "placed"))) available.add(day.date);
+    for (const pause of item.pauses) {
+      for (const date of dateRange(pause.fromDate > today ? pause.fromDate : today, pause.untilDate && pause.untilDate < last ? pause.untilDate : last)) {
+        if (isDeliveryDay(date, item.startDate, item.scheduleType, item.weekdays)) paused.add(date);
       }
     }
-    await Promise.all([client.invalidateQueries({ queryKey: queryKeys.subscriptions(customerId) }), client.invalidateQueries({ queryKey: queryKeys.deliveries(customerId) }), client.invalidateQueries({ queryKey: queryKeys.orders(customerId) })]);
-    setBusy(false);
-    if (problems.length > 0) setFailure(problems.join("\n"));
-    else setStep("success");
+  }
+  for (const date of paused) statuses[date] = { color: theme.colors.colorWarning, label: t("subs.alreadyPaused") };
+  const selectable = new Set([...paused, ...(resuming ? [] : available)]);
+  const selected = dates.filter(date => selectable.has(date));
+  const disabledDates = new Set(dateRange(today, last).filter(date => !selectable.has(date)));
+  const toggle = (subscriptionId: string) => {
+    const current = chosen.map(item => item.id);
+    setSelectedIds(current.includes(subscriptionId) ? current.filter(value => value !== subscriptionId) : [...current, subscriptionId]);
+    setDates([]);
+    setFailure(null);
   };
-
-  if (isLoading) return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}><StateMessage type="loading" title={t("subs.loading")} /></SafeAreaView>;
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
-      <StatusBar barStyle="dark-content" />
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: theme.layout.screenHorizontalPadding, paddingVertical: theme.spacing.md, borderBottomWidth: theme.borderWidths.hairline, borderColor: theme.colors.colorBorder }}>
-          <IconButton icon={BackIcon} label={t("subscriptionVacation.back")} onPress={() => (step === "dates" && !single && !resuming ? setStep("products") : router.back())} />
-          <ThemedText variant="body" weight="semibold">{step === "success" ? t(resuming ? "subs.resumedTitle" : "subscriptionVacation.confirmedTitle") : t(resuming ? "subs.resumeTitle" : "subscriptionVacation.title")}</ThemedText>
-          <View style={{ width: theme.layout.touchTargetMin }} />
-        </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: theme.spacing.lg, padding: theme.layout.screenHorizontalPadding, paddingBottom: theme.spacing.lg }} showsVerticalScrollIndicator={false}>
-          {resuming ? null : <Progress current={step === "products" ? 1 : step === "dates" ? 2 : 3} />}
-          {step === "products" ? (
-            <>
-              <View style={{ gap: theme.spacing.xs }}>
-                <ThemedText variant="body" weight="semibold">{t("subscriptionVacation.pauseDeliveries")}</ThemedText>
-                <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t("subscriptionVacation.pauseDetail")}</ThemedText>
-              </View>
-              {choices.length === 0 ? <StateMessage type="empty" title={t("subs.nothingToPause")} /> : null}
-              <View style={{ gap: theme.spacing.sm }}>{choices.map((item) => <ChoiceRow key={item.id} subscription={item} selected={chosen.includes(item.id)} onToggle={() => toggle(item.id)} />)}</View>
-              <InfoCard />
-            </>
-          ) : null}
-          {step === "dates" ? (
-            <>
-              <View style={{ gap: theme.spacing.xs }}>
-                <ThemedText variant="body" weight="semibold">{t(resuming ? "subs.restartOn" : "subscriptionVacation.selectDates")}</ThemedText>
-                <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary }}>{t(resuming ? "subs.resumeDetail" : "subs.vacationDatesDetail")}</ThemedText>
-              </View>
-              {resuming ? (
-                <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-                  <DateCard active label={t("subs.deliveriesBackOn")} value={resumeDate} onPress={() => undefined} />
-                </View>
-              ) : (
-                <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-                  <DateCard active={activeField === "pause"} label={t("subs.noDeliveryFrom")} value={pauseDate} onPress={() => setActiveField("pause")} />
-                  <DateCard active={activeField === "resume"} label={t("subs.deliveriesBackOn")} value={resumeDate} onPress={() => setActiveField("resume")} />
-                </View>
-              )}
-              {!resuming && existingPauses.length > 0 ? (
-                <View style={{ gap: theme.spacing.xs, padding: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorWarningTint }}>
-                  <ThemedText variant="bodySmall" weight="semibold">{t("subs.alreadyPausedTitle")}</ThemedText>
-                  {existingPauses.map((pause) => <ThemedText key={pause.id} variant="caption">• {pause.name}: {formatDeliveryDate(pause.fromDate, lang)} – {pause.untilDate ? formatDeliveryDate(pause.untilDate, lang) : t("subs.untilResume")}</ThemedText>)}
-                </View>
-              ) : null}
-              {resuming ? null : <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t("subs.windowHint", { from: formatDeliveryDate(windowStart, lang), to: formatDeliveryDate(windowEnd, lang) })}</ThemedText>}
-              <CalendarPicker resuming={resuming} pauseDate={pauseDate} resumeDate={resumeDate} minDate={resuming ? firstRestart : windowStart} maxDate={resuming ? lastRestart : lastResume} onDateSelect={selectDate} pausedDays={resuming ? undefined : pausedDays} />
-              {resuming ? null : (
-                <View style={{ flexDirection: "row", justifyContent: "space-between", padding: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorHighlightTint }}>
-                  <ThemedText variant="bodySmall" weight="semibold">{t("subscriptionVacation.totalDuration")}</ThemedText>
-                  <ThemedText variant="bodySmall" weight="semibold">{t("subscriptionVacation.durationDays", { count: duration })}</ThemedText>
-                </View>
-              )}
-              {failure ? <View accessibilityRole="alert" style={{ padding: theme.spacing.md, borderRadius: theme.radii.md, backgroundColor: theme.colors.colorDangerTint }}><ThemedText variant="caption" style={{ color: theme.colors.colorDanger }}>{failure}</ThemedText></View> : null}
-              <InfoCard />
-            </>
-          ) : null}
-          {step === "success" ? (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: theme.spacing.md, paddingTop: theme.spacing.xl }}>
-              <View style={{ width: theme.sizes.avatarLg * 2, height: theme.sizes.avatarLg * 2, alignItems: "center", justifyContent: "center", borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorPrimary }}>
-                <ThemedText variant="h1" style={{ color: theme.colors.colorTextInverse }}>✓</ThemedText>
-              </View>
-              <ThemedText variant="h2">{t(resuming ? "subs.resumedTitle" : "subscriptionVacation.successTitle")}</ThemedText>
-              <ThemedText variant="bodySmall" style={{ color: theme.colors.colorTextSecondary, textAlign: "center" }}>
-                {resuming ? t("subs.restartSummary", { date: formatDeliveryDate(resumeDate, lang) }) : t("subscriptionVacation.successDetail", { pauseDate: formatDeliveryDate(pauseDate, lang), resumeDate: formatDeliveryDate(resumeDate, lang) })}
-              </ThemedText>
-            </View>
-          ) : null}
-        </ScrollView>
-        <View style={{ paddingHorizontal: theme.layout.screenHorizontalPadding, paddingVertical: theme.spacing.md, backgroundColor: theme.colors.colorBackground }}>
-          {step === "products" ? <Button disabled={chosen.length === 0} onPress={() => setStep("dates")}>{t("subscriptionVacation.continueDates")} →</Button> : null}
-          {step === "dates" ? <Button loading={busy} disabled={!resuming && duration <= 0} onPress={() => void confirm()}>{resuming ? t("subs.resumeButton") : t("subscriptionVacation.confirmDays", { count: duration })}</Button> : null}
-          {step === "success" ? <Button onPress={() => router.back()}>{t("subscriptionVacation.backToSubscriptions")}</Button> : null}
-        </View>
-      </View>
-    </SafeAreaView>
-  );
-}
-
-function Progress({ current }: { current: number }) {
-  const theme = useTheme();
-  const { t } = useTranslation();
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <ThemedText variant="caption" weight="semibold" style={{ color: theme.colors.colorTextSecondary }}>{t("subscriptionVacation.step", { current })}</ThemedText>
-      <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
-        {[1, 2, 3].map((item) => <View key={item} style={{ flex: 1, height: theme.spacing.xs, borderRadius: theme.radii.pill, backgroundColor: item <= current ? theme.colors.colorPrimary : theme.colors.colorBorder }} />)}
-      </View>
+  const confirm = async () => {
+    if (inFlight.current || selected.length === 0) return;
+    inFlight.current = true;
+    setBusy(true);
+    setDone(false);
+    setFailure(null);
+    try {
+      for (const date of selected) {
+        for (const item of chosen) {
+          const restoring = item.pauses.some(pause => pause.fromDate <= date && (!pause.untilDate || pause.untilDate >= date));
+          const pausing = !resuming && item.days.some(day => day.date === date && day.lines.some(line => line.canChange && (line.state === "upcoming" || line.state === "placed")));
+          if (restoring) await changeMySubscription(item.id, { type: "resume", fromDate: date, onlyDate: true });
+          else if (pausing) await changeMySubscription(item.id, { type: "pause", fromDate: date, untilDate: date });
+        }
+      }
+      setDone(true);
+    } catch (error) {
+      setFailure(describeError(error));
+    } finally {
+      // A network failure may follow a successful change; refresh before the customer chooses again.
+      setDates([]);
+      await Promise.all([client.invalidateQueries({ queryKey: queryKeys.subscriptions(customerId) }), client.invalidateQueries({ queryKey: queryKeys.deliveries(customerId) }), client.invalidateQueries({ queryKey: queryKeys.orders(customerId) })]);
+      inFlight.current = false;
+      setBusy(false);
+    }
+  };
+  return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.colorBackground }}>
+    <StatusBar barStyle="dark-content" />
+    <View style={{ flexDirection: "row", alignItems: "center", padding: theme.layout.screenHorizontalPadding, gap: theme.spacing.md }}>
+      <IconButton icon={BackIcon} label={t("subscriptionVacation.back")} onPress={() => router.back()} />
+      <ThemedText variant="h2" style={{ flex: 1 }}>{t(done ? "subs.datesChanged" : resuming ? "subs.resumeTitle" : "subscriptionVacation.title")}</ThemedText>
     </View>
-  );
+    {isLoading ? <StateMessage type="loading" title={t("subs.loading")} /> : isError ? <StateMessage type="error" title={t("errors.UNKNOWN_ERROR")} actionLabel={t("common.retry")} onAction={() => void refetch()} /> : <ScrollView contentContainerStyle={{ padding: theme.layout.screenHorizontalPadding, gap: theme.spacing.md }}>
+      {done ? <ThemedText variant="body">{t("subs.datesChanged")}</ThemedText> : <>
+        {choices.length > 1 ? choices.map(item => <ChoiceRow key={item.id} subscription={item} selected={chosen.some(value => value.id === item.id)} onToggle={() => !busy && toggle(item.id)} />) : null}
+        <ThemedText variant="bodySmall">{t(resuming ? "subs.restoreDatesDetail" : "subs.pauseDatesDetail")}</ThemedText>
+        {selectable.size === 0 ? <StateMessage type="empty" title={t("subs.noDatesToChange")} /> : <SharedCalendar mode="multiple" month={month} onMonthChange={setMonth} minDate={today} maxDate={last} disabledDates={disabledDates} dateStatuses={statuses} selectedDates={new Set(selected)} onDateSelect={date => { if (!busy && selectable.has(date)) setDates(current => toggleDate(current, date)); }} legend={[{ color: theme.colors.colorWarning, label: t("subs.alreadyPaused") }]} />}
+        <ThemedText variant="bodySmall" weight="semibold">{t("subs.selectedDatesCount", { count: selected.length })}</ThemedText>
+        {failure ? <ThemedText accessibilityRole="alert" variant="bodySmall" style={{ color: theme.colors.colorDanger }}>{failure}</ThemedText> : null}
+        <InfoCard />
+      </>}
+    </ScrollView>}
+    <View style={{ padding: theme.layout.screenHorizontalPadding }}>
+      {done ? <Button onPress={() => router.back()}>{t("subscriptionVacation.backToSubscriptions")}</Button> : <Button disabled={isLoading || isError || selected.length === 0} loading={busy} onPress={() => void confirm()}>{t(resuming ? "subs.restoreSelectedDates" : "subs.saveDates")}</Button>}
+    </View>
+  </SafeAreaView>;
 }
 
 function ChoiceRow({ subscription, selected, onToggle }: { subscription: Subscription; selected: boolean; onToggle: () => void }) {
@@ -237,45 +134,6 @@ function ChoiceRow({ subscription, selected, onToggle }: { subscription: Subscri
         <View style={{ width: theme.spacing.md, height: theme.spacing.md, alignSelf: selected ? "flex-end" : "flex-start", borderRadius: theme.radii.pill, backgroundColor: theme.colors.colorSurface }} />
       </Pressable>
     </View>
-  );
-}
-
-function CalendarPicker({ resuming, pauseDate, resumeDate, minDate, maxDate, onDateSelect, pausedDays }: { resuming: boolean; pauseDate: string; resumeDate: string; minDate: string; maxDate?: string; onDateSelect: (date: string) => void; pausedDays?: Record<string, { color: string; label: string }> }) {
-  const theme = useTheme();
-  const { t } = useTranslation();
-  const lang = useAppStore((state) => state.language);
-  const [visibleMonth, setVisibleMonth] = useState(() => monthOf(resuming ? resumeDate : pauseDate));
-  if (resuming) return <SharedCalendar mode="single" month={visibleMonth} onMonthChange={setVisibleMonth} selectedDate={resumeDate} minDate={minDate} onDateSelect={onDateSelect} />;
-  return (
-    <SharedCalendar
-      mode="range"
-      month={visibleMonth}
-      onMonthChange={setVisibleMonth}
-      fromDate={pauseDate}
-      toDate={resumeDate}
-      minDate={minDate}
-      maxDate={maxDate}
-      onDateSelect={onDateSelect}
-      dateStatuses={pausedDays}
-      legend={[
-        { color: theme.colors.colorHighlightTint, label: t("subscriptionVacation.vacationRange") },
-        { color: theme.colors.colorPrimary, label: t("subscriptionVacation.deliveriesResume", { date: formatDeliveryDate(resumeDate, lang) }) },
-        ...(pausedDays && Object.keys(pausedDays).length > 0 ? [{ color: theme.colors.colorWarning, label: t("subs.alreadyPaused") }] : []),
-      ]}
-    />
-  );
-}
-
-function DateCard({ active, label, onPress, value }: { active: boolean; label: string; onPress: () => void; value: string }) {
-  const theme = useTheme();
-  const { t } = useTranslation();
-  const lang = useAppStore((state) => state.language);
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={onPress} style={{ flex: 1, gap: theme.spacing.xs, padding: theme.spacing.md, borderRadius: theme.radii.lg, borderWidth: active ? theme.borderWidths.medium : theme.borderWidths.hairline, borderColor: active ? theme.colors.colorPrimary : theme.colors.colorBorder, backgroundColor: theme.colors.colorSurface }}>
-      <ThemedText variant="caption" weight="semibold">{label}</ThemedText>
-      <ThemedText variant="bodySmall" weight="semibold">{formatDeliveryDate(value, lang)}</ThemedText>
-      <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{active ? t("subscriptionVacation.selecting") : t("subscriptionVacation.tapEdit")}</ThemedText>
-    </Pressable>
   );
 }
 

@@ -99,7 +99,7 @@ export default function ManageSubscriptionScreen() {
   const paused = subscription.status === "paused";
   const name = localized(subscription.productName, subscription.productNameGu, language);
   const perDelivery = subscription.unitPricePaise * subscription.lines.reduce((sum, line) => sum + line.quantity, 0);
-  const schedule = subscription.kind === "trial" ? t("subs.trialDaily") : subscription.scheduleType === "custom_weekdays" ? subscription.weekdays.map((day) => t(`subs.weekdayShort_${WEEKDAY_KEYS[day - 1]}`)).join(", ") : t(`subs.schedule_${subscription.scheduleType}`);
+  const schedule = subscription.kind === "trial" ? t("subs.trialDaily") : subscription.scheduleType === "custom_weekdays" && subscription.weekdays.length === 7 ? t("subs.customDates") : subscription.scheduleType === "custom_weekdays" ? subscription.weekdays.map((day) => t(`subs.weekdayShort_${WEEKDAY_KEYS[day - 1]}`)).join(", ") : t(`subs.schedule_${subscription.scheduleType}`);
   const nextText = paused ? t("subs.pausedNow") : subscription.nextDelivery ? `${formatShortDay(subscription.nextDelivery.date, language, t)} · ${subscription.nextDelivery.slotName}${countdown ? ` · ${countdown}` : ""}` : undefined;
   // Vacations still ahead (or running), so the customer sees what is already paused.
   const vacations = subscription.pauses.filter((pause) => pause.untilDate !== null && pause.untilDate >= indiaToday());
