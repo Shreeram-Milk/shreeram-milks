@@ -74,6 +74,10 @@ export function parseSubscription(raw: unknown): Subscription | null {
   if (!item || !text(item.id)) return null;
   const next = record(item.nextDelivery);
   return {
+    calendar: record(item.calendar) ? {
+      changeableDates: list(record(item.calendar)?.changeableDates).filter((date): date is string => typeof date === "string"),
+      resumableDates: list(record(item.calendar)?.resumableDates).filter((date): date is string => typeof date === "string"),
+    } : undefined,
     id: text(item.id), number: text(item.number), kind: item.kind === "trial" ? "trial" : "subscription", status: oneOf(item.status, STATES, "active"),
     productId: text(item.productId), productName: text(item.productName), productNameGu: text(item.productNameGu), variantName: text(item.variantName), unitPricePaise: whole(item.unitPricePaise),
     planName: text(item.planName), scheduleType: oneOf(item.scheduleType, SCHEDULES, "daily"), weekdays: numbers(item.weekdays), deliveriesPerLine: whole(item.deliveriesPerLine),

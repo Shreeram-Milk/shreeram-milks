@@ -66,6 +66,7 @@ export interface DayLine {
 }
 
 export interface Subscription {
+  calendar?: { changeableDates: string[]; resumableDates: string[] };
   id: string;
   number: string;
   kind: SubscriptionKind;

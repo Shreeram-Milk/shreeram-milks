@@ -52,6 +52,11 @@ export default function SubscriptionVacationScreen() {
   const paused = new Set<string>();
   const statuses: Record<string, { color: string; label: string }> = {};
   for (const item of chosen) {
+    if (item.calendar) {
+      for (const date of item.calendar.changeableDates) available.add(date);
+      for (const date of item.calendar.resumableDates) paused.add(date);
+      continue;
+    }
     for (const day of item.days) if (day.date >= today && day.lines.some(line => line.canChange && (line.state === "upcoming" || line.state === "placed"))) available.add(day.date);
     for (const pause of item.pauses) {
       for (const date of dateRange(pause.fromDate > today ? pause.fromDate : today, pause.untilDate && pause.untilDate < last ? pause.untilDate : last)) {
@@ -78,8 +83,8 @@ export default function SubscriptionVacationScreen() {
     try {
       for (const date of selected) {
         for (const item of chosen) {
-          const restoring = item.pauses.some(pause => pause.fromDate <= date && (!pause.untilDate || pause.untilDate >= date));
-          const pausing = !resuming && item.days.some(day => day.date === date && day.lines.some(line => line.canChange && (line.state === "upcoming" || line.state === "placed")));
+          const restoring = item.calendar ? item.calendar.resumableDates.includes(date) : item.pauses.some(pause => pause.fromDate <= date && (!pause.untilDate || pause.untilDate >= date));
+          const pausing = !resuming && (item.calendar ? item.calendar.changeableDates.includes(date) : item.days.some(day => day.date === date && day.lines.some(line => line.canChange && (line.state === "upcoming" || line.state === "placed"))));
           if (restoring) await changeMySubscription(item.id, { type: "resume", fromDate: date, onlyDate: true });
           else if (pausing) await changeMySubscription(item.id, { type: "pause", fromDate: date, untilDate: date });
         }
@@ -90,7 +95,7 @@ export default function SubscriptionVacationScreen() {
     } finally {
       // A network failure may follow a successful change; refresh before the customer chooses again.
       setDates([]);
-      await Promise.all([client.invalidateQueries({ queryKey: queryKeys.subscriptions(customerId) }), client.invalidateQueries({ queryKey: queryKeys.deliveries(customerId) }), client.invalidateQueries({ queryKey: queryKeys.orders(customerId) })]);
+      await Promise.all([client.invalidateQueries({ queryKey: queryKeys.subscriptions(customerId) }), client.invalidateQueries({ queryKey: queryKeys.deliveries(customerId) }), client.invalidateQueries({ queryKey: queryKeys.orders(customerId) }), client.invalidateQueries({ queryKey: queryKeys.credit(customerId) })]);
       inFlight.current = false;
       setBusy(false);
     }
