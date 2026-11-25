@@ -264,7 +264,7 @@ export function SharedCalendar({
                       <ThemedText
                         variant="caption"
                         weight={mode === "single" || isEndpoint || isSelected ? "semibold" : "regular"}
-                        style={{ color: isDisabled ? theme.colors.colorTextDisabled : status && !isEndpoint ? theme.colors.colorTextInverse : theme.colors.colorTextPrimary }}
+                        style={{ color: isDisabled ? theme.colors.colorTextDisabled : status && !isEndpoint && !isSelected ? theme.colors.colorTextInverse : theme.colors.colorTextPrimary }}
                       >
                         {new Date(`${date}T12:00:00`).getDate()}
                       </ThemedText>

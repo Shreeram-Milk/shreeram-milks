@@ -1060,7 +1060,7 @@
   "subs": {
     "pickDatesTitle": "Choose delivery dates",
     "pickDatesDetail": "Tap each date you want a delivery. Tap a selected date again to remove it.",
-    "pauseDatesDetail": "Tap the dates to pause. Tap again to deselect. Amber dates are already paused.",
+    "pauseDatesDetail": "Tap delivery dates to pause. Tap amber dates to restore. Tap again to deselect.",
     "restoreDatesDetail": "Tap paused dates to restore those deliveries. Other paused dates stay paused.",
     "selectedDatesCount": "{{count}} dates selected",
     "selectPauseDates": "Pause selected dates",
