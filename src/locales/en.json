@@ -706,6 +706,9 @@
     "legalSubtitle": "Privacy, terms and refunds"
   },
   "addresses": {
+    "directoryPrivacy": "The place name you type and PIN are used for external suggestions. Your name, phone and saved house address are not sent.",
+    "directoryUnavailable": "External suggestions are unavailable right now. You can still add the place name yourself.",
+
     "phoneRequired": "Enter a mobile number the delivery team can call.",
     "makeDefault": "Make default",
     "editShort": "Edit",

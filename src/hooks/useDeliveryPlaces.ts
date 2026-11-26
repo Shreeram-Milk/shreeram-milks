@@ -19,5 +19,5 @@ export function useDeliveryPlaces(pinCode: string, kind: DeliveryPlace['kind'], 
     enabled: enabled && customerId !== '' && /^[1-9]\d{5}$/.test(pinCode) && ready,
     staleTime: 30_000,
   });
-  return { ...result, data: ready ? result.data : undefined, isDebouncing: !ready };
+  return { ...result, data: ready ? result.data?.places : undefined, directoryStatus: ready ? result.data?.directoryStatus : undefined, isDebouncing: !ready };
 }

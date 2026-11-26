@@ -1,20 +1,22 @@
-import { Pressable, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../atoms/Button';
 import { ThemedText } from '../atoms/ThemedText';
 import { FormField } from '../molecules/FormField';
 import { useTheme } from '../../theme';
+import type { DirectoryStatus } from '../../services/deliveryPlaceService';
 import type { DeliveryPlace } from '../../types/models';
 
 type Props = {
   kind: DeliveryPlace['kind']; name: string; selected: boolean; pinValid: boolean;
+  directoryStatus?: DirectoryStatus;
   places: DeliveryPlace[]; loading: boolean; failed: boolean; error?: string;
   onChange: (name: string) => void; onPick: (place: DeliveryPlace) => void;
   onAdd: () => void; onClear: () => void; onRetry: () => void;
 };
 
 /** Directory suggestions are supplied by the form's query hook; this component only renders and dispatches choices. */
-export function DeliveryPlacePicker({ kind, name, selected, pinValid, places, loading, failed, error, onChange, onPick, onAdd, onClear, onRetry }: Props) {
+export function DeliveryPlacePicker({ kind, name, selected, pinValid, places, loading, failed, error, onChange, onPick, onAdd, onClear, onRetry, directoryStatus }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
   // The same name may belong to a different society in another locality of this PIN.
@@ -27,6 +29,8 @@ export function DeliveryPlacePicker({ kind, name, selected, pinValid, places, lo
       <Button variant="secondary" onPress={onClear}>{t('addresses.changePlace')}</Button>
     </View> : <>
       <FormField label={t(kind === 'society' ? 'addresses.society' : 'addresses.localityGroup')} value={name} onChangeText={onChange} maxLength={150} error={error} helper={t(pinValid ? 'addresses.placeHelp' : 'addresses.enterPinFirst')} editable={pinValid} />
+      <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{t('addresses.directoryPrivacy')}</ThemedText>
+      {pinValid && (directoryStatus === 'unavailable' || directoryStatus === 'limited') ? <ThemedText variant="caption">{t('addresses.directoryUnavailable')}</ThemedText> : null}
       {pinValid && loading ? <ThemedText variant="caption" accessibilityLiveRegion="polite">{t('addresses.findingPlaces')}</ThemedText> : null}
       {pinValid && failed ? <View style={{ gap: theme.spacing.sm }}><ThemedText variant="caption" style={{ color: theme.colors.colorDanger }}>{t('addresses.placesFailed')}</ThemedText><Button variant="secondary" onPress={onRetry}>{t('addresses.retry')}</Button></View> : null}
       {pinValid && !loading && !failed && places.length === 0 && name.trim().length >= 2 ? <ThemedText variant="caption">{t('addresses.noPlaceMatches')}</ThemedText> : null}
@@ -37,6 +41,7 @@ export function DeliveryPlacePicker({ kind, name, selected, pinValid, places, lo
           {item.locality ? <ThemedText variant="caption" style={{ color: theme.colors.colorTextSecondary }}>{item.locality}</ThemedText> : null}
         </Pressable>)}
       </View> : null}
+      {directoryStatus && directoryStatus !== 'not-configured' ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}><ThemedText variant="caption" accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.geoapify.com/'); }}>Geoapify</ThemedText><ThemedText variant="caption">·</ThemedText><ThemedText variant="caption" accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright'); }}>© OpenStreetMap contributors</ThemedText></View> : null}
       {canAdd ? <Button variant="secondary" onPress={onAdd}>{t('addresses.addPlace', { name: name.trim() })}</Button> : null}
     </>}
   </View>;

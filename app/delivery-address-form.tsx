@@ -292,7 +292,8 @@ function AddressForm({ existing, addresses, clarify }: { existing: DeliveryAddre
                   kind={addressKind === "society" ? "society" : "locality"} name={placeName} selected={placeConfirmed} pinValid={/^[1-9]\d{5}$/.test(pinCode)}
                   places={places.data ?? []} loading={places.isFetching || places.isDebouncing} failed={places.isError} error={errors.deliveryPlaceName?.message}
                   onChange={name => { setValue("deliveryDetailsConfirmed", false); setValue("deliveryPlaceName", name); setValue("deliveryPlaceId", null); setPlaceConfirmed(false); }}
-                  onPick={place => { setValue("deliveryDetailsConfirmed", false); setValue("deliveryPlaceId", place.id); setValue("deliveryPlaceName", place.name); setValue("locality", place.locality); setPlaceConfirmed(true); }}
+                  directoryStatus={places.directoryStatus}
+                  onPick={place => { setValue("deliveryDetailsConfirmed", false); setValue("deliveryPlaceId", place.source === "geoapify" ? null : place.id); setValue("deliveryPlaceName", place.name); setValue("locality", place.locality); setPlaceConfirmed(true); }}
                   onAdd={addPlace} onClear={clearPlace} onRetry={() => void places.refetch()}
                 />} /> : null}
                 <Controller control={control} name="locality" render={({ field: { value, onChange } }) => <FormField label={t("addresses.locality")} value={value ?? ""} onChangeText={text => { onChange(text); setValue("deliveryDetailsConfirmed", false); }} maxLength={150} editable={!selectedPlaceId} helper={selectedPlaceId ? t("addresses.placeLocalityLocked") : undefined} />} />

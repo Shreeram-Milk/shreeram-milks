@@ -29,6 +29,7 @@ export type AddressKind = "society" | "independent" | "unspecified";
 export type DeliveryDetails = { building: string; towerWing: string; floor: string; unit: string; lane: string };
 
 export interface DeliveryPlace {
+  source?: "geoapify";
   id: string;
   name: string;
   locality: string;
