@@ -1,7 +1,7 @@
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Pressable, StatusBar, View } from "react-native";
+import { Alert, BackHandler, Pressable, StatusBar, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -10,7 +10,6 @@ import { TextField } from "../src/components/molecules/TextField";
 import { Button } from "../src/components/atoms/Button";
 import { ThemedText } from "../src/components/atoms/ThemedText";
 import { DeliverySetupHeader } from "../src/components/molecules/DeliverySetupHeader";
-import { PinAvailabilityCard } from "../src/components/molecules/PinAvailabilityCard";
 import { ACTION_BAR_SPACE, KeyboardActionBar } from "../src/components/organisms/KeyboardActionBar";
 import { AddressKindPicker } from "../src/components/molecules/AddressKindPicker";
 import { DeliveryDetailsFields } from "../src/components/organisms/DeliveryDetailsFields";
@@ -27,11 +26,11 @@ import { useSessionStore } from "../src/store/useSessionStore";
 import { useTheme } from "../src/theme";
 import type { AddressKind, AddressType, DeliveryAddress } from "../src/types/models";
 
-/** Delivery location: the customer types a PIN code and the server says whether, and from when, we deliver there. */
+/** Onboarding keeps the PIN/home choice separate from address entry; the existing preferences screen is step three. */
 function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const language = useAppStore((state) => state.language);
+  const [step, setStep] = useState<1 | 2>(1);
   const setDeliveryPin = useAppStore((state) => state.setDeliveryPin);
   // A returning customer starts from their default address instead of typing it all again.
   const [pin, setPin] = useState(useAppStore.getState().deliveryPin || prefill?.pincode || "");
@@ -49,7 +48,7 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
   const [deliveryDetails, setDeliveryDetails] = useState(parseDeliveryDetails(prefill?.deliveryDetails));
   const [deliveryDetailsConfirmed, setDeliveryDetailsConfirmed] = useState(prefill?.deliveryDetailsConfirmed === true);
   const [placeConfirmed, setPlaceConfirmed] = useState(Boolean(prefill?.deliveryPlaceId || prefill?.deliveryPlaceName));
-  const places = useDeliveryPlaces(pin, addressKind === "society" ? "society" : "locality", deliveryPlaceName, addressKind !== "unspecified" && !placeConfirmed);
+  const places = useDeliveryPlaces(pin, addressKind === "society" ? "society" : "locality", deliveryPlaceName, step === 2 && addressKind !== "unspecified" && !placeConfirmed);
   const clearPlace = () => { setDeliveryDetailsConfirmed(false); setDeliveryPlaceId(null); setDeliveryPlaceName(""); setPlaceConfirmed(false); };
   const detailsComplete = address.trim() !== "" && (addressKind === "unspecified" || (addressKind === "independent" && !deliveryPlaceName.trim()) || (placeConfirmed && Boolean(deliveryPlaceName.trim())));
   const addPlace = () => Alert.alert(t("addresses.confirmPlaceTitle"), t("addresses.confirmPlaceBody", { name: deliveryPlaceName.trim(), pin }), [
@@ -58,7 +57,22 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
   ]);
   const { data: availability, isError, isLoading, refetch } = usePinAvailability(pin);
 
+  useFocusEffect(useCallback(() => {
+    if (step !== 2) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      setStep(1);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [step]));
+
   const next = async () => {
+    if (!complete || addressKind === "unspecified" || saveAddress.isPending) return;
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
+    if (!detailsComplete || !deliveryDetailsConfirmed) return;
     setDeliveryPin(pin);
     const alreadySaved = (savedAddresses ?? []).some((item) => item.pincode === pin && item.line1.trim().toLowerCase() === address.trim().toLowerCase() && item.line2.trim() === landmark.trim() && (item.addressKind ?? "unspecified") === addressKind && (item.deliveryPlaceId ?? null) === deliveryPlaceId && (item.deliveryPlaceName ?? "") === deliveryPlaceName && (item.locality ?? "") === locality && JSON.stringify(parseDeliveryDetails(item.deliveryDetails)) === JSON.stringify(deliveryDetails) && item.deliveryDetailsConfirmed === true);
     if (!alreadySaved) {
@@ -91,11 +105,13 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
       <StatusBar barStyle="dark-content" />
       <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg }}>
         <DeliverySetupHeader
-          step={1}
-          title={t("location.title")}
+          step={step}
+          title={t(step === 1 ? "location.title" : "location.addressTitle")}
           skipLabel={t("location.skip")}
+          onBack={step === 2 ? () => setStep(1) : undefined}
         />
         <KeyboardAwareScrollView
+          key={step}
           bottomOffset={ACTION_BAR_SPACE}
           mode="layout"
           keyboardShouldPersistTaps="handled"
@@ -111,8 +127,9 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
             variant="bodySmall"
             style={{ color: theme.colors.colorTextSecondary }}
           >
-            {t("location.description")}
+            {t(step === 1 ? "location.description" : "location.addressDescription")}
           </ThemedText>
+          {step === 1 ? <>
           <TextField
             label={`${t("location.pinLabel")} *`}
             icon={LocationIcon}
@@ -124,15 +141,16 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
             valid={pin.length === 6}
             value={pin}
           />
-          <PinAvailabilityCard
-            availability={availability}
-            complete={complete}
-            isError={isError}
-            isLoading={isLoading}
-            language={language}
-            onRetry={() => void refetch()}
-          />
-          <AddressKindPicker value={addressKind} showLegacy={Boolean(prefill && (!prefill.addressKind || prefill.addressKind === "unspecified"))} onChange={kind => { setAddressKind(kind); setDeliveryDetails(current => kind === "society" ? { ...current, lane: "" } : { ...current, building: "", towerWing: "" }); clearPlace(); }} />
+          {complete && (isLoading || isError || availability?.options.length === 0) ? <View accessibilityLiveRegion="polite" style={{ gap: theme.spacing.xs }}>
+            <ThemedText variant="caption" style={{ color: isError ? theme.colors.colorDanger : theme.colors.colorTextSecondary }}>
+              {t(isLoading ? "location.checking" : isError ? "location.errorTitle" : "location.unservedCompact")}
+            </ThemedText>
+            {isError ? <Pressable accessibilityRole="button" onPress={() => void refetch()} style={{ minHeight: theme.layout.touchTargetMin, justifyContent: "center", alignSelf: "flex-start" }}>
+              <ThemedText variant="bodySmall" weight="semibold" style={{ color: theme.colors.colorPrimary }}>{t("common.retry")}</ThemedText>
+            </Pressable> : null}
+          </View> : null}
+          <AddressKindPicker value={addressKind} showLegacy={false} onChange={kind => { if (kind === addressKind) return; setAddressKind(kind); setDeliveryDetails(current => kind === "society" ? { ...current, lane: "" } : { ...current, building: "", towerWing: "" }); clearPlace(); }} />
+          </> : <>
           {addressKind !== "unspecified" ? <DeliveryPlacePicker
             kind={addressKind === "society" ? "society" : "locality"} name={deliveryPlaceName} selected={placeConfirmed} pinValid={complete}
             places={places.data ?? []} loading={places.isFetching || places.isDebouncing} failed={places.isError}
@@ -201,15 +219,16 @@ function LocationForm({ prefill }: { prefill: DeliveryAddress | undefined }) {
               </Pressable>
             ))}
           </View>
+          </>}
         </KeyboardAwareScrollView>
         <KeyboardActionBar>
-          {saveAddress.error ? (
+          {step === 2 && saveAddress.error ? (
             <ThemedText accessibilityLiveRegion="polite" variant="caption" style={{ color: theme.colors.colorDanger }}>
               {describeError(saveAddress.error)}
             </ThemedText>
           ) : null}
-          <Button disabled={!complete || !detailsComplete || !deliveryDetailsConfirmed} loading={saveAddress.isPending} onPress={() => void next()}>
-            {t("location.continue")}
+          <Button disabled={!complete || addressKind === "unspecified" || (step === 2 && (!detailsComplete || !deliveryDetailsConfirmed))} loading={saveAddress.isPending} onPress={() => void next()}>
+            {t(step === 1 ? "location.continueAddress" : "location.continue")}
           </Button>
         </KeyboardActionBar>
       </View>

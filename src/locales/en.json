@@ -334,8 +334,12 @@
     }
   },
   "location": {
-    "title": "Delivery Location",
-    "description": "Select your delivery location to check early morning service.",
+    "unservedCompact": "Home delivery is not available here yet. Check each product for courier delivery.",
+    "continueAddress": "Continue to address",
+    "addressDescription": "Add the details that help us find your home.",
+    "addressTitle": "Your address",
+    "title": "Your delivery area",
+    "description": "Enter your PIN code and choose your home type.",
     "addressLine1": "House / Flat / Villa / Block number",
     "addressLine2": "Street, Society or Landmark",
     "saveAs": "Save address as:",
@@ -578,7 +582,7 @@
   "deliverySetup": {
     "back": "Back",
     "title": "DELIVERY SETUP",
-    "step": "STEP {{step}} OF 2"
+    "step": "STEP {{step}} OF 3"
   },
   "inbox": {
     "back": "Back",

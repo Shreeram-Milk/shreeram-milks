@@ -157,7 +157,7 @@ export default function DeliverySlotScreen() {
       <StatusBar barStyle="dark-content" />
       <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg }}>
         <DeliverySetupHeader
-          step={2}
+          step={3}
           title={t("deliverySlot.title")}
           skipLabel={t("location.skip")}
         />
